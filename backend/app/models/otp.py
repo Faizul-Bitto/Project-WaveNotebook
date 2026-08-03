@@ -16,8 +16,13 @@ class OTP(Base):
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
+    )
+
+    phone_number = Column(
+        String(20),
+        nullable=False,
     )
 
     # Stores the hashed OTP
