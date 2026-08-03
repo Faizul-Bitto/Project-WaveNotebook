@@ -3,12 +3,6 @@ from starlette import status
 
 from app.dependencies.auth import login_token_field_dependency
 from app.dependencies.database import db_dependency
-from app.exceptions.auth_exceptions import (
-    BadRequestException,
-    ConflictException,
-    ExternalServiceException,
-    UnauthorizedException,
-)
 from app.schemas.auth import (
     CreateUserRequest,
     ForgotPasswordRequest,
@@ -45,7 +39,7 @@ async def create_user(
 
         return result
 
-    except ConflictException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -74,7 +68,7 @@ async def login(
 
         return result
 
-    except UnauthorizedException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,7 +96,7 @@ async def forgot_password(
 
         return result
 
-    except ExternalServiceException as e:
+    except RuntimeError as e:
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -130,7 +124,7 @@ async def verify_otp(
 
         return result
 
-    except BadRequestException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -158,7 +152,7 @@ async def reset_password(
 
         return result
 
-    except BadRequestException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

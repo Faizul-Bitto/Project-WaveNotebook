@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 from app.core.security import bcrypt_context
-from app.exceptions.auth_exceptions import BadRequestException
 from app.models.user import User
 from app.schemas.user import UpdateUserRequest, UserUpdatePasswordRequest
 
@@ -42,9 +41,11 @@ class UserService:
         Update user profile.
         """
 
+        # Phone number is the base identifier - no need to check email uniqueness
+        # Email is optional and can be duplicated or null
+
         user.first_name = update_request.first_name
         user.last_name = update_request.last_name
-
         user.email = update_request.email
 
         db.commit()
@@ -83,7 +84,7 @@ class UserService:
                 f"⚠️ Password Update Failed | Incorrect Password | Phone={user.phone_number} | Role={user.role}"
             )
 
-            raise BadRequestException("Current password is incorrect.")
+            raise ValueError("Current password is incorrect.")
 
         user.password = bcrypt_context.hash(
             update_password_request.new_password,

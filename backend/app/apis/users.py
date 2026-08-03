@@ -3,7 +3,6 @@ from starlette import status
 
 from app.dependencies.database import db_dependency
 from app.dependencies.user import user_dependency
-from app.exceptions.auth_exceptions import BadRequestException
 from app.schemas.user import UpdateUserRequest, UserUpdatePasswordRequest
 from app.services.user_service import UserService
 
@@ -25,7 +24,7 @@ async def get_profile(user: user_dependency):
 
         return result
 
-    except BadRequestException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -49,7 +48,7 @@ async def update_profile(
 
         return result
 
-    except BadRequestException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -76,7 +75,7 @@ async def update_password(
 
         return result
 
-    except BadRequestException as e:
+    except ValueError as e:
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
