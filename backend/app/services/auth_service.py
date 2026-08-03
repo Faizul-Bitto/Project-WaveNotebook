@@ -51,15 +51,6 @@ class AuthService:
 
             raise ConflictException("Phone number already registered.")
 
-        if create_user_request.email:
-
-            existing_email = (
-                db.query(User).filter(User.email == create_user_request.email).first()
-            )
-
-            if existing_email:
-                raise ConflictException("Email already registered.")
-
         user = User(
             first_name=create_user_request.first_name,
             last_name=create_user_request.last_name,
@@ -78,21 +69,16 @@ class AuthService:
             f"Phone={user.phone_number}"
         )
 
-        user_data = {
-            "id": user.id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "phone_number": user.phone_number,
-            "role": user.role,
-        }
-
-        # Only include email if it exists (phone-based system)
-        if user.email:
-            user_data["email"] = user.email
-
         return {
             "message": "User registered successfully.",
-            "user": user_data,
+            "user": {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "phone_number": user.phone_number,
+                "email": user.email,  # Always include email (can be null/empty)
+                "role": user.role,
+            },
         }
 
     @staticmethod
