@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -12,26 +13,30 @@ from app.core.security import (
     verify_password,
 )
 from app.core.sms import send_sms
+from app.exceptions.auth_exceptions import (
+    BadRequestException,
+    ConflictException,
+    ExternalServiceException,
+    UnauthorizedException,
+)
 from app.models.otp import OTP
 from app.models.user import User
 from app.schemas.auth import (
+    CreateUserRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
     VerifyOTPRequest,
 )
-
-
-def ensure_timezone_aware(dt):
-    """Ensure datetime is timezone-aware"""
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
+from app.utils.datetime import ensure_timezone_aware
 
 
 class AuthService:
 
     @staticmethod
-    def register_user(db: Session, create_user_request) -> dict:
+    def register_user(
+        db: Session,
+        create_user_request: CreateUserRequest,
+    ) -> dict:
         """
         Register a new user.
         """
@@ -44,7 +49,7 @@ class AuthService:
 
         if existing_phone:
 
-            raise ValueError("Phone number already registered.")
+            raise ConflictException("Phone number already registered.")
 
         if create_user_request.email:
 
@@ -53,8 +58,7 @@ class AuthService:
             )
 
             if existing_email:
-
-                raise ValueError("Email already registered.")
+                raise ConflictException("Email already registered.")
 
         user = User(
             first_name=create_user_request.first_name,
@@ -74,20 +78,28 @@ class AuthService:
             f"Phone={user.phone_number}"
         )
 
+        user_data = {
+            "id": user.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "phone_number": user.phone_number,
+            "role": user.role,
+        }
+
+        # Only include email if it exists (phone-based system)
+        if user.email:
+            user_data["email"] = user.email
+
         return {
             "message": "User registered successfully.",
-            "user": {
-                "id": user.id,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "phone_number": user.phone_number,
-                "email": user.email,
-                "role": user.role,
-            },
+            "user": user_data,
         }
 
     @staticmethod
-    def login_user(db: Session, form_data) -> dict:
+    def login_user(
+        db: Session,
+        form_data: OAuth2PasswordRequestForm,
+    ) -> dict:
         """
         Login using phone number and password.
         """
@@ -102,7 +114,7 @@ class AuthService:
 
             logger.warning(f"❌ Login Failed | " f"Phone={form_data.username}")
 
-            raise ValueError("Incorrect phone number or password.")
+            raise UnauthorizedException("Incorrect phone number or password.")
 
         logger.info(
             f"🔑 Login Successful | "
@@ -121,7 +133,10 @@ class AuthService:
         }
 
     @staticmethod
-    def forgot_password(db: Session, request: ForgotPasswordRequest) -> dict:
+    def forgot_password(
+        db: Session,
+        request: ForgotPasswordRequest,
+    ) -> dict:
         """
         Send OTP to user's phone number.
         """
@@ -182,12 +197,17 @@ class AuthService:
                 f"Phone={user.phone_number}"
             )
 
-            raise RuntimeError("Unable to send OTP. Please try again later.")
+            raise ExternalServiceException(
+                "Unable to send OTP. Please try again later."
+            )
 
         return {"message": "If phone number exists, OTP has been sent."}
 
     @staticmethod
-    def verify_otp(db: Session, request: VerifyOTPRequest) -> dict:
+    def verify_otp(
+        db: Session,
+        request: VerifyOTPRequest,
+    ) -> dict:
         """
         Verify OTP for password reset.
         """
@@ -196,7 +216,7 @@ class AuthService:
 
         if not user:
 
-            raise ValueError("Invalid OTP.")
+            raise BadRequestException("Invalid OTP.")
 
         otp_record = (
             db.query(OTP)
@@ -211,18 +231,18 @@ class AuthService:
 
         if not otp_record:
 
-            raise ValueError("Invalid OTP.")
+            raise BadRequestException("Invalid OTP.")
 
         if datetime.now(timezone.utc) > ensure_timezone_aware(otp_record.expires_at):
 
-            raise ValueError("OTP expired.")
+            raise BadRequestException("OTP expired.")
 
         if not verify_password(
             request.otp,
             otp_record.code,
         ):
 
-            raise ValueError("Invalid OTP.")
+            raise BadRequestException("Invalid OTP.")
 
         otp_record.verified = True
 
@@ -237,7 +257,10 @@ class AuthService:
         return {"message": "OTP verified successfully."}
 
     @staticmethod
-    def reset_password(db: Session, request: ResetPasswordRequest) -> dict:
+    def reset_password(
+        db: Session,
+        request: ResetPasswordRequest,
+    ) -> dict:
         """
         Reset user password.
         """
@@ -246,7 +269,7 @@ class AuthService:
 
         if not user:
 
-            raise ValueError("Invalid request.")
+            raise BadRequestException("Invalid request.")
 
         otp_record = (
             db.query(OTP)
@@ -262,11 +285,11 @@ class AuthService:
 
         if not otp_record:
 
-            raise ValueError("OTP verification required.")
+            raise BadRequestException("OTP verification required.")
 
         if datetime.now(timezone.utc) > ensure_timezone_aware(otp_record.expires_at):
 
-            raise ValueError("OTP expired.")
+            raise BadRequestException("OTP expired.")
 
         user.password = hash_password(request.new_password)
 
