@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, List
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -34,11 +34,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
+        case_sensitive=True,
     )
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, value):
+    def parse_cors_origins(cls, value: Any):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",")]
         return value
