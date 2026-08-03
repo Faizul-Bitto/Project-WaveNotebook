@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     EMAIL_FROM: str
     EMAIL_FROM_NAME: str
 
+    # SMS
+    SMS_BD_API_KEY: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

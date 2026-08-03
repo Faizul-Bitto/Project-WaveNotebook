@@ -9,6 +9,7 @@ from starlette import status
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.core.email import verify_email_connection
+from app.core.sms import verify_sms_connection
 from app.core.logger import logger
 from app.core.security import (
     hash_password,
@@ -34,6 +35,10 @@ from app.models.order_item import OrderItem
 from app.models.order_item_option import OrderItemOption
 
 from app.models.contact import Contact
+
+from app.apis import (
+    auth,
+)
 
 
 @asynccontextmanager
@@ -68,6 +73,20 @@ async def lifespan(app: FastAPI):
         except Exception as e:
 
             logger.exception(f"❌ Brevo API Connection Failed: {e}")
+
+        # ==========================================================
+        # Check SMS API Connection
+        # ==========================================================
+
+        try:
+
+            verify_sms_connection()
+
+            logger.info("✅ SMS API Connected Successfully")
+
+        except Exception as e:
+
+            logger.exception(f"❌ SMS API Connection Failed: {e}")
 
         # ==========================================================
         # Synchronize Database Tables
@@ -218,7 +237,7 @@ app.add_middleware(
 # ==========================================================
 
 # app.include_router(users.router)
-# app.include_router(auth.router)
+app.include_router(auth.router)
 # app.include_router(products.router)
 # app.include_router(cart.router)
 # app.include_router(orders.router)

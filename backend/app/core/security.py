@@ -46,29 +46,19 @@ def verify_password(
 
 
 def authenticate_user(
-    login: str,
+    phone_number: str,
     password: str,
     db: Session,
 ) -> User | None:
     """
-    Authenticate a user using email or phone number.
+    Authenticate a user using phone number.
     """
 
-    user = (
-        db.query(User)
-        .filter(
-            or_(
-                User.email == login,
-                User.phone_number == login,
-            )
-        )
-        .first()
-    )
+    user = db.query(User).filter(User.phone_number == phone_number).first()
 
     if user is None:
         return None
 
-    # User without password cannot login with password
     if user.password is None:
         return None
 
