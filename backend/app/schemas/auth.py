@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, field_validator
+from email_validator import validate_email as validate_email_format
 
 
 class CreateUserRequest(BaseModel):
@@ -17,11 +18,20 @@ class CreateUserRequest(BaseModel):
         max_length=20,
     )
 
-    email: EmailStr | None = None
+    email: str | None = None
 
     password: str = Field(
         min_length=6,
     )
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        # Validate email format
+        validate_email_format(v, check_deliverability=False)
+        return v
 
 
 class Token(BaseModel):

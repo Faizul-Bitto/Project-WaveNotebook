@@ -45,13 +45,19 @@ class OTP(Base):
         default=False,
     )
 
+    verified = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
     expires_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=False,
     )
 
     created_at = Column(
-        DateTime,
+        DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
