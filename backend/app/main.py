@@ -38,6 +38,7 @@ from app.models.contact import Contact
 
 from app.apis import (
     auth,
+    users,
 )
 
 
@@ -236,7 +237,7 @@ app.add_middleware(
 # User Routers
 # ==========================================================
 
-# app.include_router(users.router)
+app.include_router(users.router)
 app.include_router(auth.router)
 # app.include_router(products.router)
 # app.include_router(cart.router)
