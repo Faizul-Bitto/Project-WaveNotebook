@@ -1,0 +1,39 @@
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.sql import func
+
+from app.core.database import Base
+
+
+class AttributeOption(Base):
+    __tablename__ = "attribute_options"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    attribute_id = Column(
+        Integer,
+        ForeignKey("attributes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    value = Column(
+        String(100),
+        nullable=False,
+    )
+
+    created_at = Column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
