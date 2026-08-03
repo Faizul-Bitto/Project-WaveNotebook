@@ -2,13 +2,6 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-
-def ensure_timezone_aware(dt):
-    """Ensure datetime is timezone-aware"""
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
-
 from app.core.config import settings
 from app.core.logger import logger
 from app.core.security import (
@@ -26,6 +19,13 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     VerifyOTPRequest,
 )
+
+
+def ensure_timezone_aware(dt):
+    """Ensure datetime is timezone-aware"""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 class AuthService:
