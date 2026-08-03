@@ -16,6 +16,7 @@ bcrypt_context = CryptContext(
     deprecated="auto",
 )
 
+
 # OAuth2
 oauth2_bearer = OAuth2PasswordBearer(
     tokenUrl="/auth/login",
@@ -26,13 +27,18 @@ def hash_password(password: str) -> str:
     """
     Hash a plain text password.
     """
+
     return bcrypt_context.hash(password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(
+    plain_password: str,
+    hashed_password: str,
+) -> bool:
     """
     Verify a plain password against its hashed value.
     """
+
     return bcrypt_context.verify(
         plain_password,
         hashed_password,
@@ -62,14 +68,14 @@ def authenticate_user(
     if user is None:
         return None
 
-    if not user.is_active:
-        return None
-
-    # Google login users may not have a password.
+    # User without password cannot login with password
     if user.password is None:
         return None
 
-    if not verify_password(password, user.password):
+    if not verify_password(
+        password,
+        user.password,
+    ):
         return None
 
     return user
