@@ -16,23 +16,10 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
 
-    # OTP
-    OTP_EXPIRE_MINUTES: int
-
     # Default Admin
-    DEFAULT_ADMIN_FIRST_NAME: str
-    DEFAULT_ADMIN_LAST_NAME: str
     DEFAULT_ADMIN_PHONE_NUMBER: str
     DEFAULT_ADMIN_EMAIL: str
     DEFAULT_ADMIN_PASSWORD: str
-
-    # Brevo Email
-    BREVO_API_KEY: str
-    EMAIL_FROM: str
-    EMAIL_FROM_NAME: str
-
-    # SMS
-    SMS_BD_API_KEY: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
