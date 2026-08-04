@@ -4,7 +4,6 @@ import secrets
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from passlib.context import CryptContext
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -98,28 +97,3 @@ def create_access_token(
         settings.SECRET_KEY,
         algorithm=settings.ALGORITHM,
     )
-
-
-def generate_otp() -> str:
-    """
-    Generate a secure 6-digit OTP.
-    """
-
-    return f"{secrets.randbelow(1_000_000):06d}"
-
-
-def generate_temporary_password(
-    length: int = 12,
-) -> str:
-    """
-    Generate a secure temporary password.
-    """
-
-    characters = (
-        "abcdefghijklmnopqrstuvwxyz"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "0123456789"
-        "!@#$%^&*"
-    )
-
-    return "".join(secrets.choice(characters) for _ in range(length))

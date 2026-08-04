@@ -1,16 +1,17 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, HTTPException
 from starlette import status
 
+from app.core.config import settings
+from app.core.logger import logger
+from app.core.security import (
+    authenticate_user,
+    create_access_token,
+)
 from app.dependencies.auth import login_token_field_dependency
 from app.dependencies.database import db_dependency
-from app.schemas.auth import (
-    CreateUserRequest,
-    ForgotPasswordRequest,
-    ResetPasswordRequest,
-    Token,
-    VerifyOTPRequest,
-)
-from app.services.auth_service import AuthService
+from app.schemas.auth import Token
 
 router = APIRouter(
     prefix="/auth",
@@ -18,143 +19,44 @@ router = APIRouter(
 )
 
 
-# --------------------------
-# Register
-# --------------------------
-@router.post(
-    "/register",
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_user(
-    db: db_dependency,
-    create_user_request: CreateUserRequest,
-):
+@router.post("/login", response_model=Token, status_code=status.HTTP_200_OK)
+async def login(form_data: login_token_field_dependency, db: db_dependency):
     """
-    Register a new user.
+    Authenticate a user and return a JWT access token.
+
+    Raises:
+        HTTPException: If the credentials are invalid.
     """
 
-    try:
+    user = authenticate_user(
+        phone_number=form_data.username,
+        password=form_data.password,
+        db=db,
+    )
 
-        result = AuthService.register_user(db, create_user_request)
-
-        return result
-
-    except ValueError as e:
-
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        )
-
-
-# --------------------------
-# Login
-# --------------------------
-@router.post(
-    "/login",
-    response_model=Token,
-)
-async def login(
-    form_data: login_token_field_dependency,
-    db: db_dependency,
-):
-    """
-    Login using phone number and password.
-    """
-
-    try:
-
-        result = AuthService.login_user(db, form_data)
-
-        return result
-
-    except ValueError as e:
+    if not user:
+        logger.warning(f"❌ Login Failed | Phone Number={form_data.username}")
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            detail="Incorrect phone number or password.",
         )
 
+    token = create_access_token(
+        user_id=user.id,
+        role=user.role,
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
 
-# --------------------------
-# Forgot Password
-# --------------------------
-@router.post(
-    "/forgot-password",
-)
-async def forgot_password(
-    request: ForgotPasswordRequest,
-    db: db_dependency,
-):
-    """
-    Send OTP to user's phone number.
-    """
+    logger.info(
+        f"🔐 User Logged In | "
+        f"ID={user.id} | "
+        f"Phone={user.phone_number} | "
+        f"Email={user.email} | "
+        f"Role={user.role}"
+    )
 
-    try:
-
-        result = AuthService.forgot_password(db, request)
-
-        return result
-
-    except RuntimeError as e:
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
-
-
-# --------------------------
-# Verify OTP
-# --------------------------
-@router.post(
-    "/verify-otp",
-)
-async def verify_otp(
-    request: VerifyOTPRequest,
-    db: db_dependency,
-):
-    """
-    Verify OTP for password reset.
-    """
-
-    try:
-
-        result = AuthService.verify_otp(db, request)
-
-        return result
-
-    except ValueError as e:
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-
-
-# --------------------------
-# Reset Password
-# --------------------------
-@router.post(
-    "/reset-password",
-)
-async def reset_password(
-    request: ResetPasswordRequest,
-    db: db_dependency,
-):
-    """
-    Reset user password.
-    """
-
-    try:
-
-        result = AuthService.reset_password(db, request)
-
-        return result
-
-    except ValueError as e:
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+    }
