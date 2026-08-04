@@ -48,7 +48,6 @@ async def lifespan(app: FastAPI):
         # ==========================================================
         # Check Database Connection
         # ==========================================================
-
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
 
@@ -57,7 +56,6 @@ async def lifespan(app: FastAPI):
         # ==========================================================
         # Synchronize Database Tables
         # ==========================================================
-
         Base.metadata.create_all(bind=engine)
 
         logger.info("📦 Database Tables Synchronized")
@@ -65,7 +63,6 @@ async def lifespan(app: FastAPI):
         # ==========================================================
         # Default Admin Setup
         # ==========================================================
-
         db = SessionLocal()
 
         try:
