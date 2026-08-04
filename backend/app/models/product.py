@@ -22,6 +22,13 @@ class Product(Base):
         index=True,
     )
 
+    product_code = Column(
+        String(50),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+
     category_id = Column(
         Integer,
         ForeignKey("categories.id", ondelete="CASCADE"),
