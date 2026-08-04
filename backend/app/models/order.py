@@ -1,4 +1,3 @@
-# app/models/order.py
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.sql import func
 

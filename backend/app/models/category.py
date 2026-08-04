@@ -1,4 +1,5 @@
-from sqlalchemy import Column, DateTime, Integer, String, Text, Boolean
+# app/models/category.py
+from sqlalchemy import Column, DateTime, Integer, String, Text, Boolean, ForeignKey
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -15,7 +16,6 @@ class Category(Base):
 
     name = Column(
         String(255),
-        unique=True,
         nullable=False,
         index=True,
     )
@@ -25,6 +25,12 @@ class Category(Base):
         unique=True,
         nullable=False,
         index=True,
+    )
+
+    parent_id = Column(
+        Integer,
+        ForeignKey("categories.id", ondelete="CASCADE"),
+        nullable=True,
     )
 
     description = Column(
