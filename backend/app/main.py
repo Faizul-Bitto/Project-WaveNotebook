@@ -25,9 +25,10 @@ from app.models.product_attribute import ProductAttribute
 from app.models.order import Order
 from app.models.order_item import OrderItem
 
-from app.apis import (
-    auth,
-)
+# Import routers
+from app.apis import auth
+from app.apis import category
+from app.apis.admin import category as admin_category
 
 
 @asynccontextmanager
@@ -131,6 +132,7 @@ async def lifespan(app: FastAPI):
         logger.exception("❌ Failed to Start Application")
 
     yield
+
     # ==========================================================
     # Application Shutdown
     # ==========================================================
@@ -160,9 +162,10 @@ app.add_middleware(
 # ==========================================================
 # User Routers
 # ==========================================================
+
 app.include_router(auth.router)
+app.include_router(category.router)
 # app.include_router(products.router)
-# app.include_router(cart.router)
 # app.include_router(orders.router)
 
 
@@ -170,7 +173,7 @@ app.include_router(auth.router)
 # Admin Routers
 # ==========================================================
 
-# app.include_router(admin_users.router)
+app.include_router(admin_category.router)
 # app.include_router(admin_products.router)
 # app.include_router(admin_orders.router)
 
