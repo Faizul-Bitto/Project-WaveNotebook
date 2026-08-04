@@ -14,21 +14,14 @@ class Attribute(Base):
     )
 
     name = Column(
-        String(100),
-        nullable=False,
+        String(255),
         unique=True,
+        nullable=False,
         index=True,
     )
 
     created_at = Column(
         DateTime,
         server_default=func.now(),
-        nullable=False,
-    )
-
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
         nullable=False,
     )

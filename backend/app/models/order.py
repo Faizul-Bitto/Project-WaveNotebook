@@ -1,3 +1,4 @@
+# app/models/order.py
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.sql import func
 
@@ -22,53 +23,40 @@ class Order(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
         index=True,
     )
 
-    status = Column(
-        String(20),
-        nullable=False,
-        default="pending",
-        index=True,
-    )
-
-    total_amount = Column(
-        Numeric(10, 2),
-        nullable=False,
-        default=0,
-    )
-
-    # Customer snapshot
-    customer_first_name = Column(
-        String(100),
-        nullable=False,
-    )
-
-    customer_last_name = Column(
-        String(100),
-        nullable=False,
-    )
-
-    customer_phone = Column(
-        String(20),
-        nullable=False,
-    )
-
-    customer_email = Column(
+    full_name = Column(
         String(255),
-        nullable=True,
+        nullable=False,
     )
 
-    # Delivery info
+    phone_number = Column(
+        String(20),
+        nullable=False,
+    )
+
     district = Column(
         String(100),
         nullable=False,
     )
 
-    delivery_address = Column(
+    address = Column(
         Text,
+        nullable=False,
+    )
+
+    status = Column(
+        String(50),
+        nullable=False,
+        default="pending",
+        index=True,
+    )
+
+    total_price = Column(
+        Numeric(10, 2),
         nullable=False,
     )
 

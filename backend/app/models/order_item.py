@@ -1,4 +1,5 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String
+# app/models/order_item.py
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, Text
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -22,26 +23,14 @@ class OrderItem(Base):
 
     product_id = Column(
         Integer,
-        ForeignKey("products.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-
-    # Product snapshot
-    product_name = Column(
-        String(255),
+        ForeignKey("products.id"),
         nullable=False,
-    )
-
-    product_image = Column(
-        String(500),
-        nullable=True,
+        index=True,
     )
 
     quantity = Column(
         Integer,
         nullable=False,
-        default=1,
     )
 
     unit_price = Column(
@@ -49,9 +38,14 @@ class OrderItem(Base):
         nullable=False,
     )
 
-    subtotal = Column(
+    price_at_purchase = Column(
         Numeric(10, 2),
         nullable=False,
+    )
+
+    selected_attributes = Column(
+        Text,
+        nullable=True,
     )
 
     created_at = Column(

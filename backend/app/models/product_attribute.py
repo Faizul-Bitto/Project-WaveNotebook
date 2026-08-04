@@ -1,11 +1,11 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer
 from sqlalchemy.sql import func
 
 from app.core.database import Base
 
 
-class ProductImage(Base):
-    __tablename__ = "product_images"
+class ProductAttribute(Base):
+    __tablename__ = "product_attributes"
 
     id = Column(
         Integer,
@@ -20,9 +20,11 @@ class ProductImage(Base):
         index=True,
     )
 
-    image_url = Column(
-        String(500),
+    attribute_id = Column(
+        Integer,
+        ForeignKey("attributes.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     created_at = Column(

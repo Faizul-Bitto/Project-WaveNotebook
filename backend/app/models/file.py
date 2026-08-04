@@ -4,8 +4,8 @@ from sqlalchemy.sql import func
 from app.core.database import Base
 
 
-class OrderItemOption(Base):
-    __tablename__ = "order_item_options"
+class File(Base):
+    __tablename__ = "files"
 
     id = Column(
         Integer,
@@ -13,32 +13,25 @@ class OrderItemOption(Base):
         index=True,
     )
 
-    order_item_id = Column(
+    product_id = Column(
         Integer,
-        ForeignKey("order_items.id", ondelete="CASCADE"),
+        ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    attribute_name = Column(
-        String(100),
+    file_name = Column(
+        String(255),
         nullable=False,
     )
 
-    option_value = Column(
-        String(100),
+    file_url = Column(
+        String(500),
         nullable=False,
     )
 
     created_at = Column(
         DateTime,
         server_default=func.now(),
-        nullable=False,
-    )
-
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
         nullable=False,
     )

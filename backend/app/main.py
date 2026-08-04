@@ -8,8 +8,6 @@ from starlette import status
 
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
-from app.core.email import verify_email_connection
-from app.core.sms import verify_sms_connection
 from app.core.logger import logger
 from app.core.security import (
     hash_password,
@@ -18,21 +16,16 @@ from app.core.security import (
 
 # Import all models so SQLAlchemy can register them
 from app.models.user import User
-from app.models.otp import OTP
 
 from app.models.product import Product
-from app.models.product_image import ProductImage
+from backend.app.models.file import ProductImage
 
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
-from app.models.product_attribute_option import ProductAttributeOption
-
-from app.models.cart_item import CartItem
-from app.models.cart_item_option import CartItemOption
+from backend.app.models.product_attribute import ProductAttributeOption
 
 from app.models.order import Order
 from app.models.order_item import OrderItem
-from app.models.order_item_option import OrderItemOption
 
 from app.models.contact import Contact
 
@@ -62,34 +55,6 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Database Connected Successfully")
 
         # ==========================================================
-        # Check Brevo API Connection
-        # ==========================================================
-
-        try:
-
-            verify_email_connection()
-
-            logger.info("✅ Brevo API Connected Successfully")
-
-        except Exception as e:
-
-            logger.exception(f"❌ Brevo API Connection Failed: {e}")
-
-        # ==========================================================
-        # Check SMS API Connection
-        # ==========================================================
-
-        try:
-
-            verify_sms_connection()
-
-            logger.info("✅ SMS API Connected Successfully")
-
-        except Exception as e:
-
-            logger.exception(f"❌ SMS API Connection Failed: {e}")
-
-        # ==========================================================
         # Synchronize Database Tables
         # ==========================================================
 
@@ -112,32 +77,9 @@ async def lifespan(app: FastAPI):
 
                 updated = False
 
-                # Update first name
-                if admin_user.first_name != settings.DEFAULT_ADMIN_FIRST_NAME:
-
-                    admin_user.first_name = settings.DEFAULT_ADMIN_FIRST_NAME
-
-                    updated = True
-
-                # Update last name
-                if admin_user.last_name != settings.DEFAULT_ADMIN_LAST_NAME:
-
-                    admin_user.last_name = settings.DEFAULT_ADMIN_LAST_NAME
-
-                    updated = True
-
                 # Update phone number
                 if admin_user.phone_number != settings.DEFAULT_ADMIN_PHONE_NUMBER:
-
                     admin_user.phone_number = settings.DEFAULT_ADMIN_PHONE_NUMBER
-
-                    updated = True
-
-                # Update email
-                if admin_user.email != settings.DEFAULT_ADMIN_EMAIL:
-
-                    admin_user.email = settings.DEFAULT_ADMIN_EMAIL
-
                     updated = True
 
                 # Update password
@@ -151,65 +93,49 @@ async def lifespan(app: FastAPI):
                     updated = True
 
                 if updated:
-
                     db.commit()
                     db.refresh(admin_user)
 
                     logger.info("🔄 Default Admin Updated Successfully")
 
                 else:
-
                     logger.info("👤 Default Admin Already Up-to-Date")
 
             else:
-
                 admin_user = User(
-                    first_name=(settings.DEFAULT_ADMIN_FIRST_NAME),
-                    last_name=(settings.DEFAULT_ADMIN_LAST_NAME),
                     phone_number=(settings.DEFAULT_ADMIN_PHONE_NUMBER),
-                    email=settings.DEFAULT_ADMIN_EMAIL,
                     password=hash_password(settings.DEFAULT_ADMIN_PASSWORD),
                     role="admin",
                 )
 
                 db.add(admin_user)
-
                 db.commit()
-
                 db.refresh(admin_user)
 
                 logger.info("✅ Default Admin Created Successfully")
 
         finally:
-
             db.close()
 
         # ==========================================================
         # Startup Completed
         # ==========================================================
-
         elapsed = perf_counter() - startup_time
 
         logger.info("🚀 Wave Notebook API Started")
 
         if elapsed < 1:
-
             logger.info(f"⚡ Startup Time: {elapsed * 1000:.2f} ms")
-
         else:
-
             logger.info(f"⚡ Startup Time: {elapsed:.2f} s")
 
     except Exception:
-
         logger.exception("❌ Failed to Start Application")
 
     yield
-
     # ==========================================================
     # Application Shutdown
     # ==========================================================
-
     logger.info("🛑 Wave Notebook API Shutdown")
 
 

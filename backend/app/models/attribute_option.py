@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -21,19 +21,18 @@ class AttributeOption(Base):
     )
 
     value = Column(
-        String(100),
+        String(255),
         nullable=False,
+    )
+
+    additional_price = Column(
+        Numeric(10, 2),
+        nullable=False,
+        default=0,
     )
 
     created_at = Column(
         DateTime,
         server_default=func.now(),
-        nullable=False,
-    )
-
-    updated_at = Column(
-        DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
         nullable=False,
     )
