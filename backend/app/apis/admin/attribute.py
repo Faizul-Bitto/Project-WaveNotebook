@@ -10,8 +10,6 @@ from app.models.attribute_option import AttributeOption
 from app.schemas.attribute import (
     AttributeCreate,
     AttributeUpdate,
-    AttributeOptionCreate,
-    AttributeOptionUpdate,
 )
 
 router = APIRouter(
