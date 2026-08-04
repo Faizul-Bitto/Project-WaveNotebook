@@ -1,4 +1,3 @@
-# app/apis/admin/attribute_options.py
 import re
 from fastapi import APIRouter, HTTPException, Path
 from starlette import status
