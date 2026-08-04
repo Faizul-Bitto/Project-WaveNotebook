@@ -26,9 +26,9 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 
 # Import routers
-from app.apis import auth
-from app.apis import category
+from app.apis import auth, category, attribute
 from app.apis.admin import category as admin_category
+from app.apis.admin import attribute as admin_attribute
 
 
 @asynccontextmanager
@@ -165,6 +165,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(category.router)
+app.include_router(attribute.router)
 # app.include_router(products.router)
 # app.include_router(orders.router)
 
@@ -172,8 +173,8 @@ app.include_router(category.router)
 # ==========================================================
 # Admin Routers
 # ==========================================================
-
 app.include_router(admin_category.router)
+app.include_router(admin_attribute.router)
 # app.include_router(admin_products.router)
 # app.include_router(admin_orders.router)
 
