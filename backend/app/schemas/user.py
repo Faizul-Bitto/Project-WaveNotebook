@@ -20,3 +20,11 @@ class UpdateUserRequest(BaseModel):
         # Validate email format
         validate_email_format(v, check_deliverability=False)
         return v
+
+
+class UpdatePhoneRequest(BaseModel):
+    phone_number: str = Field(min_length=10, max_length=20)
+
+
+class VerifyPhoneUpdateRequest(BaseModel):
+    otp: str = Field(min_length=6, max_length=6)
