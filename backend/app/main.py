@@ -16,18 +16,13 @@ from app.core.security import (
 
 # Import all models so SQLAlchemy can register them
 from app.models.user import User
-
 from app.models.product import Product
-from backend.app.models.file import ProductImage
-
+from app.models.file import File
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
-from backend.app.models.product_attribute import ProductAttributeOption
-
+from app.models.product_attribute import ProductAttribute
 from app.models.order import Order
 from app.models.order_item import OrderItem
-
-from app.models.contact import Contact
 
 from app.apis import (
     auth,
@@ -79,6 +74,11 @@ async def lifespan(app: FastAPI):
                     admin_user.phone_number = settings.DEFAULT_ADMIN_PHONE_NUMBER
                     updated = True
 
+                # Update email
+                if admin_user.email != settings.DEFAULT_ADMIN_EMAIL:
+                    admin_user.email = settings.DEFAULT_ADMIN_EMAIL
+                    updated = True
+
                 # Update password
                 if not verify_password(
                     settings.DEFAULT_ADMIN_PASSWORD,
@@ -100,7 +100,8 @@ async def lifespan(app: FastAPI):
 
             else:
                 admin_user = User(
-                    phone_number=(settings.DEFAULT_ADMIN_PHONE_NUMBER),
+                    phone_number=settings.DEFAULT_ADMIN_PHONE_NUMBER,
+                    email=settings.DEFAULT_ADMIN_EMAIL,
                     password=hash_password(settings.DEFAULT_ADMIN_PASSWORD),
                     role="admin",
                 )
