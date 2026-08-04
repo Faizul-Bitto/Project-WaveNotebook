@@ -20,6 +20,13 @@ class User(Base):
         index=True,
     )
 
+    email = Column(
+        String(255),
+        unique=True,
+        nullable=True,
+        index=True,
+    )
+
     role = Column(
         String(50),
         nullable=False,
