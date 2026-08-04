@@ -1,20 +1,11 @@
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    Numeric,
-    String,
-    Text,
-)
+from sqlalchemy import Column, DateTime, Integer, String, Text, Boolean
 from sqlalchemy.sql import func
 
 from app.core.database import Base
 
 
-class Product(Base):
-    __tablename__ = "products"
+class Category(Base):
+    __tablename__ = "categories"
 
     id = Column(
         Integer,
@@ -22,15 +13,9 @@ class Product(Base):
         index=True,
     )
 
-    category_id = Column(
-        Integer,
-        ForeignKey("categories.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
     name = Column(
         String(255),
+        unique=True,
         nullable=False,
         index=True,
     )
@@ -45,22 +30,6 @@ class Product(Base):
     description = Column(
         Text,
         nullable=True,
-    )
-
-    specifications = Column(
-        Text,
-        nullable=True,
-    )
-
-    base_price = Column(
-        Numeric(10, 2),
-        nullable=False,
-    )
-
-    is_in_stock = Column(
-        Boolean,
-        nullable=False,
-        default=True,
     )
 
     is_active = Column(

@@ -16,6 +16,7 @@ from app.core.security import (
 
 # Import all models so SQLAlchemy can register them
 from app.models.user import User
+from app.models.category import Category
 from app.models.product import Product
 from app.models.file import File
 from app.models.attribute import Attribute
