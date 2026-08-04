@@ -26,7 +26,6 @@ from app.models.order_item import OrderItem
 
 from app.apis import (
     auth,
-    users,
 )
 
 
@@ -160,8 +159,6 @@ app.add_middleware(
 # ==========================================================
 # User Routers
 # ==========================================================
-
-app.include_router(users.router)
 app.include_router(auth.router)
 # app.include_router(products.router)
 # app.include_router(cart.router)
@@ -180,8 +177,6 @@ app.include_router(auth.router)
 # ==========================================================
 # API Health
 # ==========================================================
-
-
 @app.get(
     "/healthy",
     tags=["API Health"],
