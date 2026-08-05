@@ -26,7 +26,7 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 
 # Import routers
-from app.apis import auth, category, attribute
+from app.apis import auth, category, attribute, attribute_option
 from app.apis.admin import category as admin_category
 from app.apis.admin import attribute as admin_attribute
 from app.apis.admin import attribute_option as admin_attribute_option
@@ -167,7 +167,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(category.router)
 app.include_router(attribute.router)
-# app.include_router(products.router)
+app.include_router(attribute_option.router)
 # app.include_router(orders.router)
 
 
