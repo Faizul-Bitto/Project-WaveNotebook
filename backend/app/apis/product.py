@@ -7,6 +7,7 @@ from app.models.product import Product
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
+from app.models.product_attribute_option import ProductAttributeOption
 from app.models.file import File
 
 router = APIRouter(
@@ -45,6 +46,14 @@ async def get_products(
                 .all()
             )
 
+            # Get selected options for this product
+            selected_options = (
+                db.query(ProductAttributeOption)
+                .filter(ProductAttributeOption.product_id == product.id)
+                .all()
+            )
+            selected_option_ids = {so.option_id for so in selected_options}
+
             attributes = []
             for pa in product_attrs:
                 attr = (
@@ -67,6 +76,7 @@ async def get_products(
                                 "id": opt.id,
                                 "value": opt.value,
                                 "additional_price": str(opt.additional_price),
+                                "is_selected": opt.id in selected_option_ids,
                             }
                             for opt in options
                         ],
@@ -139,6 +149,14 @@ async def get_product_by_id(db: db_dependency, product_id: int = Path(gt=0)):
             .all()
         )
 
+        # Get selected options for this product
+        selected_options = (
+            db.query(ProductAttributeOption)
+            .filter(ProductAttributeOption.product_id == product_id)
+            .all()
+        )
+        selected_option_ids = {so.option_id for so in selected_options}
+
         attributes = []
         for pa in product_attrs:
             attr = db.query(Attribute).filter(Attribute.id == pa.attribute_id).first()
@@ -159,6 +177,7 @@ async def get_product_by_id(db: db_dependency, product_id: int = Path(gt=0)):
                             "id": opt.id,
                             "value": opt.value,
                             "additional_price": str(opt.additional_price),
+                            "is_selected": opt.id in selected_option_ids,
                         }
                         for opt in options
                     ],
@@ -227,6 +246,14 @@ async def get_product_by_slug(db: db_dependency, product_slug: str):
             .all()
         )
 
+        # Get selected options for this product
+        selected_options = (
+            db.query(ProductAttributeOption)
+            .filter(ProductAttributeOption.product_id == product.id)
+            .all()
+        )
+        selected_option_ids = {so.option_id for so in selected_options}
+
         attributes = []
         for pa in product_attrs:
             attr = db.query(Attribute).filter(Attribute.id == pa.attribute_id).first()
@@ -247,6 +274,7 @@ async def get_product_by_slug(db: db_dependency, product_slug: str):
                             "id": opt.id,
                             "value": opt.value,
                             "additional_price": str(opt.additional_price),
+                            "is_selected": opt.id in selected_option_ids,
                         }
                         for opt in options
                     ],

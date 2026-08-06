@@ -20,6 +20,7 @@ from app.models.category import Category
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
+from app.models.product_attribute_option import ProductAttributeOption
 from app.models.file import File
 from app.utils.file_upload import upload_file_to_storage
 
@@ -96,14 +97,51 @@ async def create_product(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Category not found."
             )
 
+        # Parse attributes with options
+        # Format: [{"attribute_id": 1, "option_ids": [1, 2]}, ...]
+        # Or backward compatible: [1, 2, 3] (just attribute IDs)
+        parsed_attributes = []
+        for item in attributes_list:
+            if isinstance(item, dict):
+                attr_id = item.get("attribute_id")
+                option_ids = item.get("option_ids", [])
+                if not attr_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Each attribute must have an attribute_id.",
+                    )
+                parsed_attributes.append(
+                    {"attribute_id": attr_id, "option_ids": option_ids}
+                )
+            else:
+                parsed_attributes.append(
+                    {"attribute_id": item, "option_ids": []}
+                )
+
         # Check all attributes exist
-        for attr_id in attributes_list:
-            attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+        for attr_data in parsed_attributes:
+            attr = db.query(Attribute).filter(Attribute.id == attr_data["attribute_id"]).first()
             if not attr:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Attribute ID {attr_id} not found.",
+                    detail=f"Attribute ID {attr_data['attribute_id']} not found.",
                 )
+
+            # Check all options exist and belong to this attribute
+            for option_id in attr_data["option_ids"]:
+                option = (
+                    db.query(AttributeOption)
+                    .filter(
+                        AttributeOption.id == option_id,
+                        AttributeOption.attribute_id == attr_data["attribute_id"],
+                    )
+                    .first()
+                )
+                if not option:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Option ID {option_id} not found for attribute ID {attr_data['attribute_id']}.",
+                    )
 
         # Create product
         new_product = Product(
@@ -122,11 +160,20 @@ async def create_product(
         db.flush()
 
         # Add attributes to product
-        for attr_id in attributes_list:
+        for attr_data in parsed_attributes:
             product_attr = ProductAttribute(
-                product_id=new_product.id, attribute_id=attr_id
+                product_id=new_product.id, attribute_id=attr_data["attribute_id"]
             )
             db.add(product_attr)
+
+            # Add selected options for this attribute
+            for option_id in attr_data["option_ids"]:
+                product_attr_option = ProductAttributeOption(
+                    product_id=new_product.id,
+                    attribute_id=attr_data["attribute_id"],
+                    option_id=option_id,
+                )
+                db.add(product_attr_option)
 
         db.flush()
 
@@ -171,7 +218,7 @@ async def create_product(
                 "specifications": specifications,
                 "is_in_stock": is_in_stock,
                 "is_active": is_active,
-                "attributes": attributes_list,
+                "attributes": parsed_attributes,
                 "files": uploaded_files,
                 "created_at": new_product.created_at.isoformat(),
                 "updated_at": new_product.updated_at.isoformat(),
@@ -284,36 +331,50 @@ async def get_product_by_id(
         # Get files
         files = db.query(File).filter(File.product_id == product_id).all()
 
-        # Get attributes with options
+        # Get attributes with selected options
         product_attrs = (
             db.query(ProductAttribute)
             .filter(ProductAttribute.product_id == product_id)
             .all()
         )
 
+        # Get selected options for this product
+        selected_options = (
+            db.query(ProductAttributeOption)
+            .filter(ProductAttributeOption.product_id == product_id)
+            .all()
+        )
+        selected_option_ids = {so.option_id for so in selected_options}
+
         attributes = []
         for pa in product_attrs:
             attr = db.query(Attribute).filter(Attribute.id == pa.attribute_id).first()
 
-            options = (
+            # Get all options for this attribute
+            all_options = (
                 db.query(AttributeOption)
                 .filter(AttributeOption.attribute_id == pa.attribute_id)
                 .all()
             )
+
+            # Mark which options are selected for this product
+            options = []
+            for opt in all_options:
+                options.append(
+                    {
+                        "id": opt.id,
+                        "value": opt.value,
+                        "additional_price": str(opt.additional_price),
+                        "is_selected": opt.id in selected_option_ids,
+                    }
+                )
 
             attributes.append(
                 {
                     "id": attr.id,
                     "name": attr.name,
                     "slug": attr.slug,
-                    "options": [
-                        {
-                            "id": opt.id,
-                            "value": opt.value,
-                            "additional_price": str(opt.additional_price),
-                        }
-                        for opt in options
-                    ],
+                    "options": options,
                 }
             )
 
@@ -417,26 +478,75 @@ async def update_product(
         if attributes:
             attributes_list = json.loads(attributes)
 
+            # Parse attributes with options
+            # Format: [{"attribute_id": 1, "option_ids": [1, 2]}, ...]
+            # Or backward compatible: [1, 2, 3] (just attribute IDs)
+            parsed_attributes = []
+            for item in attributes_list:
+                if isinstance(item, dict):
+                    attr_id = item.get("attribute_id")
+                    option_ids = item.get("option_ids", [])
+                    if not attr_id:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Each attribute must have an attribute_id.",
+                        )
+                    parsed_attributes.append(
+                        {"attribute_id": attr_id, "option_ids": option_ids}
+                    )
+                else:
+                    parsed_attributes.append(
+                        {"attribute_id": item, "option_ids": []}
+                    )
+
             # Check all attributes exist
-            for attr_id in attributes_list:
-                attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+            for attr_data in parsed_attributes:
+                attr = db.query(Attribute).filter(Attribute.id == attr_data["attribute_id"]).first()
                 if not attr:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Attribute ID {attr_id} not found.",
+                        detail=f"Attribute ID {attr_data['attribute_id']} not found.",
                     )
 
-            # Remove old attributes
+                # Check all options exist and belong to this attribute
+                for option_id in attr_data["option_ids"]:
+                    option = (
+                        db.query(AttributeOption)
+                        .filter(
+                            AttributeOption.id == option_id,
+                            AttributeOption.attribute_id == attr_data["attribute_id"],
+                        )
+                        .first()
+                    )
+                    if not option:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Option ID {option_id} not found for attribute ID {attr_data['attribute_id']}.",
+                        )
+
+            # Remove old attributes and their selected options
             db.query(ProductAttribute).filter(
                 ProductAttribute.product_id == product_id
             ).delete()
+            db.query(ProductAttributeOption).filter(
+                ProductAttributeOption.product_id == product_id
+            ).delete()
 
-            # Add new attributes
-            for attr_id in attributes_list:
+            # Add new attributes with selected options
+            for attr_data in parsed_attributes:
                 product_attr = ProductAttribute(
-                    product_id=product_id, attribute_id=attr_id
+                    product_id=product_id, attribute_id=attr_data["attribute_id"]
                 )
                 db.add(product_attr)
+
+                # Add selected options for this attribute
+                for option_id in attr_data["option_ids"]:
+                    product_attr_option = ProductAttributeOption(
+                        product_id=product_id,
+                        attribute_id=attr_data["attribute_id"],
+                        option_id=option_id,
+                    )
+                    db.add(product_attr_option)
 
         # Update other fields
         if description is not None:
@@ -457,6 +567,52 @@ async def update_product(
             f"✅ Product Updated | " f"ID={product.id} | " f"Admin={admin.phone_number}"
         )
 
+        # Get updated attributes with selected options
+        product_attrs = (
+            db.query(ProductAttribute)
+            .filter(ProductAttribute.product_id == product_id)
+            .all()
+        )
+
+        # Get selected options for this product
+        selected_options = (
+            db.query(ProductAttributeOption)
+            .filter(ProductAttributeOption.product_id == product_id)
+            .all()
+        )
+        selected_option_ids = {so.option_id for so in selected_options}
+
+        attributes = []
+        for pa in product_attrs:
+            attr = db.query(Attribute).filter(Attribute.id == pa.attribute_id).first()
+
+            # Get all options for this attribute
+            all_options = (
+                db.query(AttributeOption)
+                .filter(AttributeOption.attribute_id == pa.attribute_id)
+                .all()
+            )
+
+            options = []
+            for opt in all_options:
+                options.append(
+                    {
+                        "id": opt.id,
+                        "value": opt.value,
+                        "additional_price": str(opt.additional_price),
+                        "is_selected": opt.id in selected_option_ids,
+                    }
+                )
+
+            attributes.append(
+                {
+                    "id": attr.id,
+                    "name": attr.name,
+                    "slug": attr.slug,
+                    "options": options,
+                }
+            )
+
         return {
             "message": "Product updated successfully.",
             "product": {
@@ -470,6 +626,7 @@ async def update_product(
                 "specifications": product.specifications,
                 "is_in_stock": product.is_in_stock,
                 "is_active": product.is_active,
+                "attributes": attributes,
                 "created_at": product.created_at.isoformat(),
                 "updated_at": product.updated_at.isoformat(),
             },

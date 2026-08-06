@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from time import perf_counter
+from typing import Any, Dict
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 from sqlalchemy import text
 from starlette import status
 
@@ -23,6 +25,7 @@ from app.models.file import File
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
+from app.models.product_attribute_option import ProductAttributeOption
 from app.models.order import Order
 from app.models.order_item import OrderItem
 
@@ -162,7 +165,81 @@ app = FastAPI(
     title="Wave Notebook API",
     version="1.0.0",
     lifespan=lifespan,
+    swagger_ui_parameters={
+        "tryItOutEnabled": True,  # Show input controls (file pickers) by default
+    },
 )
+
+
+def custom_openapi() -> Dict[str, Any]:
+    """
+    Generate OpenAPI schema with file fields rendered as binary.
+
+    FastAPI 0.141.x generates `contentMediaType: application/octet-stream`
+    for UploadFile fields, which Swagger UI does not render as a file picker.
+    This conversion replaces it with `format: binary` so Swagger UI shows
+    a proper file upload input.
+    """
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        openapi_version="3.0.2",
+    )
+
+    # Convert file fields from contentMediaType to format: binary
+    # so Swagger UI renders a file picker
+    def fix_file_fields(obj: Any):
+        if isinstance(obj, dict):
+            # If this is a file field (has contentMediaType)
+            if "contentMediaType" in obj:
+                obj["format"] = "binary"
+                obj.pop("contentMediaType", None)
+            for key, value in obj.items():
+                fix_file_fields(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                fix_file_items(item)
+
+    def fix_file_items(item: Any):
+        if isinstance(item, dict):
+            fix_file_fields(item)
+        elif isinstance(item, list):
+            for sub in item:
+                fix_file_items(sub)
+
+    fix_file_fields(schema)
+
+    # Inline multipart/form-data request body schemas so Swagger UI
+    # renders file pickers directly (avoids $ref resolution issues)
+    for path, methods in schema.get("paths", {}).items():
+        for method, detail in methods.items():
+            if not isinstance(detail, dict):
+                continue
+            request_body = detail.get("requestBody", {})
+            content = request_body.get("content", {})
+            if "multipart/form-data" in content:
+                media = content["multipart/form-data"]
+                schema_ref = media.get("schema", {})
+                if "$ref" in schema_ref:
+                    ref_name = schema_ref["$ref"].split("/")[-1]
+                    resolved = (
+                        schema.get("components", {})
+                        .get("schemas", {})
+                        .get(ref_name)
+                    )
+                    if resolved:
+                        media["schema"] = resolved
+
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 # ==========================================================
