@@ -100,3 +100,16 @@ class S3Storage(FileStorageService):
             ".webp": "image/webp",
         }
         return content_types.get(ext, "application/octet-stream")
+
+    def check_connection(self) -> bool:
+        """
+        Check if S3 is reachable/configured.
+        """
+        try:
+            # Verify credentials by listing buckets
+            self.client.list_buckets()
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ S3 Connection Check Failed | Error={str(e)}")
+            return False

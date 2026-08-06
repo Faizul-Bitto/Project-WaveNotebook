@@ -31,3 +31,11 @@ class FileStorageService(ABC):
         Extract public ID from file URL for deletion.
         """
         pass
+
+    @abstractmethod
+    def check_connection(self) -> bool:
+        """
+        Check if the storage provider is reachable/configured.
+        Returns: True if connected, False otherwise
+        """
+        pass

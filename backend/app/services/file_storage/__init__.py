@@ -19,4 +19,19 @@ def get_file_storage() -> FileStorageService:
         raise ValueError(f"Unknown file storage provider: {provider}")
 
 
-__all__ = ["FileStorageService", "get_file_storage"]
+def check_storage_connection() -> bool:
+    """
+    Check if the configured file storage provider is reachable.
+    Returns: True if connected, False otherwise
+    """
+    try:
+        storage = get_file_storage()
+        return storage.check_connection()
+    except Exception as e:
+        from app.core.logger import logger
+
+        logger.error(f"❌ File Storage Connection Check Failed | Error={str(e)}")
+        return False
+
+
+__all__ = ["FileStorageService", "get_file_storage", "check_storage_connection"]

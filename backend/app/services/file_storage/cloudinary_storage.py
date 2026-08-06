@@ -70,3 +70,18 @@ class CloudinaryStorage(FileStorageService):
         # Remove file extension and get the path
         path = file_url.split("/upload/")[-1]  # Get path after /upload/
         return path.rsplit(".", 1)[0]  # Remove extension
+
+    def check_connection(self) -> bool:
+        """
+        Check if Cloudinary is reachable/configured.
+        """
+        try:
+            import cloudinary.api
+
+            # Verify credentials by fetching account usage
+            cloudinary.api.usage()
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Cloudinary Connection Check Failed | Error={str(e)}")
+            return False
