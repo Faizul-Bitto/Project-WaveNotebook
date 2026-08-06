@@ -2,6 +2,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, T
 from sqlalchemy.sql import func
 
 from app.core.database import Base
+from app.constants.order_status import OrderStatus
 
 
 class Order(Base):
@@ -50,7 +51,7 @@ class Order(Base):
     status = Column(
         String(50),
         nullable=False,
-        default="pending",
+        default=OrderStatus.PENDING.value,
         index=True,
     )
 

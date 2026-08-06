@@ -26,16 +26,19 @@ from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
 from app.models.product_attribute_option import ProductAttributeOption
+from app.models.cart_item import CartItem
 from app.models.order import Order
 from app.models.order_item import OrderItem
 
 # Import routers
-from app.apis import auth, category, attribute, attribute_option, product, file
+from app.apis import auth, category, attribute, attribute_option, product, file, order, cart, lookup
 from app.apis.admin import category as admin_category
 from app.apis.admin import attribute as admin_attribute
 from app.apis.admin import attribute_option as admin_attribute_option
 from app.apis.admin import product as admin_product
 from app.apis.admin import file as admin_file
+from app.apis.admin import order as admin_order
+from app.apis.admin import user as admin_user
 
 
 @asynccontextmanager
@@ -265,6 +268,9 @@ app.include_router(attribute.router)
 app.include_router(attribute_option.router)
 app.include_router(product.router)
 app.include_router(file.router)
+app.include_router(order.router)
+app.include_router(cart.router)
+app.include_router(lookup.router)
 
 
 # ==========================================================
@@ -275,6 +281,8 @@ app.include_router(admin_attribute.router)
 app.include_router(admin_attribute_option.router)
 app.include_router(admin_product.router)
 app.include_router(admin_file.router)
+app.include_router(admin_order.router)
+app.include_router(admin_user.router)
 
 
 # ==========================================================
