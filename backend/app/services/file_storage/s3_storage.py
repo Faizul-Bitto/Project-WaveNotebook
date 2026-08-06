@@ -5,20 +5,29 @@ from app.core.config import settings
 from app.core.logger import logger
 from app.services.file_storage.base import FileStorageService
 
-# Configure S3
-s3_client = boto3.client(
-    "s3",
-    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-    region_name=settings.AWS_S3_REGION,
-    endpoint_url=settings.AWS_S3_ENDPOINT_URL,  # Optional
-)
-
 
 class S3Storage(FileStorageService):
     """
     AWS S3 file storage implementation.
     """
+
+    def __init__(self):
+        self._client = None
+
+    @property
+    def client(self):
+        """
+        Lazily create the S3 client to avoid import-time failures.
+        """
+        if self._client is None:
+            self._client = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION,
+                endpoint_url=settings.AWS_S3_ENDPOINT_URL or None,
+            )
+        return self._client
 
     async def upload(
         self, file_content: bytes, file_name: str, folder: str, product_id: int
@@ -31,7 +40,7 @@ class S3Storage(FileStorageService):
             s3_key = f"{folder}/product_{product_id}/{file_name}"
 
             # Upload to S3
-            s3_client.put_object(
+            self.client.put_object(
                 Bucket=settings.AWS_S3_BUCKET_NAME,
                 Key=s3_key,
                 Body=file_content,
@@ -62,7 +71,7 @@ class S3Storage(FileStorageService):
         try:
             s3_key = self.get_public_id(file_url)
 
-            s3_client.delete_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=s3_key)
+            self.client.delete_object(Bucket=settings.AWS_S3_BUCKET_NAME, Key=s3_key)
 
             logger.info(f"✅ S3 Delete Success | " f"S3 Key={s3_key}")
             return True
@@ -76,12 +85,7 @@ class S3Storage(FileStorageService):
         Extract S3 key from file URL.
         """
         # Remove domain and get the key
-        if settings.AWS_S3_ENDPOINT_URL:
-            # For custom endpoints
-            return file_url.split(f"{settings.AWS_S3_BUCKET_NAME}/")[-1]
-        else:
-            # For AWS S3
-            return file_url.split(f"{settings.AWS_S3_BUCKET_NAME}/")[-1]
+        return file_url.split(f"{settings.AWS_S3_BUCKET_NAME}/")[-1]
 
     def _get_content_type(self, file_name: str) -> str:
         """
