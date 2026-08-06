@@ -13,6 +13,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.services.file_storage import check_storage_connection
 
 # Import all models so SQLAlchemy can register them
 from app.models.user import User
@@ -51,6 +52,21 @@ async def lifespan(app: FastAPI):
             connection.execute(text("SELECT 1"))
 
         logger.info("✅ Database Connected Successfully")
+
+        # ==========================================================
+        # Check File Storage Connection
+        # ==========================================================
+        if check_storage_connection():
+            logger.info(
+                f"✅ File Storage Connected Successfully | "
+                f"Provider={settings.FILE_STORAGE_PROVIDER.upper()}"
+            )
+        else:
+            logger.warning(
+                f"⚠️ File Storage Connection Failed | "
+                f"Provider={settings.FILE_STORAGE_PROVIDER.upper()} | "
+                f"Check credentials in .env"
+            )
 
         # ==========================================================
         # Synchronize Database Tables
