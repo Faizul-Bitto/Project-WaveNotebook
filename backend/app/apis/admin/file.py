@@ -1,4 +1,3 @@
-# app/apis/admin/files.py
 from fastapi import APIRouter, HTTPException, Path, UploadFile, File as FastAPIFile
 from starlette import status
 
