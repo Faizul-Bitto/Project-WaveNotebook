@@ -1,7 +1,15 @@
-import re
+import os
+import json
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Path,
+    Form,
+    UploadFile,
+    File as FastAPIFile,
+)
 from starlette import status
 
 from app.core.logger import logger
@@ -13,8 +21,7 @@ from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
 from app.models.file import File
-from app.schemas.product import ProductCreate, ProductUpdate
-from app.schemas.file import FileCreate, FileUpdate
+from app.utils.file_upload import upload_file_to_storage
 
 router = APIRouter(
     prefix="/admin/products",
@@ -26,6 +33,8 @@ def generate_slug(name: str) -> str:
     """
     Generate slug from product name.
     """
+    import re
+
     slug = name.lower().strip()
     slug = re.sub(r"[^\w\s-]", "", slug)
     slug = re.sub(r"[-\s]+", "-", slug)
@@ -44,21 +53,33 @@ def generate_product_code() -> str:
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_product(
-    db: db_dependency, admin: admin_dependency, product_data: ProductCreate
+    db: db_dependency,
+    admin: admin_dependency,
+    category_id: int = Form(...),
+    name: str = Form(...),
+    description: str = Form(None),
+    specifications: str = Form(None),
+    base_price: float = Form(...),
+    is_in_stock: bool = Form(True),
+    is_active: bool = Form(True),
+    attributes: str = Form(...),
+    files: list[UploadFile] = FastAPIFile(None),
 ):
     """
-    Create a new product with attributes (admin only).
+    Create product with attributes and multiple files.
     POST /admin/products
     """
 
     try:
+        attributes_list = json.loads(attributes)
+
         # Generate product_code
         product_code = generate_product_code()
         while db.query(Product).filter(Product.product_code == product_code).first():
             product_code = generate_product_code()
 
         # Generate slug
-        slug = generate_slug(product_data.name)
+        slug = generate_slug(name)
         existing_product = db.query(Product).filter(Product.slug == slug).first()
 
         if existing_product:
@@ -68,9 +89,7 @@ async def create_product(
             )
 
         # Check category exists
-        category = (
-            db.query(Category).filter(Category.id == product_data.category_id).first()
-        )
+        category = db.query(Category).filter(Category.id == category_id).first()
 
         if not category:
             raise HTTPException(
@@ -78,7 +97,7 @@ async def create_product(
             )
 
         # Check all attributes exist
-        for attr_id in product_data.attributes:
+        for attr_id in attributes_list:
             attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
             if not attr:
                 raise HTTPException(
@@ -89,25 +108,44 @@ async def create_product(
         # Create product
         new_product = Product(
             product_code=product_code,
-            category_id=product_data.category_id,
-            name=product_data.name,
+            category_id=category_id,
+            name=name,
             slug=slug,
-            description=product_data.description,
-            specifications=product_data.specifications,
-            base_price=product_data.base_price,
-            is_in_stock=product_data.is_in_stock,
-            is_active=product_data.is_active,
+            description=description,
+            specifications=specifications,
+            base_price=base_price,
+            is_in_stock=is_in_stock,
+            is_active=is_active,
         )
 
         db.add(new_product)
-        db.flush()  # Get product ID
+        db.flush()
 
         # Add attributes to product
-        for attr_id in product_data.attributes:
+        for attr_id in attributes_list:
             product_attr = ProductAttribute(
                 product_id=new_product.id, attribute_id=attr_id
             )
             db.add(product_attr)
+
+        db.flush()
+
+        # Upload files if provided
+        uploaded_files = []
+        if files:
+            for file in files:
+                file_url = await upload_file_to_storage(file, new_product.id)
+
+                if file_url:
+                    new_file = File(
+                        product_id=new_product.id,
+                        file_name=file.filename,
+                        file_url=file_url,
+                    )
+                    db.add(new_file)
+                    uploaded_files.append(
+                        {"file_name": file.filename, "file_url": file_url}
+                    )
 
         db.commit()
         db.refresh(new_product)
@@ -116,7 +154,7 @@ async def create_product(
             f"✅ Product Created | "
             f"ID={new_product.id} | "
             f"Code={new_product.product_code} | "
-            f"Name={new_product.name} | "
+            f"Files={len(uploaded_files)} | "
             f"Admin={admin.phone_number}"
         )
 
@@ -128,12 +166,13 @@ async def create_product(
                 "category_id": new_product.category_id,
                 "name": new_product.name,
                 "slug": new_product.slug,
-                "base_price": str(new_product.base_price),
-                "description": new_product.description,
-                "specifications": new_product.specifications,
-                "is_in_stock": new_product.is_in_stock,
-                "is_active": new_product.is_active,
-                "attributes": product_data.attributes,
+                "base_price": str(base_price),
+                "description": description,
+                "specifications": specifications,
+                "is_in_stock": is_in_stock,
+                "is_active": is_active,
+                "attributes": attributes_list,
+                "files": uploaded_files,
                 "created_at": new_product.created_at.isoformat(),
                 "updated_at": new_product.updated_at.isoformat(),
             },
@@ -326,7 +365,14 @@ async def update_product(
     db: db_dependency,
     admin: admin_dependency,
     product_id: int = Path(gt=0),
-    product_data: ProductUpdate = None,
+    category_id: int = Form(None),
+    name: str = Form(None),
+    description: str = Form(None),
+    specifications: str = Form(None),
+    base_price: float = Form(None),
+    is_in_stock: bool = Form(None),
+    is_active: bool = Form(None),
+    attributes: str = Form(None),
 ):
     """
     Update product details and attributes.
@@ -347,20 +393,17 @@ async def update_product(
             )
 
         # Check category exists
-        if product_data.category_id:
-            category = (
-                db.query(Category)
-                .filter(Category.id == product_data.category_id)
-                .first()
-            )
+        if category_id:
+            category = db.query(Category).filter(Category.id == category_id).first()
             if not category:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Category not found."
                 )
+            product.category_id = category_id
 
         # Check new slug if name changed
-        if product_data.name and product_data.name != product.name:
-            new_slug = generate_slug(product_data.name)
+        if name and name != product.name:
+            new_slug = generate_slug(name)
             existing = db.query(Product).filter(Product.slug == new_slug).first()
             if existing:
                 raise HTTPException(
@@ -368,11 +411,14 @@ async def update_product(
                     detail="Product with this name already exists.",
                 )
             product.slug = new_slug
+            product.name = name
 
         # Update attributes if provided
-        if product_data.attributes is not None:
+        if attributes:
+            attributes_list = json.loads(attributes)
+
             # Check all attributes exist
-            for attr_id in product_data.attributes:
+            for attr_id in attributes_list:
                 attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
                 if not attr:
                     raise HTTPException(
@@ -386,18 +432,23 @@ async def update_product(
             ).delete()
 
             # Add new attributes
-            for attr_id in product_data.attributes:
+            for attr_id in attributes_list:
                 product_attr = ProductAttribute(
                     product_id=product_id, attribute_id=attr_id
                 )
                 db.add(product_attr)
 
         # Update other fields
-        update_data = product_data.model_dump(exclude_unset=True)
-        update_data.pop("attributes", None)  # Remove attributes from update
-
-        for field, value in update_data.items():
-            setattr(product, field, value)
+        if description is not None:
+            product.description = description
+        if specifications is not None:
+            product.specifications = specifications
+        if base_price is not None:
+            product.base_price = base_price
+        if is_in_stock is not None:
+            product.is_in_stock = is_in_stock
+        if is_active is not None:
+            product.is_active = is_active
 
         db.commit()
         db.refresh(product)
@@ -491,187 +542,4 @@ async def delete_product(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete product.",
-        )
-
-
-@router.post("/{product_id}/files", status_code=status.HTTP_201_CREATED)
-async def add_product_file(
-    db: db_dependency,
-    admin: admin_dependency,
-    product_id: int = Path(gt=0),
-    file_data: FileCreate = None,
-):
-    """
-    Add file to product.
-    POST /admin/products/{id}/files
-    """
-
-    try:
-        product = db.query(Product).filter(Product.id == product_id).first()
-
-        if not product:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Product not found."
-            )
-
-        new_file = File(
-            product_id=product_id,
-            file_name=file_data.file_name,
-            file_url=file_data.file_url,
-        )
-
-        db.add(new_file)
-        db.commit()
-        db.refresh(new_file)
-
-        logger.info(
-            f"✅ Product File Added | "
-            f"Product ID={product_id} | "
-            f"File={file_data.file_name} | "
-            f"Admin={admin.phone_number}"
-        )
-
-        return {
-            "message": "File added successfully.",
-            "file": {
-                "id": new_file.id,
-                "file_name": new_file.file_name,
-                "file_url": new_file.file_url,
-                "created_at": new_file.created_at.isoformat(),
-            },
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(
-            f"❌ Product File Addition Failed | "
-            f"Error={str(e)} | "
-            f"Admin={admin.phone_number}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to add file.",
-        )
-
-
-@router.put("/{product_id}/files/{file_id}", status_code=status.HTTP_200_OK)
-async def update_product_file(
-    db: db_dependency,
-    admin: admin_dependency,
-    product_id: int = Path(gt=0),
-    file_id: int = Path(gt=0),
-    file_data: FileUpdate = None,
-):
-    """
-    Update product file.
-    PUT /admin/products/{id}/files/{file_id}
-    """
-
-    try:
-        file = (
-            db.query(File)
-            .filter(File.id == file_id, File.product_id == product_id)
-            .first()
-        )
-
-        if not file:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="File not found."
-            )
-
-        update_data = file_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(file, field, value)
-
-        db.commit()
-        db.refresh(file)
-
-        logger.info(
-            f"✅ Product File Updated | "
-            f"Product ID={product_id} | "
-            f"File ID={file_id} | "
-            f"Admin={admin.phone_number}"
-        )
-
-        return {
-            "message": "File updated successfully.",
-            "file": {
-                "id": file.id,
-                "file_name": file.file_name,
-                "file_url": file.file_url,
-                "created_at": file.created_at.isoformat(),
-            },
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(
-            f"❌ Product File Update Failed | "
-            f"Error={str(e)} | "
-            f"Admin={admin.phone_number}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update file.",
-        )
-
-
-@router.delete("/{product_id}/files/{file_id}", status_code=status.HTTP_200_OK)
-async def delete_product_file(
-    db: db_dependency,
-    admin: admin_dependency,
-    product_id: int = Path(gt=0),
-    file_id: int = Path(gt=0),
-):
-    """
-    Delete product file.
-    DELETE /admin/products/{id}/files/{file_id}
-    """
-
-    try:
-        file = (
-            db.query(File)
-            .filter(File.id == file_id, File.product_id == product_id)
-            .first()
-        )
-
-        if not file:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="File not found."
-            )
-
-        file_name = file.file_name
-
-        db.delete(file)
-        db.commit()
-
-        logger.info(
-            f"✅ Product File Deleted | "
-            f"Product ID={product_id} | "
-            f"File ID={file_id} | "
-            f"Admin={admin.phone_number}"
-        )
-
-        return {
-            "message": "File deleted successfully.",
-            "deleted_file_id": file_id,
-            "deleted_file_name": file_name,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(
-            f"❌ Product File Delete Failed | "
-            f"Error={str(e)} | "
-            f"Admin={admin.phone_number}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete file.",
         )
