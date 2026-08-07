@@ -4,6 +4,7 @@ from decimal import Decimal
 
 
 class AttributeOptionCreate(BaseModel):
+    attribute_id: int
     value: str
     additional_price: Decimal = 0
 
