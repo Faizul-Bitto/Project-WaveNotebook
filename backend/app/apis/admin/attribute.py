@@ -115,6 +115,34 @@ async def get_all_attributes(
         attributes = query.offset(skip).limit(limit).all()
         total = db.query(Attribute).count()
 
+        # Build attributes with their options
+        result = []
+        for attr in attributes:
+            options = (
+                db.query(AttributeOption)
+                .filter(AttributeOption.attribute_id == attr.id)
+                .all()
+            )
+            result.append(
+                {
+                    "id": attr.id,
+                    "name": attr.name,
+                    "slug": attr.slug,
+                    "is_active": attr.is_active,
+                    "options": [
+                        {
+                            "id": opt.id,
+                            "value": opt.value,
+                            "additional_price": str(opt.additional_price),
+                            "created_at": opt.created_at.isoformat(),
+                        }
+                        for opt in options
+                    ],
+                    "created_at": attr.created_at.isoformat(),
+                    "updated_at": attr.updated_at.isoformat(),
+                }
+            )
+
         logger.info(
             f"📋 Attributes Retrieved | "
             f"Count={len(attributes)} | "
@@ -126,17 +154,7 @@ async def get_all_attributes(
             "total": total,
             "skip": skip,
             "limit": limit,
-            "attributes": [
-                {
-                    "id": attr.id,
-                    "name": attr.name,
-                    "slug": attr.slug,
-                    "is_active": attr.is_active,
-                    "created_at": attr.created_at.isoformat(),
-                    "updated_at": attr.updated_at.isoformat(),
-                }
-                for attr in attributes
-            ],
+            "attributes": result,
         }
 
     except Exception as e:

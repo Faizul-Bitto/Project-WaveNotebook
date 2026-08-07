@@ -282,9 +282,11 @@ async def get_all_products(
                     "id": prod.id,
                     "product_code": prod.product_code,
                     "category_id": prod.category_id,
+                    "category_name": next((c.name for c in db.query(Category).filter(Category.id == prod.category_id).all()), ""),
                     "name": prod.name,
                     "slug": prod.slug,
                     "base_price": str(prod.base_price),
+                    "image_url": (db.query(File).filter(File.product_id == prod.id).first().file_url if db.query(File).filter(File.product_id == prod.id).first() else None),
                     "is_in_stock": prod.is_in_stock,
                     "is_active": prod.is_active,
                     "created_at": prod.created_at.isoformat(),
@@ -434,6 +436,7 @@ async def update_product(
     is_in_stock: bool = Form(None),
     is_active: bool = Form(None),
     attributes: str = Form(None),
+    files: list[UploadFile] = FastAPIFile(None),
 ):
     """
     Update product details and attributes.
@@ -547,6 +550,18 @@ async def update_product(
                         option_id=option_id,
                     )
                     db.add(product_attr_option)
+
+        # Upload new files if provided
+        if files:
+            for file in files:
+                file_url = await upload_file_to_storage(file, product_id)
+                if file_url:
+                    new_file = File(
+                        product_id=product_id,
+                        file_name=file.filename,
+                        file_url=file_url,
+                    )
+                    db.add(new_file)
 
         # Update other fields
         if description is not None:

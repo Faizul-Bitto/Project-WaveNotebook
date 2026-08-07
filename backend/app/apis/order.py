@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import uuid
 from typing import Optional
 
@@ -12,6 +13,9 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.user import User
+from app.models.product_attribute_option import ProductAttributeOption
+from app.models.attribute_option import AttributeOption
+from app.models.attribute import Attribute
 from app.schemas.order import OrderCreate
 
 router = APIRouter(
@@ -28,6 +32,61 @@ def generate_order_number() -> str:
     date_str = datetime.now().strftime("%Y%m%d")
     random_str = str(uuid.uuid4()).replace("-", "").upper()[:5]
     return f"ORD-{date_str}-{random_str}"
+
+
+def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -> float:
+    """
+    Calculate the unit price for an item including selected attribute option prices.
+    """
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return 0
+    total_price = float(product.base_price)
+    if selected_attributes:
+        try:
+            attrs = json.loads(selected_attributes)
+            for attr_id_str, option_value in attrs.items():
+                try:
+                    attr_id = int(attr_id_str)
+                    option = db.query(AttributeOption).filter(
+                        AttributeOption.id == option_value,
+                        AttributeOption.attribute_id == attr_id
+                    ).first()
+                    if option and option.additional_price:
+                        total_price += float(option.additional_price)
+                except (ValueError, TypeError):
+                    continue
+        except json.JSONDecodeError:
+            pass
+    return total_price
+
+
+def build_attributes_display(db, selected_attributes: str = None) -> Optional[str]:
+    """
+    Build a human-readable string of selected attributes.
+    Example: "Size: XL, Color: Red"
+    """
+    if not selected_attributes:
+        return None
+    try:
+        attrs = json.loads(selected_attributes)
+        display_parts = []
+        for attr_id_str, option_id in attrs.items():
+            try:
+                attr_id = int(attr_id_str)
+                option = db.query(AttributeOption).filter(
+                    AttributeOption.id == option_id,
+                    AttributeOption.attribute_id == attr_id
+                ).first()
+                if option:
+                    attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+                    attr_name = attr.name if attr else f"Attribute {attr_id}"
+                    display_parts.append(f"{attr_name}: {option.value}")
+            except (ValueError, TypeError):
+                continue
+        return ", ".join(display_parts) if display_parts else None
+    except json.JSONDecodeError:
+        return None
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -90,7 +149,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                     detail=f"Product '{product.name}' is out of stock.",
                 )
 
-            unit_price = product.base_price
+            unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
             line_total = unit_price * item.quantity
             total_price += line_total
 
@@ -111,6 +170,8 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             full_name=order_data.full_name,
             phone_number=order_data.phone_number,
             district=order_data.district,
+            thana=order_data.thana or "",
+            note=order_data.note,
             address=order_data.address,
             status="pending",
             total_price=total_price,
@@ -156,6 +217,8 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 "full_name": new_order.full_name,
                 "phone_number": new_order.phone_number,
                 "district": new_order.district,
+                "thana": new_order.thana or "",
+                "note": new_order.note,
                 "address": new_order.address,
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),
@@ -215,26 +278,34 @@ async def get_orders_by_phone(
                 db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
             )
 
+            items_data = []
+            for item in order_items:
+                product = db.query(Product).filter(Product.id == item.product_id).first()
+                items_data.append(
+                    {
+                        "id": item.id,
+                        "product_id": item.product_id,
+                        "product_name": product.name if product else f"Product #{item.product_id}",
+                        "quantity": item.quantity,
+                        "unit_price": str(item.unit_price),
+                        "price_at_purchase": str(item.price_at_purchase),
+                        "selected_attributes": item.selected_attributes,
+                        "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
+                    }
+                )
+
             result.append(
                 {
                     "id": order.id,
                     "order_number": order.order_number,
                     "full_name": order.full_name,
                     "district": order.district,
+                    "thana": order.thana or "",
+                    "note": order.note,
                     "address": order.address,
                     "status": order.status,
                     "total_price": str(order.total_price),
-                    "items": [
-                        {
-                            "id": item.id,
-                            "product_id": item.product_id,
-                            "quantity": item.quantity,
-                            "unit_price": str(item.unit_price),
-                            "price_at_purchase": str(item.price_at_purchase),
-                            "selected_attributes": item.selected_attributes,
-                        }
-                        for item in order_items
-                    ],
+                    "items": items_data,
                     "created_at": order.created_at.isoformat(),
                     "updated_at": order.updated_at.isoformat(),
                 }
@@ -277,6 +348,22 @@ async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
             db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
         )
 
+        items_data = []
+        for item in order_items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            items_data.append(
+                {
+                    "id": item.id,
+                    "product_id": item.product_id,
+                    "product_name": product.name if product else f"Product #{item.product_id}",
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                    "price_at_purchase": str(item.price_at_purchase),
+                    "selected_attributes": item.selected_attributes,
+                    "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
+                }
+            )
+
         logger.info(f"✅ Order Retrieved | ID={order.id}")
 
         return {
@@ -287,20 +374,12 @@ async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
                 "full_name": order.full_name,
                 "phone_number": order.phone_number,
                 "district": order.district,
+                "thana": order.thana or "",
+                "note": order.note,
                 "address": order.address,
                 "status": order.status,
                 "total_price": str(order.total_price),
-                "items": [
-                    {
-                        "id": item.id,
-                        "product_id": item.product_id,
-                        "quantity": item.quantity,
-                        "unit_price": str(item.unit_price),
-                        "price_at_purchase": str(item.price_at_purchase),
-                        "selected_attributes": item.selected_attributes,
-                    }
-                    for item in order_items
-                ],
+                "items": items_data,
                 "created_at": order.created_at.isoformat(),
                 "updated_at": order.updated_at.isoformat(),
             },

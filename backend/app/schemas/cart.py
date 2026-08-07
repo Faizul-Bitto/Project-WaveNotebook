@@ -3,10 +3,9 @@ from typing import Optional
 
 
 class CartItemCreate(BaseModel):
-    phone_number: str
     product_id: int
     quantity: int = 1
-    selected_attributes: Optional[str] = None  # JSON string of selected attribute options
+    selected_attributes: Optional[str] = None  # JSON string of selected attribute options like {"Size": "XL", "Color": "Red"}
 
 
 class CartItemUpdate(BaseModel):

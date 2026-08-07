@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, HTTPException, Path, Query
 from sqlalchemy import or_
 from starlette import status
@@ -9,12 +10,39 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.user import User
+from app.models.attribute import Attribute
+from app.models.attribute_option import AttributeOption
+from app.models.product_attribute_option import ProductAttributeOption
 from app.schemas.order import OrderCreate, OrderStatusUpdate
 
 router = APIRouter(
     prefix="/admin/orders",
     tags=["Admin - Orders"],
 )
+
+
+def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -> float:
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return 0
+    total_price = float(product.base_price)
+    if selected_attributes:
+        try:
+            attrs = json.loads(selected_attributes)
+            for attr_id_str, option_value in attrs.items():
+                try:
+                    attr_id = int(attr_id_str)
+                    option = db.query(AttributeOption).filter(
+                        AttributeOption.id == option_value,
+                        AttributeOption.attribute_id == attr_id
+                    ).first()
+                    if option and option.additional_price:
+                        total_price += float(option.additional_price)
+                except (ValueError, TypeError):
+                    continue
+        except json.JSONDecodeError:
+            pass
+    return total_price
 
 
 @router.get("", status_code=status.HTTP_200_OK)
@@ -106,6 +134,47 @@ async def get_order_by_id(
         # Get user info
         user = db.query(User).filter(User.id == order.user_id).first()
 
+        items_data = []
+        for item in order_items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+
+            # Build selected attributes display
+            selected_attrs_display = None
+            if item.selected_attributes:
+                try:
+                    attrs = json.loads(item.selected_attributes)
+                    display_parts = []
+                    for attr_id_str, option_id in attrs.items():
+                        try:
+                            attr_id = int(attr_id_str)
+                            option = db.query(AttributeOption).filter(
+                                AttributeOption.id == option_id,
+                                AttributeOption.attribute_id == attr_id
+                            ).first()
+                            if option:
+                                attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+                                attr_name = attr.name if attr else f"Attribute {attr_id}"
+                                display_parts.append(f"{attr_name}: {option.value}")
+                        except (ValueError, TypeError):
+                            continue
+                    if display_parts:
+                        selected_attrs_display = ", ".join(display_parts)
+                except json.JSONDecodeError:
+                    pass
+
+            items_data.append(
+                {
+                    "id": item.id,
+                    "product_id": item.product_id,
+                    "product_name": product.name if product else f"Product #{item.product_id}",
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                    "price_at_purchase": str(item.price_at_purchase),
+                    "selected_attributes": item.selected_attributes,
+                    "selected_attributes_display": selected_attrs_display,
+                }
+            )
+
         logger.info(
             f"📦 Order Retrieved | "
             f"ID={order.id} | "
@@ -120,6 +189,8 @@ async def get_order_by_id(
                 "full_name": order.full_name,
                 "phone_number": order.phone_number,
                 "district": order.district,
+                "thana": order.thana or "",
+                "note": order.note,
                 "address": order.address,
                 "status": order.status,
                 "total_price": str(order.total_price),
@@ -128,17 +199,7 @@ async def get_order_by_id(
                     "phone_number": user.phone_number if user else None,
                     "email": user.email if user else None,
                 },
-                "items": [
-                    {
-                        "id": item.id,
-                        "product_id": item.product_id,
-                        "quantity": item.quantity,
-                        "unit_price": str(item.unit_price),
-                        "price_at_purchase": str(item.price_at_purchase),
-                        "selected_attributes": item.selected_attributes,
-                    }
-                    for item in order_items
-                ],
+                "items": items_data,
                 "created_at": order.created_at.isoformat(),
                 "updated_at": order.updated_at.isoformat(),
             },
@@ -156,6 +217,72 @@ async def get_order_by_id(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve order.",
         )
+
+
+@router.put("/{order_id}", status_code=status.HTTP_200_OK)
+async def update_order(
+    db: db_dependency,
+    admin: admin_dependency,
+    order_id: int = Path(gt=0),
+    order_data: OrderCreate = None,
+):
+    """Update order customer info + items. Auto-creates user if phone doesn't exist."""
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+        if not order_data.items:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Order must have at least one item.")
+
+        # Find or create user by phone number
+        user = db.query(User).filter(User.phone_number == order_data.phone_number).first()
+        if not user:
+            user = User(phone_number=order_data.phone_number, email=None, role="customer", password=None)
+            db.add(user)
+            db.flush()
+
+        # Update order fields
+        order.user_id = user.id
+        order.full_name = order_data.full_name
+        order.phone_number = order_data.phone_number
+        order.district = order_data.district
+        order.thana = order_data.thana or ""
+        order.note = order_data.note
+        order.address = order_data.address
+
+        # Delete old items
+        db.query(OrderItem).filter(OrderItem.order_id == order_id).delete()
+
+        # Create new items
+        total_price = 0
+        for item in order_data.items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if not product:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product ID {item.product_id} not found.")
+            if not product.is_active:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is not available.")
+            if not product.is_in_stock:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is out of stock.")
+
+            unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
+            line_total = unit_price * item.quantity
+            total_price += line_total
+            db.add(OrderItem(
+                order_id=order_id, product_id=item.product_id, quantity=item.quantity,
+                unit_price=unit_price, price_at_purchase=line_total, selected_attributes=item.selected_attributes
+            ))
+
+        order.total_price = total_price
+        db.commit()
+        db.refresh(order)
+        return {"message": "Order updated successfully.", "order": {"id": order.id, "order_number": order.order_number, "total_price": str(order.total_price)}}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Order Update Failed | Error={str(e)} | Admin={admin.phone_number}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update order.")
 
 
 @router.put("/{order_id}/status", status_code=status.HTTP_200_OK)
@@ -182,7 +309,7 @@ async def update_order_status(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found."
             )
 
-        valid_statuses = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]
+        valid_statuses = ["pending", "called", "confirmed", "processing", "shipped", "delivered", "cancelled"]
 
         if status_data.status not in valid_statuses:
             raise HTTPException(
@@ -295,7 +422,7 @@ async def create_order_for_user(
                     detail=f"Product '{product.name}' is out of stock.",
                 )
 
-            unit_price = product.base_price
+            unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
             line_total = unit_price * item.quantity
             total_price += line_total
 
@@ -316,6 +443,8 @@ async def create_order_for_user(
             full_name=order_data.full_name,
             phone_number=order_data.phone_number,
             district=order_data.district,
+            thana=order_data.thana or "",
+            note=order_data.note,
             address=order_data.address,
             status="pending",
             total_price=total_price,
@@ -361,6 +490,8 @@ async def create_order_for_user(
                 "full_name": new_order.full_name,
                 "phone_number": new_order.phone_number,
                 "district": new_order.district,
+                "thana": new_order.thana or "",
+                "note": new_order.note,
                 "address": new_order.address,
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),

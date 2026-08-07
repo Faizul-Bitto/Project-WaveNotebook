@@ -15,6 +15,8 @@ class OrderCreate(BaseModel):
     full_name: str
     phone_number: str
     district: str
+    thana: Optional[str] = ""
+    note: Optional[str] = None
     address: str
     items: List[OrderItemCreate]
 

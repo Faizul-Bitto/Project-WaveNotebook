@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Optional
 
@@ -9,6 +10,9 @@ from app.dependencies.database import db_dependency
 from app.models.cart_item import CartItem
 from app.models.product import Product
 from app.models.file import File
+from app.models.product_attribute_option import ProductAttributeOption
+from app.models.attribute_option import AttributeOption
+from app.models.attribute import Attribute
 from app.schemas.cart import CartItemCreate, CartItemUpdate
 
 router = APIRouter(
@@ -126,6 +130,62 @@ async def add_to_cart(
         )
 
 
+def calculate_item_price(db, product_id: int, selected_attributes: str = None) -> float:
+    """
+    Calculate the total price for an item including selected attribute option prices.
+    
+    Args:
+        db: Database session
+        product_id: ID of the product
+        selected_attributes: JSON string like {"Size": "XL", "Color": "Red"}
+    
+    Returns:
+        Total unit price including attribute additions
+    """
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        return 0
+    
+    total_price = float(product.base_price)
+    
+    # If attributes are selected, add their prices
+    if selected_attributes:
+        try:
+            attrs = json.loads(selected_attributes)
+            # Get all attribute options for this product
+            product_attrs = (
+                db.query(ProductAttributeOption)
+                .filter(ProductAttributeOption.product_id == product_id)
+                .all()
+            )
+            
+            # Build a lookup for quick access
+            attr_lookup = {}
+            for pa in product_attrs:
+                if pa.attribute_id not in attr_lookup:
+                    attr_lookup[pa.attribute_id] = []
+                attr_lookup[pa.attribute_id].append(pa.option_id)
+            
+            # Calculate additional price for each selected option
+            for attr_id_str, option_value in attrs.items():
+                try:
+                    attr_id = int(attr_id_str)
+                    if attr_id in attr_lookup:
+                        option = db.query(AttributeOption).filter(
+                            AttributeOption.id == option_value,
+                            AttributeOption.attribute_id == attr_id
+                        ).first()
+                        if option and option.additional_price:
+                            total_price += float(option.additional_price)
+                except (ValueError, TypeError):
+                    continue
+                    
+        except json.JSONDecodeError:
+            pass  # Invalid JSON, ignore attribute pricing
+    
+    return total_price
+
+
 @router.get("", status_code=status.HTTP_200_OK)
 async def get_cart(
     db: db_dependency,
@@ -157,8 +217,34 @@ async def get_cart(
                 db.query(File).filter(File.product_id == product.id).first()
             )
 
-            subtotal = product.base_price * cart_item.quantity
+            # Calculate unit price including selected attributes
+            unit_price = calculate_item_price(db, cart_item.product_id, cart_item.selected_attributes)
+            subtotal = unit_price * cart_item.quantity
             total_price += subtotal
+
+            # Build human-readable selected attributes display
+            selected_attrs_display = None
+            if cart_item.selected_attributes:
+                try:
+                    attrs = json.loads(cart_item.selected_attributes)
+                    display_parts = []
+                    for attr_id_str, option_id in attrs.items():
+                        try:
+                            attr_id = int(attr_id_str)
+                            option = db.query(AttributeOption).filter(
+                                AttributeOption.id == option_id,
+                                AttributeOption.attribute_id == attr_id
+                            ).first()
+                            if option:
+                                attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+                                attr_name = attr.name if attr else f"Attribute {attr_id}"
+                                display_parts.append(f"{attr_name}: {option.value}")
+                        except (ValueError, TypeError):
+                            continue
+                    if display_parts:
+                        selected_attrs_display = ", ".join(display_parts)
+                except json.JSONDecodeError:
+                    pass
 
             items.append(
                 {
@@ -166,10 +252,12 @@ async def get_cart(
                     "product_id": product.id,
                     "product_name": product.name,
                     "slug": product.slug,
-                    "unit_price": str(product.base_price),
+                    "base_price": str(product.base_price),
+                    "unit_price": str(unit_price),
                     "quantity": cart_item.quantity,
                     "subtotal": str(subtotal),
                     "selected_attributes": cart_item.selected_attributes,
+                    "selected_attributes_display": selected_attrs_display,
                     "image_url": file.file_url if file else None,
                     "is_in_stock": product.is_in_stock,
                     "created_at": cart_item.created_at.isoformat(),

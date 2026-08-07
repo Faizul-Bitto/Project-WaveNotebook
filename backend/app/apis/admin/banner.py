@@ -65,7 +65,7 @@ async def create_banner(
     """
     try:
         # Upload image
-        image_url = upload_file_to_storage(image, "banner")
+        image_url = await upload_file_to_storage(image, "banner")
         if not image_url:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -153,7 +153,7 @@ async def update_banner(
 
         # Upload new image if provided
         if image:
-            image_url = upload_file_to_storage(image, "banner")
+            image_url = await upload_file_to_storage(image, "banner")
             if image_url:
                 banner.image_url = image_url
 

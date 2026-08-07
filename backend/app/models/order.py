@@ -43,9 +43,20 @@ class Order(Base):
         nullable=False,
     )
 
+    thana = Column(
+        String(100),
+        nullable=False,
+        server_default="",
+    )
+
     address = Column(
         Text,
         nullable=False,
+    )
+
+    note = Column(
+        Text,
+        nullable=True,
     )
 
     status = Column(
