@@ -1,0 +1,70 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield } from 'react-icons/fa';
+import { useCart } from '../context/CartContext';
+
+function Header() {
+  const { cartCount } = useCart();
+  const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const query = e.target.elements.search.value.trim();
+    if (query) {
+      navigate(`/products?search=${encodeURIComponent(query)}`);
+    }
+  };
+
+  return (
+    <header className="header">
+      {/* Top bar */}
+      <div className="top-bar">
+        <div className="container top-bar-inner">
+          <div className="top-bar-left">
+            <FaPhoneAlt className="top-bar-icon" />
+            <span>Hotline: 01700-000000</span>
+          </div>
+          <div className="top-bar-right">
+            <Link to="/track-order" className="top-bar-link">
+              Track Order
+            </Link>
+            <Link to="/admin/login" className="top-bar-link">
+              <FaUserShield className="top-bar-icon" /> Admin
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Main header */}
+      <div className="main-header">
+        <div className="container main-header-inner">
+          <Link to="/" className="logo">
+            <span className="logo-icon">📓</span>
+            <span className="logo-text">
+              Wave<span>Notebook</span>
+            </span>
+          </Link>
+
+          <form className="search-bar" onSubmit={handleSearch}>
+            <input
+              type="text"
+              name="search"
+              placeholder="Search products..."
+              className="search-input"
+            />
+            <button type="submit" className="search-btn">
+              <FaSearch />
+            </button>
+          </form>
+
+          <Link to="/cart" className="cart-btn">
+            <FaShoppingCart className="cart-icon" />
+            <span className="cart-text">Cart</span>
+            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export default Header;
