@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaCheckCircle, FaTruck } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
+import { useDirectBuy } from '../context/DirectBuyContext';
 import { createOrder, getDistricts } from '../api/services';
 
 function Checkout() {
   const { cart, clearAll } = useCart();
+  const { directItem, clearDirectItem } = useDirectBuy();
   const [districts, setDistricts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
@@ -64,14 +66,19 @@ function Checkout() {
       return;
     }
 
-    const items = (cart?.items || []).map((item) => ({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      selected_attributes: item.selected_attributes || null,
-    }));
+    let items;
+    if (directItem) {
+      items = [{ product_id: directItem.product.id, quantity: directItem.quantity, selected_attributes: directItem.attrsString }];
+    } else {
+      items = (cart?.items || []).map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        selected_attributes: item.selected_attributes || null,
+      }));
+    }
 
     if (items.length === 0) {
-      setError('Your cart is empty.');
+      setError(directItem ? 'Product not available.' : 'Your cart is empty.');
       return;
     }
 
@@ -119,8 +126,17 @@ function Checkout() {
     );
   }
 
-  const items = cart?.items || [];
-  const totalPrice = parseFloat(cart?.total_price || '0');
+  const items = directItem ? [{
+    id: 'direct',
+    product_name: directItem.product.name,
+    slug: directItem.product.slug,
+    quantity: directItem.quantity,
+    unit_price: directItem.product.base_price,
+    subtotal: (parseFloat(directItem.product.base_price) * directItem.quantity).toFixed(2),
+  }] : (cart?.items || []);
+  const totalPrice = directItem
+    ? parseFloat(directItem.product.base_price || 0) * directItem.quantity
+    : parseFloat(cart?.total_price || '0');
 
   if (items.length === 0) {
     return (

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { DirectBuyProvider } from './context/DirectBuyContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -44,6 +45,7 @@ function StoreLayout({ children }) {
 function App() {
   return (
     <BrowserRouter>
+      <DirectBuyProvider>
       <CartProvider>
         <Routes>
           {/* Store routes */}
@@ -137,6 +139,7 @@ function App() {
           />
         </Routes>
       </CartProvider>
+      </DirectBuyProvider>
     </BrowserRouter>
   );
 }

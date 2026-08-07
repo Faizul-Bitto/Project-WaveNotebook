@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { FaShoppingCart, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo } from 'react-icons/fa';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { FaShoppingCart, FaBolt, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo } from 'react-icons/fa';
 import { getProductBySlug } from '../api/services';
 import { useCart } from '../context/CartContext';
+import { useDirectBuy } from '../context/DirectBuyContext';
 
 function ProductDetail() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { addItem } = useCart();
+  const { setDirectItem } = useDirectBuy();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,6 +67,21 @@ function ProductDetail() {
     });
 
     return price * quantity;
+  };
+
+  const handleBuyNow = async () => {
+    const selectedAttrs = {};
+    product.attributes?.forEach((attr) => {
+      const selectedOptionId = selectedOptions[attr.id];
+      if (selectedOptionId) {
+        selectedAttrs[attr.id] = selectedOptionId;
+      }
+    });
+    const attrsString = Object.keys(selectedAttrs).length > 0
+      ? JSON.stringify(selectedAttrs)
+      : null;
+    setDirectItem({ product, selectedOptions, quantity, attrsString });
+    navigate('/checkout');
   };
 
   const handleAddToCart = async () => {
@@ -204,6 +222,15 @@ function ProductDetail() {
               disabled={!product.is_in_stock}
             >
               {added ? <><FaCheckCircle /> Added to Cart</> : <><FaShoppingCart /> Add to Cart</>}
+            </button>
+
+            {/* Buy Now */}
+            <button
+              className="btn btn-success btn-lg add-to-cart-detail"
+              onClick={handleBuyNow}
+              disabled={!product.is_in_stock}
+            >
+              <FaBolt /> Buy Now
             </button>
 
             {/* Trust badges */}
