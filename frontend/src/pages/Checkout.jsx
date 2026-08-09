@@ -9,7 +9,7 @@ import { useToast } from '../context/ToastContext';
 
 function Checkout () {
   const { cart, clearAll } = useCart();
-  const { directItem, clearDirectItem } = useDirectBuy();
+  const { directItem } = useDirectBuy();
   const { addToast } = useToast();
   const [ districts, setDistricts ] = useState( [] );
   const [ loading, setLoading ] = useState( false );
@@ -105,16 +105,40 @@ function Checkout () {
     }
   };
 
+  // Compute effective unit price for a direct item (base + selected add-ons)
+  const computeDirectUnitPrice = () => {
+    if ( !directItem ) return 0;
+    let price = parseFloat( directItem.product.base_price || '0' );
+    ( directItem.product.attributes || [] ).forEach( ( attr ) => {
+      const selectedOptionId = directItem.selectedOptions?.[ attr.id ];
+      if ( selectedOptionId ) {
+        const option = ( attr.options || [] ).find( ( opt ) => opt.id === selectedOptionId );
+        if ( option ) {
+          price += parseFloat( option.additional_price || '0' );
+        }
+      }
+    } );
+    return price;
+  };
+
+  const directUnitPrice = computeDirectUnitPrice();
   const items = directItem ? [ {
     id: 'direct',
     product_name: directItem.product.name,
     slug: directItem.product.slug,
     quantity: directItem.quantity,
-    unit_price: directItem.product.base_price,
-    subtotal: ( parseFloat( directItem.product.base_price ) * directItem.quantity ).toFixed( 2 ),
+    unit_price: directUnitPrice,
+    selected_attributes_display: directItem.product.attributes
+      ?.filter( ( attr ) => directItem.selectedOptions?.[ attr.id ] )
+      .map( ( attr ) => {
+        const opt = ( attr.options || [] ).find( ( o ) => o.id === directItem.selectedOptions[ attr.id ] );
+        return `${attr.name}: ${opt ? opt.value : ''}`;
+      } )
+      .join( ', ' ) || undefined,
+    subtotal: ( directUnitPrice * directItem.quantity ).toFixed( 2 ),
   } ] : ( cart?.items || [] );
   const totalPrice = directItem
-    ? parseFloat( directItem.product.base_price || 0 ) * directItem.quantity
+    ? directUnitPrice * directItem.quantity
     : parseFloat( cart?.total_price || '0' );
 
   // Order success screen

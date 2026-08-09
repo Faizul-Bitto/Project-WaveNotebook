@@ -150,7 +150,7 @@ function TrackOrder() {
                   </div>
                   <div className="order-info-row">
                     <span>Phone:</span>
-                    <strong>{order.phone_number}</strong>
+                    <strong>{order.phone_number || phone}</strong>
                   </div>
                   <div className="order-info-row">
                     <span>District:</span>

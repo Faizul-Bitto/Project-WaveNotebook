@@ -69,7 +69,8 @@ function AdminCategories() {
       const formDataObj = new FormData();
       formDataObj.append('name', formData.name);
       formDataObj.append('description', formData.description || '');
-      if (formData.parent_id) formDataObj.append('parent_id', parseInt(formData.parent_id));
+       if (formData.parent_id) formDataObj.append('parent_id', parseInt(formData.parent_id));
+       else formDataObj.append('parent_id', '0');
       formDataObj.append('is_active', formData.is_active);
       if (imageFile) formDataObj.append('image', imageFile);
 
@@ -213,7 +214,7 @@ function AdminCategories() {
                     </td>
                     <td>{category.name}</td>
                     <td>{category.slug}</td>
-                    <td>{category.parent_id || '-'}</td>
+                    <td>{category.parent_id ? (categories.find((c) => c.id === category.parent_id)?.name || `#${category.parent_id}`) : '-'}</td>
                     <td>{category.description || '-'}</td>
                     <td>
                       <span className={`badge ${category.is_active ? 'badge-green' : 'badge-red'}`}>

@@ -276,19 +276,22 @@ async def update_category(
             category.name = name
             category.slug = generate_slug(name)
 
-        if parent_id and parent_id != category.parent_id:
-            if parent_id == category_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Category cannot be its own parent.",
-                )
-            parent = db.query(Category).filter(Category.id == parent_id).first()
-            if not parent:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Parent category not found.",
-                )
-            category.parent_id = parent_id
+        if parent_id is not None and parent_id != category.parent_id:
+            if parent_id and parent_id > 0:
+                if parent_id == category_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Category cannot be its own parent.",
+                    )
+                parent = db.query(Category).filter(Category.id == parent_id).first()
+                if not parent:
+                    raise HTTPException(
+                        status_code=status_404_NOT_FOUND,
+                        detail="Parent category not found.",
+                    )
+                category.parent_id = parent_id
+            else:
+                category.parent_id = None
 
         if description is not None:
             category.description = description

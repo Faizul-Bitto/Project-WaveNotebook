@@ -299,6 +299,7 @@ async def get_orders_by_phone(
                     "id": order.id,
                     "order_number": order.order_number,
                     "full_name": order.full_name,
+                    "phone_number": order.phone_number,
                     "district": order.district,
                     "thana": order.thana or "",
                     "note": order.note,

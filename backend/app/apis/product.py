@@ -76,10 +76,11 @@ async def get_products(
                                 "id": opt.id,
                                 "value": opt.value,
                                 "additional_price": str(opt.additional_price),
-                                "is_selected": opt.id in selected_option_ids,
-                            }
-                            for opt in options
-                        ],
+                            "is_selected": opt.id in selected_option_ids,
+                        }
+                        for opt in options
+                        if opt.id in selected_option_ids
+                    ],
                     }
                 )
 
@@ -180,6 +181,7 @@ async def get_product_by_id(db: db_dependency, product_id: int = Path(gt=0)):
                             "is_selected": opt.id in selected_option_ids,
                         }
                         for opt in options
+                        if opt.id in selected_option_ids
                     ],
                 }
             )
@@ -277,6 +279,7 @@ async def get_product_by_slug(db: db_dependency, product_slug: str):
                             "is_selected": opt.id in selected_option_ids,
                         }
                         for opt in options
+                        if opt.id in selected_option_ids
                     ],
                 }
             )
