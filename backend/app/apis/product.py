@@ -18,7 +18,7 @@ router = APIRouter(
 
 @router.get("", status_code=status.HTTP_200_OK)
 async def get_products(
-    db: db_dependency, category_id: int = None, skip: int = 0, limit: int = 100
+    db: db_dependency, category_id: int = None, search: str = None, skip: int = 0, limit: int = 100
 ):
     """
     Retrieve all active products.
@@ -31,8 +31,12 @@ async def get_products(
         if category_id:
             query = query.filter(Product.category_id == category_id)
 
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(Product.name.ilike(search_term))
+
         products = query.offset(skip).limit(limit).all()
-        total = db.query(Product).filter(Product.is_active == True).count()
+        total = query.count()
 
         result = []
         for product in products:

@@ -1,46 +1,46 @@
 import { useEffect, useState } from 'react';
+import { FaChevronLeft, FaChevronRight, FaHeadset, FaMoneyBillWave, FaShieldAlt, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { FaTruck, FaShieldAlt, FaHeadset, FaMoneyBillWave, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { getBanners, getCategories, getProducts } from '../api/services';
 import ProductCard from '../components/ProductCard';
 import { useToast } from '../context/ToastContext';
 
-function Home() {
-  const [banners, setBanners] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeBanner, setActiveBanner] = useState(0);
+function Home () {
+  const [ banners, setBanners ] = useState( [] );
+  const [ categories, setCategories ] = useState( [] );
+  const [ products, setProducts ] = useState( [] );
+  const [ loading, setLoading ] = useState( true );
+  const [ activeBanner, setActiveBanner ] = useState( 0 );
   const { addToast } = useToast();
 
-  useEffect(() => {
+  useEffect( () => {
     const loadData = async () => {
       try {
-        const [bannerData, categoryData, productData] = await Promise.all([
+        const [ bannerData, categoryData, productData ] = await Promise.all( [
           getBanners(),
           getCategories(),
-          getProducts({ limit: 8 }),
-        ]);
-        setBanners(bannerData.banners || []);
-        setCategories(categoryData.categories || []);
-        setProducts(productData.products || []);
-      } catch (error) {
-        console.error('Failed to load home data:', error);
-        addToast('Failed to load homepage data.', 'error');
+          getProducts( { limit: 8 } ),
+        ] );
+        setBanners( bannerData.banners || [] );
+        setCategories( categoryData.categories || [] );
+        setProducts( productData.products || [] );
+      } catch ( error ) {
+        console.error( 'Failed to load home data:', error );
+        addToast( 'Failed to load homepage data.', 'error' );
       } finally {
-        setLoading(false);
+        setLoading( false );
       }
     };
     loadData();
-  }, []);
+  }, [] );
 
-  useEffect(() => {
-    if (banners.length <= 1) return;
-    const interval = setInterval(() => {
-      setActiveBanner((prev) => (prev + 1) % banners.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [banners.length]);
+  useEffect( () => {
+    if ( banners.length <= 1 ) return;
+    const interval = setInterval( () => {
+      setActiveBanner( ( prev ) => ( prev + 1 ) % banners.length );
+    }, 5000 );
+    return () => clearInterval( interval );
+  }, [ banners.length ] );
 
   const features = [
     { icon: <FaTruck />, title: 'Fast Delivery', desc: 'All over Bangladesh' },
@@ -53,26 +53,22 @@ function Home() {
     <div className="home-page">
       <section className="hero-banner">
         <div className="container">
-          {banners.length > 0 ? (
+          { banners.length > 0 ? (
             <div className="banner-slider">
-              {banners.map((banner, index) => (
-                <div key={banner.id} className={`banner-slide ${index === activeBanner ? 'active' : ''}`}>
-                  <a href={banner.link_url || '#'}>
-                    <img src={banner.image_url} alt={banner.title} />
-                    <div className="banner-overlay">
-                      <h2>{banner.title}</h2>
-                      {banner.subtitle && <p>{banner.subtitle}</p>}
-                    </div>
+              { banners.map( ( banner, index ) => (
+                <div key={ banner.id } className={ `banner-slide ${ index === activeBanner ? 'active' : '' }` }>
+                  <a href={ banner.link_url || '#' }>
+                    <img src={ banner.image_url } alt={ banner.title } />
                   </a>
                 </div>
-              ))}
-              {banners.length > 1 && (
+              ) ) }
+              { banners.length > 1 && (
                 <div className="banner-dots">
-                  {banners.map((_, index) => (
-                    <button key={index} className={`dot ${index === activeBanner ? 'active' : ''}`} onClick={() => setActiveBanner(index)} />
-                  ))}
+                  { banners.map( ( _, index ) => (
+                    <button key={ index } className={ `dot ${ index === activeBanner ? 'active' : '' }` } onClick={ () => setActiveBanner( index ) } />
+                  ) ) }
                 </div>
-              )}
+              ) }
             </div>
           ) : (
             <div className="hero-placeholder">
@@ -80,21 +76,21 @@ function Home() {
               <p>Your trusted online shop for quality notebooks & stationery</p>
               <Link to="/products" className="btn btn-primary">Shop Now</Link>
             </div>
-          )}
+          ) }
         </div>
       </section>
 
       <section className="features-section">
         <div className="container features-grid">
-          {features.map((feature, index) => (
-            <div className="feature-item" key={index}>
-              <div className="feature-icon">{feature.icon}</div>
+          { features.map( ( feature, index ) => (
+            <div className="feature-item" key={ index }>
+              <div className="feature-icon">{ feature.icon }</div>
               <div>
-                <h4>{feature.title}</h4>
-                <p>{feature.desc}</p>
+                <h4>{ feature.title }</h4>
+                <p>{ feature.desc }</p>
               </div>
             </div>
-          ))}
+          ) ) }
         </div>
       </section>
 
@@ -104,9 +100,9 @@ function Home() {
             <h2>Shop by Category</h2>
             <Link to="/products" className="view-all">View All</Link>
           </div>
-          {categories.length > 0 && (
-            <CategoryMarquee categories={categories} />
-          )}
+          { categories.length > 0 && (
+            <CategoryMarquee categories={ categories } />
+          ) }
         </div>
       </section>
 
@@ -116,88 +112,88 @@ function Home() {
             <h2>Featured Products</h2>
             <Link to="/products" className="view-all">View All</Link>
           </div>
-          {loading ? (
+          { loading ? (
             <div className="loading">Loading products...</div>
           ) : (
             <div className="products-grid">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              { products.map( ( product ) => (
+                <ProductCard key={ product.id } product={ product } />
+              ) ) }
             </div>
-          )}
+          ) }
         </div>
       </section>
     </div>
   );
 }
 
-function CategoryMarquee({ categories }) {
+function CategoryMarquee ( { categories } ) {
   const count = categories.length;
   const ITEM_WIDTH = 164;
-  const [index, setIndex] = useState(count);
-  const [transitioning, setTransitioning] = useState(true);
+  const [ index, setIndex ] = useState( count );
+  const [ transitioning, setTransitioning ] = useState( true );
 
-  const items = [...categories, ...categories, ...categories];
+  const items = [ ...categories, ...categories, ...categories ];
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTransitioning(true);
-      setIndex((i) => i + 1);
-    }, 2500);
-    return () => clearInterval(timer);
-  }, []);
+  useEffect( () => {
+    const timer = setInterval( () => {
+      setTransitioning( true );
+      setIndex( ( i ) => i + 1 );
+    }, 2500 );
+    return () => clearInterval( timer );
+  }, [] );
 
   const handleTransitionEnd = () => {
-    if (index >= count * 2) {
-      setTransitioning(false);
-      setIndex(index - count);
-    } else if (index <= 0) {
-      setTransitioning(false);
-      setIndex(index + count);
+    if ( index >= count * 2 ) {
+      setTransitioning( false );
+      setIndex( index - count );
+    } else if ( index <= 0 ) {
+      setTransitioning( false );
+      setIndex( index + count );
     }
   };
 
   const next = () => {
-    setTransitioning(true);
-    setIndex((i) => i + 1);
+    setTransitioning( true );
+    setIndex( ( i ) => i + 1 );
   };
 
   const prev = () => {
-    setTransitioning(true);
-    setIndex((i) => i - 1);
+    setTransitioning( true );
+    setIndex( ( i ) => i - 1 );
   };
 
-  if (count === 0) return null;
+  if ( count === 0 ) return null;
 
   return (
     <div className="cat-carousel">
-      <button className="cat-carousel-arrow cat-carousel-arrow-left" onClick={prev} aria-label="Previous">
+      <button className="cat-carousel-arrow cat-carousel-arrow-left" onClick={ prev } aria-label="Previous">
         <FaChevronLeft />
       </button>
       <div className="cat-carousel-window">
         <div
           className="cat-carousel-track"
-          style={{
-            transform: `translateX(-${index * ITEM_WIDTH}px)`,
+          style={ {
+            transform: `translateX(-${ index * ITEM_WIDTH }px)`,
             transition: transitioning ? 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
-          }}
-          onTransitionEnd={handleTransitionEnd}
+          } }
+          onTransitionEnd={ handleTransitionEnd }
         >
-          {items.map((category, idx) => (
-            <Link to={`/products?category=${category.id}`} className="cat-carousel-item" key={`${category.id}-${idx}`}>
+          { items.map( ( category, idx ) => (
+            <Link to={ `/products?category=${ category.id }` } className="cat-carousel-item" key={ `${ category.id }-${ idx }` }>
               <div className="cat-round">
-                {category.image_url ? (
-                  <img src={category.image_url} alt={category.name} />
+                { category.image_url ? (
+                  <img src={ category.image_url } alt={ category.name } />
                 ) : (
                   <span className="cat-round-icon">📚</span>
-                )}
+                ) }
               </div>
-              <span className="cat-carousel-name">{category.name}</span>
+              <span className="cat-carousel-name">{ category.name }</span>
             </Link>
-          ))}
+          ) ) }
         </div>
       </div>
-      <button className="cat-carousel-arrow cat-carousel-arrow-right" onClick={next} aria-label="Next">
+      <button className="cat-carousel-arrow cat-carousel-arrow-right" onClick={ next } aria-label="Next">
         <FaChevronRight />
       </button>
     </div>

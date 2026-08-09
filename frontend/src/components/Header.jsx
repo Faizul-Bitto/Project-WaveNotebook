@@ -47,10 +47,7 @@ function Header() {
             ) : (
               <span className="logo-icon">📓</span>
             )}
-            <span className="logo-text">
-              {siteName.split('Notebook')[0]}
-              <span>Notebook</span>
-            </span>
+            <span className="logo-text">{siteName}</span>
           </Link>
 
           <form className="search-bar" onSubmit={handleSearch}>
