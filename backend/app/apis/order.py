@@ -329,6 +329,75 @@ async def get_orders_by_phone(
         )
 
 
+@router.get("/track-number/{order_number}", status_code=status.HTTP_200_OK)
+async def get_order_by_number(
+    db: db_dependency, order_number: str = Path(...)
+):
+    """
+    Get single order by order number.
+    GET /orders/track-number/{order_number}
+    """
+    try:
+        order = db.query(Order).filter(Order.order_number == order_number).first()
+
+        if not order:
+            logger.warning(f"⚠️ Order Not Found | Order Number={order_number}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Order not found.",
+            )
+
+        order_items = (
+            db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        )
+
+        items_data = []
+        for item in order_items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            items_data.append(
+                {
+                    "id": item.id,
+                    "product_id": item.product_id,
+                    "product_name": product.name if product else f"Product #{item.product_id}",
+                    "quantity": item.quantity,
+                    "unit_price": str(item.unit_price),
+                    "price_at_purchase": str(item.price_at_purchase),
+                    "selected_attributes": item.selected_attributes,
+                    "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
+                }
+            )
+
+        logger.info(f"✅ Order Retrieved by Number | Order Number={order_number}")
+
+        return {
+            "message": "Order retrieved successfully.",
+            "order": {
+                "id": order.id,
+                "order_number": order.order_number,
+                "full_name": order.full_name,
+                "phone_number": order.phone_number,
+                "district": order.district,
+                "thana": order.thana or "",
+                "note": order.note,
+                "address": order.address,
+                "status": order.status,
+                "total_price": str(order.total_price),
+                "items": items_data,
+                "created_at": order.created_at.isoformat(),
+                "updated_at": order.updated_at.isoformat(),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error retrieving order by number | Error={str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve order.",
+        )
+
+
 @router.get("/{order_id}", status_code=status.HTTP_200_OK)
 async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
     """

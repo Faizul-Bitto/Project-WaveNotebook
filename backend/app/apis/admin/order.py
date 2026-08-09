@@ -528,17 +528,18 @@ async def create_order_for_user(
 async def search_orders(
     db: db_dependency,
     admin: admin_dependency,
-    type: str = Query(..., description="Search type: phone, name, or address"),
+    type: str = Query(..., description="Search type: phone, name, address, or order_number"),
     value: str = Query(..., description="Search value"),
 ):
     """
-    Search orders by phone, name, or address.
+    Search orders by phone, name, address, or order number.
     GET /admin/orders/search?type=phone&value=01700000000
     GET /admin/orders/search?type=name&value=Rahim
-    GET /admin/orders/search?type=address&value=Mirpur
+    GET /admin/orders/search&type=address&value=Mirpur
+    GET /admin/orders/search&type=order_number&value=ORD-20250809-7C0D2
     """
     try:
-        valid_types = ["phone", "name", "address"]
+        valid_types = ["phone", "name", "address", "order_number"]
 
         if type not in valid_types:
             raise HTTPException(
@@ -559,6 +560,8 @@ async def search_orders(
                     Order.district.contains(value),
                 )
             )
+        elif type == "order_number":
+            query = db.query(Order).filter(Order.order_number.contains(value))
 
         orders = query.order_by(Order.created_at.desc()).all()
 

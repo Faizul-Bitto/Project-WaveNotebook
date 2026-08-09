@@ -133,11 +133,12 @@ function AdminOrders() {
         </select>
 
         <form className="admin-search" onSubmit={handleSearch}>
-          <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
-            <option value="phone">Phone</option>
-            <option value="name">Name</option>
-            <option value="address">Address</option>
-          </select>
+           <select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
+             <option value="phone">Phone</option>
+             <option value="name">Name</option>
+             <option value="address">Address</option>
+             <option value="order_number">Order Number</option>
+           </select>
           <input
             type="text"
             placeholder="Search..."

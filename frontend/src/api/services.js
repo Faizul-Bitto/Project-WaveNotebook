@@ -103,6 +103,11 @@ export const trackOrder = async (phoneNumber) => {
   return data;
 };
 
+export const trackOrderByNumber = async (orderNumber) => {
+  const { data } = await api.get(`/orders/track-number/${orderNumber}`);
+  return data;
+};
+
 // ==========================================
 // Auth
 // ==========================================
