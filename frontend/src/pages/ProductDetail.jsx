@@ -4,15 +4,16 @@ import { FaShoppingCart, FaBolt, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo } f
 import { getProductBySlug } from '../api/services';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
+import { useToast } from '../context/ToastContext';
 
 function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { setDirectItem } = useDirectBuy();
+  const { addToast } = useToast();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [activeImage, setActiveImage] = useState(0);
@@ -34,10 +35,8 @@ function ProductDetail() {
           }
         });
         setSelectedOptions(defaultOptions);
-
-        setError(null);
       } catch (err) {
-        setError(err.response?.data?.detail || 'Product not found');
+        addToast(err.response?.data?.detail || 'Product not found', 'error');
       } finally {
         setLoading(false);
       }
@@ -105,6 +104,9 @@ function ProductDetail() {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
       triggerFlyToCart(pageRef.current);
+      addToast('Added to cart!', 'success');
+    } else {
+      addToast(result.error || 'Failed to add to cart.', 'error');
     }
   };
 
@@ -112,10 +114,10 @@ function ProductDetail() {
     return <div className="container loading">Loading product...</div>;
   }
 
-  if (error || !product) {
+  if (!product) {
     return (
       <div className="container empty-state">
-        <h3>{error || 'Product not found'}</h3>
+        <h3>Product not found</h3>
         <Link to="/products" className="btn btn-primary">Back to Products</Link>
       </div>
     );

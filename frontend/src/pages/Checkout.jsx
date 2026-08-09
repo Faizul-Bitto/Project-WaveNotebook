@@ -1,90 +1,90 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { FaCheckCircle, FaTruck } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { createOrder, getDistricts } from '../api/services';
+import PhoneInput from '../components/PhoneInput';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
-import PhoneInput from '../components/PhoneInput';
-import { createOrder, getDistricts } from '../api/services';
+import { useToast } from '../context/ToastContext';
 
-function Checkout() {
+function Checkout () {
   const { cart, clearAll } = useCart();
   const { directItem, clearDirectItem } = useDirectBuy();
-  const [districts, setDistricts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(null);
-  const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
+  const { addToast } = useToast();
+  const [ districts, setDistricts ] = useState( [] );
+  const [ loading, setLoading ] = useState( false );
+  const [ orderSuccess, setOrderSuccess ] = useState( null );
+  const [ formData, setFormData ] = useState( {
     full_name: '',
     phone_number: '',
     district: '',
     thana: '',
     note: '',
     address: '',
-  });
+  } );
 
-  useEffect(() => {
+  useEffect( () => {
     const loadDistricts = async () => {
       try {
         const data = await getDistricts();
-        setDistricts(data.districts || []);
-      } catch (err) {
-        console.error('Failed to load districts:', err);
+        setDistricts( data.districts || [] );
+      } catch ( err ) {
+        console.error( 'Failed to load districts:', err );
       }
     };
     loadDistricts();
-  }, []);
+  }, [] );
 
-  const handleChange = (e) => {
-    setFormData({
+  const handleChange = ( e ) => {
+    setFormData( {
       ...formData,
-      [e.target.name]: e.target.value,
-    });
+      [ e.target.name ]: e.target.value,
+    } );
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async ( e ) => {
     e.preventDefault();
-    setError(null);
 
     // Validate
-    if (!formData.full_name.trim()) {
-      setError('Please enter your full name.');
+    if ( !formData.full_name.trim() ) {
+      addToast( 'Please enter your full name.', 'error' );
       return;
     }
-    if (!formData.phone_number.trim() || formData.phone_number.trim().length < 11) {
-      setError('Please enter a valid phone number (11 digits).');
+    if ( !formData.phone_number.trim() || formData.phone_number.trim().length < 11 ) {
+      addToast( 'Please enter a valid phone number (11 digits).', 'error' );
       return;
     }
-    if (!formData.district) {
-      setError('Please select your district.');
+    if ( !formData.district ) {
+      addToast( 'Please select your district.', 'error' );
       return;
     }
-    if (!formData.thana.trim()) {
-      setError('Please enter your thana / upazila.');
+    if ( !formData.thana.trim() ) {
+      addToast( 'Please enter your thana / upazila.', 'error' );
       return;
     }
-    if (!formData.address.trim()) {
-      setError('Please enter your address.');
+    if ( !formData.address.trim() ) {
+      addToast( 'Please enter your address.', 'error' );
       return;
     }
 
     let items;
-    if (directItem) {
-      items = [{ product_id: directItem.product.id, quantity: directItem.quantity, selected_attributes: directItem.attrsString }];
+    if ( directItem ) {
+      items = [ { product_id: directItem.product.id, quantity: directItem.quantity, selected_attributes: directItem.attrsString } ];
     } else {
-      items = (cart?.items || []).map((item) => ({
+      items = ( cart?.items || [] ).map( ( item ) => ( {
         product_id: item.product_id,
         quantity: item.quantity,
         selected_attributes: item.selected_attributes || null,
-      }));
+      } ) );
     }
 
-    if (items.length === 0) {
-      setError(directItem ? 'Product not available.' : 'Your cart is empty.');
+    if ( items.length === 0 ) {
+      addToast( directItem ? 'Product not available.' : 'Your cart is empty.', 'error' );
       return;
     }
 
     try {
-      setLoading(true);
+      setLoading( true );
       const orderData = {
         full_name: formData.full_name,
         phone_number: formData.phone_number,
@@ -94,52 +94,73 @@ function Checkout() {
         address: formData.address,
         items,
       };
-      const result = await createOrder(orderData);
-      setOrderSuccess(result.order);
+      const result = await createOrder( orderData );
+      setOrderSuccess( result.order );
       await clearAll();
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to place order. Please try again.');
+      addToast( 'Order placed successfully!', 'success' );
+    } catch ( err ) {
+      addToast( err.response?.data?.detail || 'Failed to place order. Please try again.', 'error' );
     } finally {
-      setLoading(false);
+      setLoading( false );
     }
   };
 
+  const items = directItem ? [ {
+    id: 'direct',
+    product_name: directItem.product.name,
+    slug: directItem.product.slug,
+    quantity: directItem.quantity,
+    unit_price: directItem.product.base_price,
+    subtotal: ( parseFloat( directItem.product.base_price ) * directItem.quantity ).toFixed( 2 ),
+  } ] : ( cart?.items || [] );
+  const totalPrice = directItem
+    ? parseFloat( directItem.product.base_price || 0 ) * directItem.quantity
+    : parseFloat( cart?.total_price || '0' );
+
   // Order success screen
-  if (orderSuccess) {
+  if ( orderSuccess ) {
     return (
       <div className="container order-success">
         <FaCheckCircle className="success-icon" />
         <h1>Order Placed Successfully!</h1>
-        <p className="order-number">Order Number: <strong>{orderSuccess.order_number}</strong></p>
+        <p className="order-number">Order Number: <strong>{ orderSuccess.order_number }</strong></p>
         <p>Thank you for your order! We will contact you shortly to confirm.</p>
         <div className="order-summary-box">
           <h3>Order Summary</h3>
-          <p><strong>Name:</strong> {orderSuccess.full_name}</p>
-          <p><strong>Phone:</strong> {orderSuccess.phone_number}</p>
-          <p><strong>District:</strong> {orderSuccess.district}</p>
-          <p><strong>Thana:</strong> {orderSuccess.thana}</p>
-          <p><strong>Address:</strong> {orderSuccess.address}</p>
-          <p><strong>Total:</strong> ৳{parseFloat(orderSuccess.total_price).toLocaleString()}</p>
+          <p><strong>Name:</strong> { orderSuccess.full_name }</p>
+          <p><strong>Phone:</strong> { orderSuccess.phone_number }</p>
+          <p><strong>District:</strong> { orderSuccess.district }</p>
+          <p><strong>Thana:</strong> { orderSuccess.thana }</p>
+          <p><strong>Address:</strong> { orderSuccess.address }</p>
+          <p><strong>Total:</strong> ৳{ totalPrice.toLocaleString() }</p>
           <p><strong>Payment:</strong> Cash on Delivery</p>
+
+          { items.length > 0 && (
+            <div className="order-success-items">
+              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontWeight: 600, color: 'var(--gray-700)' }}>Ordered Items:</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                { items.map( ( item, idx ) => (
+                  <li
+                    key={ item.id || idx }
+                    style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: '14px' }}
+                  >
+                    <span>
+                      { item.product_name || `Product #${item.product_id}` }
+                      { item.quantity > 1 && ` ×${ item.quantity }` }
+                    </span>
+                    <span>৳{ parseFloat( item.subtotal || 0 ).toLocaleString() }</span>
+                  </li>
+                )) }
+              </ul>
+            </div>
+          ) }
         </div>
         <Link to="/" className="btn btn-primary">Continue Shopping</Link>
       </div>
     );
   }
 
-  const items = directItem ? [{
-    id: 'direct',
-    product_name: directItem.product.name,
-    slug: directItem.product.slug,
-    quantity: directItem.quantity,
-    unit_price: directItem.product.base_price,
-    subtotal: (parseFloat(directItem.product.base_price) * directItem.quantity).toFixed(2),
-  }] : (cart?.items || []);
-  const totalPrice = directItem
-    ? parseFloat(directItem.product.base_price || 0) * directItem.quantity
-    : parseFloat(cart?.total_price || '0');
-
-  if (items.length === 0) {
+  if ( items.length === 0 ) {
     return (
       <div className="container empty-state">
         <h2>Your cart is empty</h2>
@@ -157,11 +178,9 @@ function Checkout() {
         </div>
 
         <div className="checkout-layout">
-          {/* Shipping Form */}
-          <form className="checkout-form" onSubmit={handleSubmit}>
+          {/* Shipping Form */ }
+          <form className="checkout-form" onSubmit={ handleSubmit }>
             <h2>Shipping Information</h2>
-
-            {error && <div className="alert alert-error">{error}</div>}
 
             <div className="form-group">
               <label htmlFor="full_name">Full Name *</label>
@@ -169,8 +188,8 @@ function Checkout() {
                 type="text"
                 id="full_name"
                 name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
+                value={ formData.full_name }
+                onChange={ handleChange }
                 placeholder="Enter your full name"
                 required
               />
@@ -180,8 +199,8 @@ function Checkout() {
               <label htmlFor="phone_number">Phone Number *</label>
               <PhoneInput
                 name="phone_number"
-                value={formData.phone_number}
-                onChange={(name, val) => setFormData((prev) => ({ ...prev, [name]: val }))}
+                value={ formData.phone_number }
+                onChange={ ( name, val ) => setFormData( ( prev ) => ( { ...prev, [ name ]: val } ) ) }
                 placeholder="XXXXXXXXXXX"
               />
             </div>
@@ -191,28 +210,28 @@ function Checkout() {
               <select
                 id="district"
                 name="district"
-                value={formData.district}
-                onChange={handleChange}
+                value={ formData.district }
+                onChange={ handleChange }
                 required
               >
                 <option value="">Select District</option>
-                {districts.map((district) => (
-                  <option key={district} value={district}>
-                    {district}
+                { districts.map( ( district ) => (
+                  <option key={ district } value={ district }>
+                    { district }
                   </option>
-                ))}
+                ) ) }
               </select>
             </div>
 
             <div className="form-group">
-              <label htmlFor="thana">Thana / Upazila *</label>
+              <label htmlFor="thana">Thana *</label>
               <input
                 type="text"
                 id="thana"
                 name="thana"
-                value={formData.thana}
-                onChange={handleChange}
-                placeholder="Enter your thana / upazila"
+                value={ formData.thana }
+                onChange={ handleChange }
+                placeholder="Enter your thana"
                 required
               />
             </div>
@@ -222,9 +241,9 @@ function Checkout() {
               <textarea
                 id="address"
                 name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="House, Road, Area, Thana"
+                value={ formData.address }
+                onChange={ handleChange }
+                placeholder="House, Road, Area"
                 rows="3"
                 required
               />
@@ -235,8 +254,8 @@ function Checkout() {
               <textarea
                 id="note"
                 name="note"
-                value={formData.note}
-                onChange={handleChange}
+                value={ formData.note }
+                onChange={ handleChange }
                 placeholder="Add a short note for the seller (optional)"
                 rows="2"
               />
@@ -250,31 +269,31 @@ function Checkout() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-              {loading ? 'Placing Order...' : 'Place Order'}
+            <button type="submit" className="btn btn-primary btn-lg" disabled={ loading }>
+              { loading ? 'Placing Order...' : 'Place Order' }
             </button>
           </form>
 
-          {/* Order Summary */}
+          {/* Order Summary */ }
           <div className="checkout-summary">
             <h2>Order Summary</h2>
-            {items.map((item) => (
-              <div className="checkout-item" key={item.id}>
+            { items.map( ( item ) => (
+              <div className="checkout-item" key={ item.id }>
                 <div className="checkout-item-info">
-                  <span className="checkout-item-name">{item.product_name}</span>
-                  {item.selected_attributes_display && (
-                    <span className="checkout-item-qty">{item.selected_attributes_display}</span>
-                  )}
-                  <span className="checkout-item-qty">Qty: {item.quantity}</span>
+                  <span className="checkout-item-name">{ item.product_name }</span>
+                  { item.selected_attributes_display && (
+                    <span className="checkout-item-qty">{ item.selected_attributes_display }</span>
+                  ) }
+                  <span className="checkout-item-qty">Qty: { item.quantity }</span>
                 </div>
                 <span className="checkout-item-price">
-                  ৳{parseFloat(item.subtotal).toLocaleString()}
+                  ৳{ parseFloat( item.subtotal ).toLocaleString() }
                 </span>
               </div>
-            ))}
+            ) ) }
             <div className="checkout-total">
               <span>Total</span>
-              <span>৳{totalPrice.toLocaleString()}</span>
+              <span>৳{ totalPrice.toLocaleString() }</span>
             </div>
             <p className="checkout-note">
               * Delivery charge will be confirmed by phone.

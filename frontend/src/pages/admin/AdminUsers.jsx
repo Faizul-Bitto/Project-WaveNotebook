@@ -4,12 +4,15 @@ import {
   adminGetUsers,
   adminDeleteUser,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminUsers() {
+  const { addToast } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, phone: '' });
 
   const loadUsers = async (searchTerm = '') => {
     try {
@@ -18,9 +21,8 @@ function AdminUsers() {
       if (searchTerm) params.search = searchTerm;
       const data = await adminGetUsers(params);
       setUsers(data.users || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load users.');
+      addToast(err.response?.data?.detail || 'Failed to load users.', 'error');
     } finally {
       setLoading(false);
     }
@@ -33,9 +35,8 @@ function AdminUsers() {
         setLoading(true);
         const data = await adminGetUsers({ limit: 100 });
         if (mounted) setUsers(data.users || []);
-        if (mounted) setError(null);
       } catch (err) {
-        if (mounted) setError(err.response?.data?.detail || 'Failed to load users.');
+        if (mounted) addToast(err.response?.data?.detail || 'Failed to load users.', 'error');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -52,13 +53,18 @@ function AdminUsers() {
   };
 
   const handleDelete = async (user) => {
-    if (window.confirm(`Are you sure you want to delete user ${user.phone_number}? This will delete their orders too.`)) {
-      try {
-        await adminDeleteUser(user.id);
-        await loadUsers(search);
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete user.');
-      }
+    setDeleteModal({ show: true, id: user.id, phone: user.phone_number });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, phone: '' });
+    try {
+      await adminDeleteUser(id);
+      await loadUsers(search);
+      addToast('User deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete user.', 'error');
     }
   };
 
@@ -78,8 +84,6 @@ function AdminUsers() {
           </button>
         </form>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {loading ? (
         <div className="loading">Loading users...</div>
@@ -133,6 +137,16 @@ function AdminUsers() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, phone: '' })}
+        onConfirm={confirmDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete user ${deleteModal.phone}? This will delete their orders too.`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

@@ -2,30 +2,37 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit } from 'react-icons/fa';
 import { adminGetOrder, adminDeleteOrder } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminOrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     adminGetOrder(id)
       .then((data) => setOrder(data.order))
-      .catch((err) => setError(err.response?.data?.detail || 'Failed to load order.'))
+      .catch((err) => addToast(err.response?.data?.detail || 'Failed to load order.', 'error'))
       .finally(() => setLoading(false));
   }, [id]);
 
   const handleDelete = async () => {
-    if (window.confirm(`Delete order ${order.order_number}?`)) {
-      try { await adminDeleteOrder(id); navigate('/admin/orders'); }
-      catch (err) { alert(err.response?.data?.detail || 'Failed to delete.'); }
+    setShowDeleteModal(false);
+    try {
+      await adminDeleteOrder(id);
+      addToast('Order deleted successfully!', 'success');
+      navigate('/admin/orders');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete.', 'error');
     }
   };
 
   if (loading) return <div className="loading">Loading...</div>;
-  if (error || !order) return <div className="alert alert-error">{error || 'Not found'}</div>;
+  if (!order) return <div className="alert alert-error">Order not found</div>;
 
   return (
     <div className="admin-page order-detail-page">
@@ -81,6 +88,16 @@ function AdminOrderDetail() {
         <h3>Payment</h3>
         <div className="payment-info"><p><strong>Method:</strong> Cash on Delivery</p></div>
       </div>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Delete Order"
+        message={`Are you sure you want to delete order ${order?.order_number}?`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

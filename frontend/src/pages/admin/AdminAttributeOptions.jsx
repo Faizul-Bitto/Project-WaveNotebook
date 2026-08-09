@@ -7,16 +7,19 @@ import {
   adminUpdateAttributeOption,
   adminDeleteAttributeOption,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminAttributeOptions() {
+  const { addToast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const attributeId = searchParams.get('attribute_id');
   
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingOption, setEditingOption] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, value: '' });
   const [formData, setFormData] = useState({ 
     attribute_id: attributeId ? parseInt(attributeId) : '', 
     value: '', 
@@ -32,9 +35,8 @@ function AdminAttributeOptions() {
         limit: 100 
       });
       setOptions(data.options || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load attribute options.');
+      addToast(err.response?.data?.detail || 'Failed to load attribute options.', 'error');
     } finally {
       setLoading(false);
     }
@@ -83,19 +85,25 @@ function AdminAttributeOptions() {
       }
       closeModal();
       await loadOptions();
+      addToast(editingOption ? 'Attribute option updated successfully!' : 'Attribute option created successfully!', 'success');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to save attribute option.');
+      addToast(err.response?.data?.detail || 'Failed to save attribute option.', 'error');
     }
   };
 
   const handleDelete = async (id, value) => {
-    if (window.confirm(`Are you sure you want to delete "${value}"?`)) {
-      try {
-        await adminDeleteAttributeOption(id);
-        await loadOptions();
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete attribute option.');
-      }
+    setDeleteModal({ show: true, id: id, value: value });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, value: '' });
+    try {
+      await adminDeleteAttributeOption(id);
+      await loadOptions();
+      addToast('Attribute option deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete attribute option.', 'error');
     }
   };
 
@@ -113,9 +121,7 @@ function AdminAttributeOptions() {
         <div className="admin-page-header">
           <h2>Attribute Options</h2>
         </div>
-        <div className="alert alert-warning">
-          Please select an attribute from the <strong>Attributes</strong> page to manage its options.
-        </div>
+         <p>Please select an attribute from the <strong>Attributes</strong> page to manage its options.</p>
       </div>
     );
   }
@@ -132,9 +138,7 @@ function AdminAttributeOptions() {
             <FaPlus /> Add Option
           </button>
         </div>
-      </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
+       </div>
 
       {loading ? (
         <div className="loading">Loading attribute options...</div>
@@ -238,7 +242,17 @@ function AdminAttributeOptions() {
             </form>
           </div>
         </div>
-      )}
+       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, value: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Attribute Option"
+        message={`Are you sure you want to delete "${deleteModal.value}"?`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

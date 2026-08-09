@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaTruck, FaShieldAlt, FaHeadset, FaMoneyBillWave, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { getBanners, getCategories, getProducts } from '../api/services';
 import ProductCard from '../components/ProductCard';
+import { useToast } from '../context/ToastContext';
 
 function Home() {
   const [banners, setBanners] = useState([]);
@@ -10,6 +11,7 @@ function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeBanner, setActiveBanner] = useState(0);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -24,6 +26,7 @@ function Home() {
         setProducts(productData.products || []);
       } catch (error) {
         console.error('Failed to load home data:', error);
+        addToast('Failed to load homepage data.', 'error');
       } finally {
         setLoading(false);
       }

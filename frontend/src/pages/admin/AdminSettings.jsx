@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { FaSave } from 'react-icons/fa';
 import { adminGetSettings, adminUpdateSettings } from '../../api/adminServices';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { useToast } from '../../context/ToastContext';
 
 function AdminSettings() {
   const { refresh } = useSiteSettings();
+  const { addToast } = useToast();
   const [formData, setFormData] = useState({
     site_name: 'WaveNotebook',
     site_description: '',
@@ -25,8 +27,6 @@ function AdminSettings() {
   const [logoUrl, setLogoUrl] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -52,7 +52,7 @@ function AdminSettings() {
       });
         setLogoUrl(s.logo_url || '');
       } catch (err) {
-        setError(err.response?.data?.detail || 'Failed to load settings.');
+        addToast(err.response?.data?.detail || 'Failed to load settings.', 'error');
       }
     };
     loadSettings();
@@ -73,8 +73,6 @@ function AdminSettings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
     try {
       setSaving(true);
       const fd = new FormData();
@@ -96,9 +94,9 @@ function AdminSettings() {
       if (logoFile) fd.append('logo', logoFile);
       await adminUpdateSettings(fd);
       await refresh();
-      setSuccess('Settings saved successfully!');
+      addToast('Settings saved successfully!', 'success');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save settings.');
+      addToast(err.response?.data?.detail || 'Failed to save settings.', 'error');
     } finally {
       setSaving(false);
     }
@@ -107,8 +105,6 @@ function AdminSettings() {
   return (
     <div className="admin-page">
       <h2>Site Settings</h2>
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit}>
         {/* Logo & Branding */}

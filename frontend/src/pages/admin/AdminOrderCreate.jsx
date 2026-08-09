@@ -3,11 +3,13 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaPlus, FaTrash, FaSave } from 'react-icons/fa';
 import { getDistricts } from '../../api/services';
 import { adminGetProducts, adminGetProduct, adminCreateOrder, adminUpdateOrder, adminGetOrder } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
 
 function AdminOrderCreate() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(Boolean(id));
   const [districts, setDistricts] = useState([]);
@@ -15,7 +17,6 @@ function AdminOrderCreate() {
   const [items, setItems] = useState([]);
   const [selectedProductId, setSelectedProductId] = useState('');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
   const [productCache, setProductCache] = useState({});
 
   // Load products and districts
@@ -29,7 +30,7 @@ function AdminOrderCreate() {
         setProducts(pData.products || []);
         setDistricts(dData.districts || []);
       } catch {
-        setError('Failed to load data.');
+        addToast('Failed to load data.', 'error');
       }
     };
     loadData();
@@ -93,7 +94,7 @@ function AdminOrderCreate() {
           } catch {}
         }
       } catch (err) {
-        setError(err.response?.data?.detail || 'Failed to load order.');
+        addToast(err.response?.data?.detail || 'Failed to load order.', 'error');
       } finally {
         setLoading(false);
       }
@@ -159,15 +160,14 @@ function AdminOrderCreate() {
     };
   };
 
-  const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
 
-    if (!customer.full_name.trim()) return setError('Enter customer name.');
-    if (!customer.phone_number.trim() || customer.phone_number.trim().length < 11) return setError('Enter a valid 11-digit phone number.');
-    if (!customer.district) return setError('Select a district.');
-    if (!customer.address.trim()) return setError('Enter the address.');
-    if (items.length === 0) return setError('Add at least one product.');
+    if (!customer.full_name.trim()) return addToast('Enter customer name.', 'error');
+    if (!customer.phone_number.trim() || customer.phone_number.trim().length < 11) return addToast('Enter a valid 11-digit phone number.', 'error');
+    if (!customer.district) return addToast('Select a district.', 'error');
+    if (!customer.address.trim()) return addToast('Enter the address.', 'error');
+    if (items.length === 0) return addToast('Add at least one product.', 'error');
 
     try {
       setSaving(true);
@@ -176,8 +176,9 @@ function AdminOrderCreate() {
         ? await adminUpdateOrder(id, payload)
         : await adminCreateOrder(payload);
       navigate(`/admin/orders/${result.order.id}`);
+      addToast('Order saved successfully!', 'success');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save order.');
+      addToast(err.response?.data?.detail || 'Failed to save order.', 'error');
     } finally {
       setSaving(false);
     }
@@ -208,9 +209,7 @@ function AdminOrderCreate() {
             <FaArrowLeft /> Back
           </Link>
         </div>
-      </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
+       </div>
 
       <form onSubmit={handleSubmit}>
         {/* Customer Info */}

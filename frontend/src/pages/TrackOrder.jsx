@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FaSearch, FaBoxOpen } from 'react-icons/fa';
 import { trackOrder } from '../api/services';
 import PhoneInput from '../components/PhoneInput';
+import { useToast } from '../context/ToastContext';
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -14,29 +15,28 @@ const STATUS_LABELS = {
 };
 
 function TrackOrder() {
+  const { addToast } = useToast();
   const [phone, setPhone] = useState('');
   const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [searched, setSearched] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!phone.trim() || phone.trim().length < 8) {
-      setError('Please enter a valid phone number.');
+      addToast('Please enter a valid phone number.', 'error');
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
       const data = await trackOrder(phone.trim());
       setOrders(data.orders);
       setSearched(true);
     } catch (err) {
       setOrders(null);
       setSearched(true);
-      setError(err.response?.data?.detail || 'Failed to track order.');
+      addToast(err.response?.data?.detail || 'Failed to track order.', 'error');
     } finally {
       setLoading(false);
     }
@@ -63,8 +63,6 @@ function TrackOrder() {
             <FaSearch /> {loading ? 'Searching...' : 'Track Order'}
           </button>
         </form>
-
-        {error && <div className="alert alert-error">{error}</div>}
 
         {orders && orders.length > 0 && (
           <div className="orders-list">
@@ -136,7 +134,7 @@ function TrackOrder() {
           </div>
         )}
 
-        {searched && !loading && !error && (!orders || orders.length === 0) && (
+        {searched && !loading && (!orders || orders.length === 0) && (
           <div className="empty-state">
             <FaBoxOpen className="empty-icon" />
             <h3>No orders found</h3>

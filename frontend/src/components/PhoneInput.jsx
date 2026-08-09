@@ -203,25 +203,27 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
   const handleCodeChange = (e) => {
     const code = e.target.value;
     setCountryCode(code);
-    const localNumber = value.replace(/^\+\d+/, '');
+    const currentCode = COUNTRIES.find((c) => value.startsWith(c.code))?.code || countryCode;
+    const localNumber = value.startsWith(currentCode) ? value.slice(currentCode.length) : (value || '');
     onChange(name, `${code}${localNumber}`);
   };
 
   const handleNumberChange = (e) => {
     const raw = e.target.value;
-    const currentCode = value.match(/^\+\d+/)?.[0] || countryCode;
-    const localNumber = raw.replace(/^\+\d+/, '').replace(/\D/g, '').slice(0, 15);
-    onChange(name, `${currentCode}${localNumber}`);
+    const inputValue = raw.replace(/\D/g, '').slice(0, 15);
+    onChange(name, `${countryCode}${inputValue}`);
   };
 
-  const matchedCode = value.match(/^\+\d+/)?.[0];
+  const matchedCode = COUNTRIES.find((c) => value.startsWith(c.code))?.code || countryCode;
+
+  const localNumber = value.startsWith(matchedCode) ? value.slice(matchedCode.length) : (value || '');
 
   return (
     <div className="phone-input-wrap">
       <div className="phone-code-select-wrap">
         <select
           className="phone-code-select"
-          value={matchedCode || countryCode}
+          value={matchedCode}
           onChange={handleCodeChange}
         >
           {COUNTRIES.map((c) => (
@@ -236,7 +238,7 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
         name={name}
         className={className ? `phone-input ${className}` : 'phone-input'}
         placeholder={placeholder}
-        value={value.replace(/^\+\d+/, '')}
+        value={localNumber}
         onChange={handleNumberChange}
       />
     </div>

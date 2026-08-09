@@ -6,11 +6,13 @@ import {
   adminUpdateBanner,
   adminDeleteBanner,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminBanners() {
+  const { addToast } = useToast();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   const [formData, setFormData] = useState({
@@ -21,15 +23,15 @@ function AdminBanners() {
     is_active: true,
   });
   const [imageFile, setImageFile] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, title: '' });
 
   const loadBanners = async () => {
     try {
       setLoading(true);
       const data = await adminGetBanners();
       setBanners(data.banners || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load banners.');
+      addToast(err.response?.data?.detail || 'Failed to load banners.', 'error');
     } finally {
       setLoading(false);
     }
@@ -42,9 +44,8 @@ function AdminBanners() {
         setLoading(true);
         const data = await adminGetBanners();
         if (mounted) setBanners(data.banners || []);
-        if (mounted) setError(null);
       } catch (err) {
-        if (mounted) setError(err.response?.data?.detail || 'Failed to load banners.');
+        if (mounted) addToast(err.response?.data?.detail || 'Failed to load banners.', 'error');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -82,7 +83,7 @@ function AdminBanners() {
         await adminUpdateBanner(editingBanner.id, form);
       } else {
         if (!imageFile) {
-          alert('Please select a banner image.');
+          addToast('Please select a banner image.', 'error');
           return;
         }
         form.append('image', imageFile);
@@ -94,8 +95,9 @@ function AdminBanners() {
       setFormData({ title: '', subtitle: '', link_url: '', sort_order: 0, is_active: true });
       setImageFile(null);
       await loadBanners();
+      addToast(editingBanner ? 'Banner updated successfully!' : 'Banner created successfully!', 'success');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to save banner.');
+      addToast(err.response?.data?.detail || 'Failed to save banner.', 'error');
     }
   };
 
@@ -112,13 +114,18 @@ function AdminBanners() {
   };
 
   const handleDelete = async (id, title) => {
-    if (window.confirm(`Are you sure you want to delete banner "${title}"?`)) {
-      try {
-        await adminDeleteBanner(id);
-        await loadBanners();
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete banner.');
-      }
+    setDeleteModal({ show: true, id: id, title: title });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, title: '' });
+    try {
+      await adminDeleteBanner(id);
+      await loadBanners();
+      addToast('Banner deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete banner.', 'error');
     }
   };
 
@@ -135,8 +142,6 @@ function AdminBanners() {
           <FaPlus /> {showForm ? 'Cancel' : 'Add Banner'}
         </button>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {/* Form */}
       {showForm && (
@@ -294,6 +299,16 @@ function AdminBanners() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, title: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Banner"
+        message={`Are you sure you want to delete banner "${deleteModal.title}"?`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

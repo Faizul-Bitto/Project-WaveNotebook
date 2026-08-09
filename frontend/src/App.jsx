@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { DirectBuyProvider } from './context/DirectBuyContext';
 import { SiteSettingsProvider } from './context/SiteSettingsContext';
+import { ToastProvider } from './context/ToastContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ChatIcons from './components/ChatIcons';
@@ -53,6 +54,7 @@ function App() {
       <SiteSettingsProvider>
       <DirectBuyProvider>
       <CartProvider>
+      <ToastProvider>
         <Routes>
           {/* Store routes */}
           <Route
@@ -169,6 +171,7 @@ function App() {
             }
           />
         </Routes>
+      </ToastProvider>
       </CartProvider>
       </DirectBuyProvider>
       </SiteSettingsProvider>

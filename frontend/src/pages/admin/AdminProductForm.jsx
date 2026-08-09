@@ -9,18 +9,20 @@ import {
   adminGetCategories,
   adminGetAttributes,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminProductForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
 
+  const { addToast } = useToast();
   const [categories, setCategories] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Form state - attributes starts empty for better UX
   const [formData, setFormData] = useState({
@@ -94,7 +96,7 @@ function AdminProductForm() {
             })));
           }
         } catch (err) {
-          setError(err.response?.data?.detail || 'Failed to load product.');
+          addToast(err.response?.data?.detail || 'Failed to load product.', 'error');
         } finally {
           setLoading(false);
         }
@@ -185,8 +187,6 @@ function AdminProductForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const formDataToSend = new FormData();
@@ -199,35 +199,38 @@ function AdminProductForm() {
       formDataToSend.append('is_active', formData.is_active);
       formDataToSend.append('attributes', JSON.stringify(formData.attributes));
 
-      // Add files
       formData.files.forEach(file => {
         formDataToSend.append('files', file);
       });
 
       if (isEditing) {
         await adminUpdateProduct(id, formDataToSend);
-        setSuccess('Product updated successfully!');
+        addToast('Product updated successfully!', 'success');
       } else {
         await adminCreateProduct(formDataToSend);
-        setSuccess('Product created successfully!');
+        addToast('Product created successfully!', 'success');
       }
 
       setTimeout(() => navigate('/admin/products'), 1500);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save product.');
+      addToast(err.response?.data?.detail || 'Failed to save product.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await adminDeleteProduct(id);
-        navigate('/admin/products');
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete product.');
-      }
+  const handleDelete = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteModal(false);
+    try {
+      await adminDeleteProduct(id);
+      addToast('Product deleted successfully!', 'success');
+      navigate('/admin/products');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete product.', 'error');
     }
   };
 
@@ -245,9 +248,6 @@ function AdminProductForm() {
           </button>
         </div>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} className="product-form">
         <div className="form-grid">
@@ -506,6 +506,16 @@ function AdminProductForm() {
           </div>
         </div>
       </form>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

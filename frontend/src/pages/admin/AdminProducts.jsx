@@ -5,21 +5,23 @@ import {
   adminGetProducts,
   adminDeleteProduct,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminProducts() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       const data = await adminGetProducts({ limit: 100 });
       setProducts(data.products || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load products.');
+      addToast(err.response?.data?.detail || 'Failed to load products.', 'error');
     } finally {
       setLoading(false);
     }
@@ -32,9 +34,8 @@ function AdminProducts() {
         setLoading(true);
         const data = await adminGetProducts({ limit: 100 });
         if (mounted) setProducts(data.products || []);
-        if (mounted) setError(null);
       } catch (err) {
-        if (mounted) setError(err.response?.data?.detail || 'Failed to load products.');
+        if (mounted) addToast(err.response?.data?.detail || 'Failed to load products.', 'error');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -46,13 +47,18 @@ function AdminProducts() {
   }, []);
 
   const handleDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      try {
-        await adminDeleteProduct(id);
-        await loadProducts();
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete product.');
-      }
+    setDeleteModal({ show: true, id: id, name: name });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, name: '' });
+    try {
+      await adminDeleteProduct(id);
+      await loadProducts();
+      addToast('Product deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete product.', 'error');
     }
   };
 
@@ -72,8 +78,6 @@ function AdminProducts() {
           <FaPlus /> Add Product
         </button>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {loading ? (
         <div className="loading">Loading products...</div>
@@ -148,6 +152,16 @@ function AdminProducts() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${deleteModal.name}"?`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

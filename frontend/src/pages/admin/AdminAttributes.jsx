@@ -6,23 +6,25 @@ import {
   adminUpdateAttribute,
   adminDeleteAttribute,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminAttributes() {
+  const { addToast } = useToast();
   const [attributes, setAttributes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingAttribute, setEditingAttribute] = useState(null);
   const [formData, setFormData] = useState({ name: '', is_active: true });
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
 
   const loadAttributes = async () => {
     try {
       setLoading(true);
       const data = await adminGetAttributes({ limit: 100 });
       setAttributes(data.attributes || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load attributes.');
+      addToast(err.response?.data?.detail || 'Failed to load attributes.', 'error');
     } finally {
       setLoading(false);
     }
@@ -66,19 +68,25 @@ function AdminAttributes() {
       }
       closeModal();
       await loadAttributes();
+      addToast(editingAttribute ? 'Attribute updated successfully!' : 'Attribute created successfully!', 'success');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to save attribute.');
+      addToast(err.response?.data?.detail || 'Failed to save attribute.', 'error');
     }
   };
 
   const handleDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"? This will also delete all associated attribute options.`)) {
-      try {
-        await adminDeleteAttribute(id);
-        await loadAttributes();
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete attribute.');
-      }
+    setDeleteModal({ show: true, id: id, name: name });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, name: '' });
+    try {
+      await adminDeleteAttribute(id);
+      await loadAttributes();
+      addToast('Attribute deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete attribute.', 'error');
     }
   };
 
@@ -98,8 +106,6 @@ function AdminAttributes() {
           <FaPlus /> Add Attribute
         </button>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {loading ? (
         <div className="loading">Loading attributes...</div>
@@ -215,6 +221,16 @@ function AdminAttributes() {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Attribute"
+        message={`Are you sure you want to delete "${deleteModal.name}"? This will also delete all associated attribute options.`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

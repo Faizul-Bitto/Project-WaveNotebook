@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { FaShoppingCart, FaCheckCircle } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { useState, useRef } from 'react';
 
 function ProductCard({ product }) {
   const { addItem } = useCart();
+  const { addToast } = useToast();
   const [added, setAdded] = useState(false);
   const cardRef = useRef(null);
 
@@ -19,8 +21,10 @@ function ProductCard({ product }) {
     if (result.success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
-      // Trigger fly-to-cart animation
       triggerFlyToCart(cardRef.current);
+      addToast('Added to cart!', 'success');
+    } else {
+      addToast(result.error || 'Failed to add to cart.', 'error');
     }
   };
 

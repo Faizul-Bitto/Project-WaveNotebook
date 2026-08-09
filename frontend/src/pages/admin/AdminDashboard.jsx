@@ -14,8 +14,10 @@ import {
   adminGetUsers,
   adminGetCategories,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
 
 function AdminDashboard() {
+  const { addToast } = useToast();
   const [stats, setStats] = useState({
     products: 0,
     orders: 0,
@@ -52,6 +54,7 @@ function AdminDashboard() {
         });
       } catch (error) {
         console.error('Failed to load dashboard stats:', error);
+        addToast('Failed to load dashboard data.', 'error');
       } finally {
         setLoading(false);
       }

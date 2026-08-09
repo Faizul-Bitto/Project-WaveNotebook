@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaTrash, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
+import Modal from '../components/Modal';
 
 function Cart() {
   const { cart, loading, updateItem, removeItem, clearAll } = useCart();
+  const { addToast } = useToast();
+  const [showClearModal, setShowClearModal] = useState(false);
 
   const handleQuantityChange = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
@@ -15,8 +20,16 @@ function Cart() {
   };
 
   const handleClear = async () => {
-    if (window.confirm('Are you sure you want to clear your cart?')) {
-      await clearAll();
+    setShowClearModal(true);
+  };
+
+  const confirmClear = async () => {
+    setShowClearModal(false);
+    const result = await clearAll();
+    if (result.success) {
+      addToast('Cart cleared!', 'success');
+    } else {
+      addToast(result.error || 'Failed to clear cart.', 'error');
     }
   };
 
@@ -123,6 +136,16 @@ function Cart() {
             </Link>
           </div>
         </div>
+
+        <Modal
+          isOpen={showClearModal}
+          onClose={() => setShowClearModal(false)}
+          onConfirm={confirmClear}
+          title="Clear Cart"
+          message="Are you sure you want to clear your cart?"
+          confirmText="Clear All"
+          type="danger"
+        />
       </div>
     </div>
   );

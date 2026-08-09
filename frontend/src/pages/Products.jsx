@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
 import { getProducts, getCategories } from '../api/services';
 import ProductCard from '../components/ProductCard';
+import { useToast } from '../context/ToastContext';
 
 function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +16,7 @@ function Products() {
 
   const categoryId = searchParams.get('category') || '';
   const searchQuery = searchParams.get('search') || '';
+  const { addToast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -33,6 +35,7 @@ function Products() {
         setCategories(categoryData.categories || []);
       } catch (error) {
         console.error('Failed to load products:', error);
+        addToast('Failed to load products.', 'error');
       } finally {
         setLoading(false);
       }

@@ -7,6 +7,8 @@ import {
   adminDeleteOrder,
   adminSearchOrders,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -20,12 +22,13 @@ const STATUS_LABELS = {
 
 function AdminOrders() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [searchType, setSearchType] = useState('phone');
   const [searchValue, setSearchValue] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, number: '' });
 
   const loadOrders = async (status = '') => {
     try {
@@ -34,9 +37,8 @@ function AdminOrders() {
       if (status) params.status = status;
       const data = await adminGetOrders(params);
       setOrders(data.orders || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load orders.');
+      addToast(err.response?.data?.detail || 'Failed to load orders.', 'error');
     } finally {
       setLoading(false);
     }
@@ -49,9 +51,8 @@ function AdminOrders() {
         setLoading(true);
         const data = await adminGetOrders({});
         if (mounted) setOrders(data.orders || []);
-        if (mounted) setError(null);
       } catch (err) {
-        if (mounted) setError(err.response?.data?.detail || 'Failed to load orders.');
+        if (mounted) addToast(err.response?.data?.detail || 'Failed to load orders.', 'error');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -72,19 +73,25 @@ function AdminOrders() {
     try {
       await adminUpdateOrderStatus(orderId, newStatus);
       await loadOrders(statusFilter);
+      addToast('Order status updated!', 'success');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to update order status.');
+      addToast(err.response?.data?.detail || 'Failed to update order status.', 'error');
     }
   };
 
   const handleDelete = async (orderId, orderNumber) => {
-    if (window.confirm(`Are you sure you want to delete order ${orderNumber}?`)) {
-      try {
-        await adminDeleteOrder(orderId);
-        await loadOrders(statusFilter);
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete order.');
-      }
+    setDeleteModal({ show: true, id: orderId, number: orderNumber });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, number: '' });
+    try {
+      await adminDeleteOrder(id);
+      await loadOrders(statusFilter);
+      addToast('Order deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete order.', 'error');
     }
   };
 
@@ -98,9 +105,8 @@ function AdminOrders() {
       setLoading(true);
       const data = await adminSearchOrders(searchType, searchValue.trim());
       setOrders(data.orders || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to search orders.');
+      addToast(err.response?.data?.detail || 'Failed to search orders.', 'error');
     } finally {
       setLoading(false);
     }
@@ -143,8 +149,6 @@ function AdminOrders() {
           </button>
         </form>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {loading ? (
         <div className="loading">Loading orders...</div>
@@ -213,6 +217,16 @@ function AdminOrders() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, number: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Order"
+        message={`Are you sure you want to delete order ${deleteModal.number}?`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }

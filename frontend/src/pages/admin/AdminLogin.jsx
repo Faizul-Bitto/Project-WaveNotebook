@@ -2,20 +2,20 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaUserShield, FaLock, FaPhoneAlt, FaArrowLeft } from 'react-icons/fa';
 import { adminLogin } from '../../api/services';
+import { useToast } from '../../context/ToastContext';
 
 function AdminLogin() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
 
     if (!phone.trim() || !password) {
-      setError('Please enter both phone number and password.');
+      addToast('Please enter both phone number and password.', 'error');
       return;
     }
 
@@ -24,8 +24,9 @@ function AdminLogin() {
       const data = await adminLogin(phone.trim(), password);
       localStorage.setItem('admin_token', data.access_token);
       navigate('/admin/dashboard');
+      addToast('Login successful!', 'success');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      addToast(err.response?.data?.detail || 'Login failed. Please check your credentials.', 'error');
     } finally {
       setLoading(false);
     }
@@ -39,8 +40,6 @@ function AdminLogin() {
           <h1>Admin Login</h1>
           <p>Wave Notebook Admin Panel</p>
         </div>
-
-        {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

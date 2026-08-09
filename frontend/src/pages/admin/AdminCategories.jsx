@@ -6,11 +6,13 @@ import {
   adminUpdateCategory,
   adminDeleteCategory,
 } from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
 
 function AdminCategories() {
+  const { addToast } = useToast();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({
@@ -20,15 +22,15 @@ function AdminCategories() {
     is_active: true,
   });
   const [imageFile, setImageFile] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
 
   const loadCategories = async () => {
     try {
       setLoading(true);
       const data = await adminGetCategories({ limit: 100 });
       setCategories(data.categories || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to load categories.');
+      addToast(err.response?.data?.detail || 'Failed to load categories.', 'error');
     } finally {
       setLoading(false);
     }
@@ -41,9 +43,8 @@ function AdminCategories() {
         setLoading(true);
         const data = await adminGetCategories({ limit: 100 });
         if (mounted) setCategories(data.categories || []);
-        if (mounted) setError(null);
       } catch (err) {
-        if (mounted) setError(err.response?.data?.detail || 'Failed to load categories.');
+        if (mounted) addToast(err.response?.data?.detail || 'Failed to load categories.', 'error');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -83,8 +84,9 @@ function AdminCategories() {
       setImageFile(null);
       setFormData({ name: '', description: '', parent_id: '', is_active: true });
       await loadCategories();
+      addToast(editingCategory ? 'Category updated successfully!' : 'Category created successfully!', 'success');
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to save category.');
+      addToast(err.response?.data?.detail || 'Failed to save category.', 'error');
     }
   };
 
@@ -101,13 +103,18 @@ function AdminCategories() {
   };
 
   const handleDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"? This will also delete its subcategories and products.`)) {
-      try {
-        await adminDeleteCategory(id);
-        await loadCategories();
-      } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete category.');
-      }
+    setDeleteModal({ show: true, id: id, name: name });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, name: '' });
+    try {
+      await adminDeleteCategory(id);
+      await loadCategories();
+      addToast('Category deleted successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete category.', 'error');
     }
   };
 
@@ -124,8 +131,6 @@ function AdminCategories() {
           <FaPlus /> {showForm ? 'Cancel' : 'Add Category'}
         </button>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {showForm && (
         <form className="admin-form" onSubmit={handleSubmit}>
@@ -232,6 +237,16 @@ function AdminCategories() {
           </table>
         </div>
       )}
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, name: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        message={`Are you sure you want to delete "${deleteModal.name}"? This will also delete its subcategories and products.`}
+        confirmText="Delete"
+        type="danger"
+      />
     </div>
   );
 }
