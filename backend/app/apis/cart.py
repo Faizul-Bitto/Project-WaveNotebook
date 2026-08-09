@@ -10,6 +10,7 @@ from app.dependencies.database import db_dependency
 from app.models.cart_item import CartItem
 from app.models.product import Product
 from app.models.file import File
+from app.models.product_attribute import ProductAttribute
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.attribute_option import AttributeOption
 from app.models.attribute import Attribute
@@ -54,6 +55,36 @@ async def add_to_cart(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Product '{product.name}' is out of stock.",
             )
+
+        # Validate that all product attributes have a selected option
+        product_attrs = (
+            db.query(ProductAttribute)
+            .filter(ProductAttribute.product_id == item.product_id)
+            .all()
+        )
+        if product_attrs:
+            selected = {}
+            if item.selected_attributes:
+                try:
+                    selected = json.loads(item.selected_attributes)
+                except json.JSONDecodeError:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid selected attributes format.",
+                    )
+
+            missing_attrs = []
+            for pa in product_attrs:
+                attr_id = str(pa.attribute_id)
+                if attr_id not in selected or not selected[attr_id]:
+                    attr = db.query(Attribute).filter(Attribute.id == pa.attribute_id).first()
+                    missing_attrs.append(attr.name if attr else f"Attribute {pa.attribute_id}")
+
+            if missing_attrs:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Please select the following option(s): {', '.join(missing_attrs)}.",
+                )
 
         # Check if same product + attributes already in cart
         existing = (

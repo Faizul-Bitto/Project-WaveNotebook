@@ -26,15 +26,8 @@ function ProductDetail() {
         setLoading(true);
         const data = await getProductBySlug(slug);
         setProduct(data.product);
-
-        // Auto-select the first option of each attribute by default
-        const defaultOptions = {};
-        data.product?.attributes?.forEach((attr) => {
-          if (attr.options && attr.options.length > 0) {
-            defaultOptions[attr.id] = attr.options[0].id;
-          }
-        });
-        setSelectedOptions(defaultOptions);
+        // No auto-selection: leave all options unselected so the user must pick manually
+        setSelectedOptions({});
       } catch (err) {
         addToast(err.response?.data?.detail || 'Product not found', 'error');
       } finally {
@@ -69,7 +62,18 @@ function ProductDetail() {
     return price * quantity;
   };
 
+  // Check if every attribute has a selected option
+  const missingAttributes = (product?.attributes || []).filter(
+    (attr) => !selectedOptions[attr.id]
+  );
+
   const handleBuyNow = async () => {
+    // Validate all options are selected
+    if (missingAttributes.length > 0) {
+      addToast('Please select all options before buying.', 'error');
+      return;
+    }
+
     const selectedAttrs = {};
     product.attributes?.forEach((attr) => {
       const selectedOptionId = selectedOptions[attr.id];
@@ -85,6 +89,12 @@ function ProductDetail() {
   };
 
   const handleAddToCart = async () => {
+    // Validate all options are selected
+    if (missingAttributes.length > 0) {
+      addToast('Please select all options before adding to cart.', 'error');
+      return;
+    }
+
     // Build selected attributes JSON string with attribute IDs as keys and option IDs as values
     // Format: {"1": 5, "2": 8} where 1,2 are attribute IDs and 5,8 are option IDs
     const selectedAttrs = {};
@@ -175,27 +185,36 @@ function ProductDetail() {
               <span className="stock-badge out-of-stock">✗ Out of Stock</span>
             )}
 
-            {/* Attributes */}
+            {/* Attributes - no auto-selection, user must choose */}
             {product.attributes?.length > 0 && (
               <div className="attributes-section">
-                {product.attributes.map((attr) => (
-                  <div className="attribute-group" key={attr.id}>
-                    <h4 className="attribute-name">{attr.name}:</h4>
-                    <div className="attribute-options">
-                      {attr.options.map((option) => (
-                        <button
-                          key={option.id}
-                          className={`attribute-option-btn ${
-                            selectedOptions[attr.id] === option.id ? 'selected' : ''
-                          }`}
-                          onClick={() => handleOptionSelect(attr.id, option.id)}
-                        >
-                          {option.value}
-                        </button>
-                      ))}
+                {product.attributes.map((attr) => {
+                  const isSelected = !!selectedOptions[attr.id];
+                  return (
+                    <div className="attribute-group" key={attr.id}>
+                      <h4 className="attribute-name">
+                        {attr.name}:
+                        {!isSelected && <span className="attribute-required"> *</span>}
+                      </h4>
+                      <div className="attribute-options">
+                        {attr.options.map((option) => (
+                          <button
+                            key={option.id}
+                            className={`attribute-option-btn ${
+                              selectedOptions[attr.id] === option.id ? 'selected' : ''
+                            }`}
+                            onClick={() => handleOptionSelect(attr.id, option.id)}
+                          >
+                            {option.value}
+                          </button>
+                        ))}
+                      </div>
+                      {!isSelected && (
+                        <p className="attribute-missing-hint">Please select {attr.name.toLowerCase()} to continue.</p>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -223,7 +242,7 @@ function ProductDetail() {
             <button
               className="btn btn-primary btn-lg add-to-cart-detail"
               onClick={handleAddToCart}
-              disabled={!product.is_in_stock}
+              disabled={!product.is_in_stock || missingAttributes.length > 0}
             >
               {added ? <><FaCheckCircle /> Added to Cart</> : <><FaShoppingCart /> Add to Cart</>}
             </button>
@@ -232,7 +251,7 @@ function ProductDetail() {
             <button
               className="btn btn-success btn-lg add-to-cart-detail"
               onClick={handleBuyNow}
-              disabled={!product.is_in_stock}
+              disabled={!product.is_in_stock || missingAttributes.length > 0}
             >
               <FaBolt /> Buy Now
             </button>
