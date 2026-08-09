@@ -269,7 +269,8 @@ function AdminBanners() {
                         {banner.is_active ? 'Yes' : 'No'}
                       </span>
                     </td>
-                    <td className="table-actions">
+                    <td>
+<div className="table-actions">
                       <button
                         className="action-btn action-edit"
                         onClick={() => handleEdit(banner)}
@@ -284,8 +285,9 @@ function AdminBanners() {
                       >
                         <FaTrash />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+</td>
+</tr>
                 ))
               )}
             </tbody>

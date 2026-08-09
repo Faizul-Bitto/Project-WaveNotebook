@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FaSearch, FaBoxOpen } from 'react-icons/fa';
 import { trackOrder } from '../api/services';
+import PhoneInput from '../components/PhoneInput';
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -21,8 +22,8 @@ function TrackOrder() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!phone.trim() || phone.trim().length < 11) {
-      setError('Please enter a valid phone number (11 digits).');
+    if (!phone.trim() || phone.trim().length < 8) {
+      setError('Please enter a valid phone number.');
       return;
     }
 
@@ -50,12 +51,14 @@ function TrackOrder() {
         </div>
 
         <form className="track-form" onSubmit={handleSubmit}>
-          <input
-            type="tel"
-            placeholder="Enter your phone number (01XXXXXXXXX)"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+          <div className="track-phone-wrap">
+            <PhoneInput
+              name="phone"
+              value={phone}
+              onChange={(name, val) => setPhone(val)}
+              placeholder="XXXXXXXXXXX"
+            />
+          </div>
           <button type="submit" className="btn btn-primary" disabled={loading}>
             <FaSearch /> {loading ? 'Searching...' : 'Track Order'}
           </button>

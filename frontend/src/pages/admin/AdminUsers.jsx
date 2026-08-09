@@ -113,16 +113,18 @@ function AdminUsers() {
                       </span>
                     </td>
                     <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                    <td className="table-actions">
-                      {user.role !== 'admin' && (
-                        <button
-                          className="action-btn action-delete"
-                          onClick={() => handleDelete(user)}
-                          aria-label={`Delete user ${user.phone_number}`}
-                        >
-                          <FaTrash />
-                        </button>
-                      )}
+                    <td>
+                      <div className="table-actions">
+                        {user.role !== 'admin' && (
+                          <button
+                            className="action-btn action-delete"
+                            onClick={() => handleDelete(user)}
+                            aria-label={`Delete user ${user.phone_number}`}
+                          >
+                            <FaTrash />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

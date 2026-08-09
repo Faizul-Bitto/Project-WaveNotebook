@@ -8,13 +8,17 @@ export const adminGetCategories = async (params = {}) => {
   return data;
 };
 
-export const adminCreateCategory = async (categoryData) => {
-  const { data } = await api.post('/admin/categories', categoryData);
+export const adminCreateCategory = async (formData) => {
+  const { data } = await api.post('/admin/categories', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return data;
 };
 
-export const adminUpdateCategory = async (id, categoryData) => {
-  const { data } = await api.put(`/admin/categories/${id}`, categoryData);
+export const adminUpdateCategory = async (id, formData) => {
+  const { data } = await api.put(`/admin/categories/${id}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
   return data;
 };
 

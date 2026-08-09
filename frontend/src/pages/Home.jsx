@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaTruck, FaShieldAlt, FaHeadset, FaMoneyBillWave } from 'react-icons/fa';
+import { FaTruck, FaShieldAlt, FaHeadset, FaMoneyBillWave, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { getBanners, getCategories, getProducts } from '../api/services';
 import ProductCard from '../components/ProductCard';
 
@@ -31,7 +31,6 @@ function Home() {
     loadData();
   }, []);
 
-  // Auto-rotate banners
   useEffect(() => {
     if (banners.length <= 1) return;
     const interval = setInterval(() => {
@@ -49,16 +48,12 @@ function Home() {
 
   return (
     <div className="home-page">
-      {/* Hero Banner */}
       <section className="hero-banner">
         <div className="container">
           {banners.length > 0 ? (
             <div className="banner-slider">
               {banners.map((banner, index) => (
-                <div
-                  key={banner.id}
-                  className={`banner-slide ${index === activeBanner ? 'active' : ''}`}
-                >
+                <div key={banner.id} className={`banner-slide ${index === activeBanner ? 'active' : ''}`}>
                   <a href={banner.link_url || '#'}>
                     <img src={banner.image_url} alt={banner.title} />
                     <div className="banner-overlay">
@@ -71,12 +66,7 @@ function Home() {
               {banners.length > 1 && (
                 <div className="banner-dots">
                   {banners.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`dot ${index === activeBanner ? 'active' : ''}`}
-                      onClick={() => setActiveBanner(index)}
-                      aria-label={`Go to slide ${index + 1}`}
-                    />
+                    <button key={index} className={`dot ${index === activeBanner ? 'active' : ''}`} onClick={() => setActiveBanner(index)} />
                   ))}
                 </div>
               )}
@@ -91,7 +81,6 @@ function Home() {
         </div>
       </section>
 
-      {/* Features */}
       <section className="features-section">
         <div className="container features-grid">
           {features.map((feature, index) => (
@@ -106,38 +95,18 @@ function Home() {
         </div>
       </section>
 
-      {/* Categories */}
       <section className="categories-section">
         <div className="container">
           <div className="section-header">
             <h2>Shop by Category</h2>
             <Link to="/products" className="view-all">View All</Link>
           </div>
-          <div className="categories-grid">
-            {categories.map((category) => (
-              <Link
-                to={`/products?category=${category.id}`}
-                className="category-card"
-                key={category.id}
-              >
-                {category.image_url ? (
-                  <div className="category-image-wrap">
-                    <img src={category.image_url} alt={category.name} className="category-image" />
-                  </div>
-                ) : (
-                  <div className="category-icon">📚</div>
-                )}
-                <h3>{category.name}</h3>
-                {category.children?.length > 0 && (
-                  <p>{category.children.length} subcategories</p>
-                )}
-              </Link>
-            ))}
-          </div>
+          {categories.length > 0 && (
+            <CategoryMarquee categories={categories} />
+          )}
         </div>
       </section>
 
-      {/* Featured Products */}
       <section className="products-section">
         <div className="container">
           <div className="section-header">
@@ -155,6 +124,89 @@ function Home() {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function CategoryMarquee({ categories }) {
+  const count = categories.length;
+  const PER_VIEW = 3;
+  const ITEM_WIDTH = 140; // item width (116px) + right margin (24px)
+  const [index, setIndex] = useState(count);
+  const [transitioning, setTransitioning] = useState(true);
+
+  // Triple the array so we can loop seamlessly forever
+  const items = [...categories, ...categories, ...categories];
+  const canScroll = count > PER_VIEW;
+
+  const next = () => {
+    if (!canScroll) return;
+    setTransitioning(true);
+    setIndex((i) => i + 1);
+  };
+
+  const prev = () => {
+    if (!canScroll) return;
+    setTransitioning(true);
+    setIndex((i) => i - 1);
+  };
+
+  // Auto-flow the carousel continuously
+  useEffect(() => {
+    if (!canScroll) return;
+    const timer = setInterval(() => {
+      setTransitioning(true);
+      setIndex((i) => i + 1);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [canScroll]);
+
+  // When we reach a duplicated boundary, jump back seamlessly (no animation)
+  const handleTransitionEnd = () => {
+    if (index >= count * 2) {
+      setTransitioning(false);
+      setIndex(index - count);
+    } else if (index <= 0) {
+      setTransitioning(false);
+      setIndex(index + count);
+    }
+  };
+
+  return (
+    <div className="cat-carousel">
+      {canScroll && (
+        <button className="cat-carousel-arrow cat-carousel-arrow-left" onClick={prev} aria-label="Previous">
+          <FaChevronLeft />
+        </button>
+      )}
+      <div className="cat-carousel-window">
+        <div
+          className="cat-carousel-track"
+          style={{
+            transform: `translateX(${-(index * ITEM_WIDTH)}px)`,
+            transition: transitioning ? 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+          }}
+          onTransitionEnd={handleTransitionEnd}
+        >
+          {items.map((category, idx) => (
+            <Link to={`/products?category=${category.id}`} className="cat-carousel-item" key={idx}>
+              <div className="cat-round">
+                {category.image_url ? (
+                  <img src={category.image_url} alt={category.name} />
+                ) : (
+                  <span className="cat-round-icon">📚</span>
+                )}
+              </div>
+              <span className="cat-carousel-name">{category.name}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+      {canScroll && (
+        <button className="cat-carousel-arrow cat-carousel-arrow-right" onClick={next} aria-label="Next">
+          <FaChevronRight />
+        </button>
+      )}
     </div>
   );
 }

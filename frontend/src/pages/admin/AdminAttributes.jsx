@@ -133,7 +133,8 @@ function AdminAttributes() {
                       </span>
                     </td>
                     <td>{new Date(attr.created_at).toLocaleDateString()}</td>
-                    <td className="table-actions">
+                    <td>
+<div className="table-actions">
                       <button
                         className="action-btn action-edit"
                         onClick={() => openEditModal(attr)}
@@ -155,8 +156,9 @@ function AdminAttributes() {
                       >
                         <FaList />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+</td>
+</tr>
                 ))
               )}
             </tbody>

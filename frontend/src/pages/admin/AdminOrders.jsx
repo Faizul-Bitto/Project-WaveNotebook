@@ -188,7 +188,8 @@ function AdminOrders() {
                       </select>
                     </td>
                     <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td className="table-actions">
+                    <td>
+<div className="table-actions">
                       <button
                         className="action-btn action-edit"
                         onClick={() => navigate(`/admin/orders/${order.id}`)}
@@ -203,8 +204,9 @@ function AdminOrders() {
                       >
                         <FaTrash />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+</td>
+</tr>
                 ))
               )}
             </tbody>

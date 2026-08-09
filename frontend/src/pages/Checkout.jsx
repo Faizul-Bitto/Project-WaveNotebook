@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaCheckCircle, FaTruck } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
+import PhoneInput from '../components/PhoneInput';
 import { createOrder, getDistricts } from '../api/services';
 
 function Checkout() {
@@ -177,14 +178,11 @@ function Checkout() {
 
             <div className="form-group">
               <label htmlFor="phone_number">Phone Number *</label>
-              <input
-                type="tel"
-                id="phone_number"
+              <PhoneInput
                 name="phone_number"
                 value={formData.phone_number}
-                onChange={handleChange}
-                placeholder="01XXXXXXXXX"
-                required
+                onChange={(name, val) => setFormData((prev) => ({ ...prev, [name]: val }))}
+                placeholder="XXXXXXXXXXX"
               />
             </div>
 

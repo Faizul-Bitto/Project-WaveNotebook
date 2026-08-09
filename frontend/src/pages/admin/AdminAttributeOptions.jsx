@@ -162,7 +162,8 @@ function AdminAttributeOptions() {
                     <td>{option.value}</td>
                     <td>৳{parseFloat(option.additional_price).toLocaleString()}</td>
                     <td>{new Date(option.created_at).toLocaleDateString()}</td>
-                    <td className="table-actions">
+                    <td>
+<div className="table-actions">
                       <button
                         className="action-btn action-edit"
                         onClick={() => openEditModal(option)}
@@ -177,8 +178,9 @@ function AdminAttributeOptions() {
                       >
                         <FaTrash />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+</td>
+</tr>
                 ))
               )}
             </tbody>

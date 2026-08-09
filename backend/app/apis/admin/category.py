@@ -1,13 +1,14 @@
 # app/apis/admin/categories.py
 import re
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Form, File, UploadFile
 from starlette import status
 
 from app.core.logger import logger
 from app.dependencies.admin import admin_dependency
 from app.dependencies.database import db_dependency
 from app.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryUpdate
+from app.schemas.category import CategoryUpdate
+from app.utils.file_upload import upload_file_to_storage
 
 router = APIRouter(
     prefix="/admin/categories",
@@ -27,60 +28,56 @@ def generate_slug(name: str) -> str:
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_category(
-    db: db_dependency, admin: admin_dependency, category_data: CategoryCreate
+    db: db_dependency,
+    admin: admin_dependency,
+    name: str = Form(...),
+    parent_id: int = Form(None),
+    description: str = Form(None),
+    is_active: bool = Form(True),
+    image: UploadFile = File(None),
 ):
     """
-    Create a new category (admin only).
+    Create a new category (admin only) with optional image upload.
     POST /admin/categories
     """
-
     try:
-        # Generate slug from name
-        slug = generate_slug(category_data.name)
+        slug = generate_slug(name)
 
-        # Check if slug already exists
         existing_category = db.query(Category).filter(Category.slug == slug).first()
 
         if existing_category:
-            logger.warning(
-                f"⚠️ Category Creation Failed | "
-                f"Slug={slug} already exists | "
-                f"Admin={admin.phone_number}"
-            )
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Category with this name already exists.",
             )
 
-        parent_id = (
-            category_data.parent_id
-            if category_data.parent_id and category_data.parent_id > 0
-            else None
-        )
+        parent_id = parent_id if parent_id and parent_id > 0 else None
 
         if parent_id:
-            parent_category = (
-                db.query(Category).filter(Category.id == parent_id).first()
-            )
-
+            parent_category = db.query(Category).filter(Category.id == parent_id).first()
             if not parent_category:
-                logger.warning(
-                    f"⚠️ Category Creation Failed | "
-                    f"Parent ID={parent_id} not found | "
-                    f"Admin={admin.phone_number}"
-                )
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Parent category not found.",
                 )
 
+        # Upload image if provided
+        image_url = None
+        if image:
+            image_url = await upload_file_to_storage(image, 0)
+            if not image_url:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to upload category image.",
+                )
+
         new_category = Category(
-            name=category_data.name,
+            name=name,
             slug=slug,
             parent_id=parent_id,
-            description=category_data.description,
-            is_active=category_data.is_active,
-            image_url=category_data.image_url,
+            description=description,
+            is_active=is_active,
+            image_url=image_url,
         )
 
         db.add(new_category)
@@ -104,6 +101,7 @@ async def create_category(
                 "parent_id": new_category.parent_id,
                 "description": new_category.description,
                 "is_active": new_category.is_active,
+                "image_url": new_category.image_url,
                 "created_at": new_category.created_at.isoformat(),
                 "updated_at": new_category.updated_at.isoformat(),
             },
@@ -136,7 +134,6 @@ async def get_all_categories(
     Get all categories (active + inactive) for admin.
     GET /admin/categories
     """
-
     try:
         query = db.query(Category)
 
@@ -165,6 +162,7 @@ async def get_all_categories(
                     "parent_id": cat.parent_id,
                     "description": cat.description,
                     "is_active": cat.is_active,
+                    "image_url": cat.image_url,
                     "created_at": cat.created_at.isoformat(),
                     "updated_at": cat.updated_at.isoformat(),
                 }
@@ -192,25 +190,17 @@ async def get_category_by_id(
     Get single category details.
     GET /admin/categories/{id}
     """
-
     try:
         category = db.query(Category).filter(Category.id == category_id).first()
 
         if not category:
-            logger.warning(
-                f"⚠️ Category Not Found | "
-                f"ID={category_id} | "
-                f"Admin={admin.phone_number}"
-            )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Category not found."
             )
 
         parent = None
         if category.parent_id:
-            parent = (
-                db.query(Category).filter(Category.id == category.parent_id).first()
-            )
+            parent = db.query(Category).filter(Category.id == category.parent_id).first()
 
         children = db.query(Category).filter(Category.parent_id == category.id).all()
 
@@ -229,6 +219,7 @@ async def get_category_by_id(
                 "parent_id": category.parent_id,
                 "description": category.description,
                 "is_active": category.is_active,
+                "image_url": category.image_url,
                 "parent": (
                     {"id": parent.id, "name": parent.name, "slug": parent.slug}
                     if parent
@@ -262,80 +253,53 @@ async def update_category(
     db: db_dependency,
     admin: admin_dependency,
     category_id: int = Path(gt=0),
-    category_data: CategoryUpdate = None,
+    name: str = Form(None),
+    slug: str = Form(None),
+    parent_id: int = Form(None),
+    description: str = Form(None),
+    is_active: bool = Form(None),
+    image: UploadFile = File(None),
 ):
     """
-    Update category details.
+    Update category details with optional image upload.
     PUT /admin/categories/{id}
     """
-
     try:
         category = db.query(Category).filter(Category.id == category_id).first()
 
         if not category:
-            logger.warning(
-                f"⚠️ Category Not Found | "
-                f"ID={category_id} | "
-                f"Admin={admin.phone_number}"
-            )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Category not found."
             )
 
-        # If name is updated, regenerate slug (unless custom slug provided)
-        if category_data.name and category_data.name != category.name:
-            if not category_data.slug:
-                category_data.slug = generate_slug(category_data.name)
+        if name and name != category.name:
+            category.name = name
+            category.slug = generate_slug(name)
 
-        # Check if new slug already exists
-        if category_data.slug and category_data.slug != category.slug:
-            existing = (
-                db.query(Category).filter(Category.slug == category_data.slug).first()
-            )
-
-            if existing:
-                logger.warning(
-                    f"⚠️ Category Update Failed | "
-                    f"Slug={category_data.slug} already exists | "
-                    f"Admin={admin.phone_number}"
-                )
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Category with this slug already exists.",
-                )
-
-        if category_data.parent_id and category_data.parent_id != category.parent_id:
-            if category_data.parent_id == category_id:
-                logger.warning(
-                    f"⚠️ Category Update Failed | "
-                    f"Cannot set category as its own parent | "
-                    f"Admin={admin.phone_number}"
-                )
+        if parent_id and parent_id != category.parent_id:
+            if parent_id == category_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Category cannot be its own parent.",
                 )
-
-            parent = (
-                db.query(Category)
-                .filter(Category.id == category_data.parent_id)
-                .first()
-            )
-
+            parent = db.query(Category).filter(Category.id == parent_id).first()
             if not parent:
-                logger.warning(
-                    f"⚠️ Category Update Failed | "
-                    f"Parent ID={category_data.parent_id} not found | "
-                    f"Admin={admin.phone_number}"
-                )
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Parent category not found.",
                 )
+            category.parent_id = parent_id
 
-        update_data = category_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(category, field, value)
+        if description is not None:
+            category.description = description
+        if is_active is not None:
+            category.is_active = is_active
+
+        # Upload new image if provided
+        if image:
+            image_url = await upload_file_to_storage(image, 0)
+            if image_url:
+                category.image_url = image_url
 
         db.commit()
         db.refresh(category)
@@ -355,6 +319,7 @@ async def update_category(
                 "parent_id": category.parent_id,
                 "description": category.description,
                 "is_active": category.is_active,
+                "image_url": category.image_url,
                 "created_at": category.created_at.isoformat(),
                 "updated_at": category.updated_at.isoformat(),
             },
@@ -383,16 +348,10 @@ async def delete_category(
     Delete category and cascade delete products.
     DELETE /admin/categories/{id}
     """
-
     try:
         category = db.query(Category).filter(Category.id == category_id).first()
 
         if not category:
-            logger.warning(
-                f"⚠️ Category Delete Failed | "
-                f"ID={category_id} not found | "
-                f"Admin={admin.phone_number}"
-            )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Category not found."
             )
@@ -442,16 +401,10 @@ async def get_category_products(
     Get all products in a specific category.
     GET /admin/categories/{id}/products
     """
-
     try:
         category = db.query(Category).filter(Category.id == category_id).first()
 
         if not category:
-            logger.warning(
-                f"⚠️ Category Not Found | "
-                f"ID={category_id} | "
-                f"Admin={admin.phone_number}"
-            )
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Category not found."
             )

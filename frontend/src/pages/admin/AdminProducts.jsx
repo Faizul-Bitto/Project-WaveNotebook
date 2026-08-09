@@ -123,7 +123,8 @@ function AdminProducts() {
                         {product.is_active ? 'Yes' : 'No'}
                       </span>
                     </td>
-                    <td className="table-actions">
+                    <td>
+<div className="table-actions">
                       <button
                         className="action-btn action-edit"
                         onClick={() => handleEdit(product.id)}
@@ -138,8 +139,9 @@ function AdminProducts() {
                       >
                         <FaTrash />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+</td>
+</tr>
                 ))
               )}
             </tbody>
