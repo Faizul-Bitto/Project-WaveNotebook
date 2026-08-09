@@ -131,7 +131,7 @@ function Home() {
 function CategoryMarquee({ categories }) {
   const count = categories.length;
   const PER_VIEW = 3;
-  const ITEM_WIDTH = 140; // item width (116px) + right margin (24px)
+  const ITEM_WIDTH = 164; // item width (140px) + right margin (24px)
   const [index, setIndex] = useState(count);
   const [transitioning, setTransitioning] = useState(true);
 

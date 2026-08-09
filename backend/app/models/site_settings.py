@@ -12,5 +12,22 @@ class SiteSettings(Base):
     logo_url = Column(String(500), nullable=True, server_default=None)
     site_name = Column(String(255), nullable=True, server_default="WaveNotebook")
 
+    # Footer & Contact
+    site_description = Column(Text, nullable=True, server_default=None)
+    contact_phone = Column(String(50), nullable=True, server_default=None)
+    contact_email = Column(String(255), nullable=True, server_default=None)
+    contact_address = Column(String(500), nullable=True, server_default=None)
+
+    # Social Links
+    facebook_url = Column(String(500), nullable=True, server_default=None)
+    youtube_url = Column(String(500), nullable=True, server_default=None)
+    instagram_url = Column(String(500), nullable=True, server_default=None)
+    twitter_url = Column(String(500), nullable=True, server_default=None)
+
+    # Policy Pages
+    privacy_policy = Column(Text, nullable=True, server_default=None)
+    terms_conditions = Column(Text, nullable=True, server_default=None)
+    refund_policy = Column(Text, nullable=True, server_default=None)
+
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)

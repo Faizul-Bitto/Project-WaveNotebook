@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaShoppingCart, FaBolt, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo } from 'react-icons/fa';
 import { getProductBySlug } from '../api/services';
@@ -17,6 +17,7 @@ function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const pageRef = useRef(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -103,6 +104,7 @@ function ProductDetail() {
     if (result.success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
+      triggerFlyToCart(pageRef.current);
     }
   };
 
@@ -124,7 +126,7 @@ function ProductDetail() {
   const totalPrice = calculatePrice();
 
   return (
-    <div className="product-detail-page">
+    <div className="product-detail-page" ref={pageRef}>
       <div className="container">
         {/* Breadcrumb */}
         <nav className="breadcrumb">
@@ -265,6 +267,49 @@ function ProductDetail() {
       </div>
     </div>
   );
+}
+
+// Fly-to-cart animation: creates a flying item that animates from the card to the cart icon
+function triggerFlyToCart(sourceEl) {
+  if (!sourceEl) return;
+  const cartBtn = document.querySelector('.cart-btn');
+  if (!cartBtn) return;
+
+  const sourceRect = sourceEl.getBoundingClientRect();
+  const cartRect = cartBtn.getBoundingClientRect();
+
+  // Create flying element
+  const flyEl = document.createElement('div');
+  flyEl.className = 'fly-to-cart';
+  flyEl.textContent = '📦';
+  document.body.appendChild(flyEl);
+
+  // Set start position (center of the card)
+  const startX = sourceRect.left + sourceRect.width / 2;
+  const startY = sourceRect.top + sourceRect.height / 2;
+
+  // Set end position (center of cart icon)
+  const endX = cartRect.left + cartRect.width / 2;
+  const endY = cartRect.top + cartRect.height / 2;
+
+  // Position the flying element at start
+  flyEl.style.left = `${startX}px`;
+  flyEl.style.top = `${startY}px`;
+
+  // Force reflow
+  void flyEl.offsetWidth;
+
+  // Animate to cart
+  flyEl.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.3)`;
+  flyEl.style.opacity = '0';
+
+  // Remove after animation
+  setTimeout(() => {
+    flyEl.remove();
+    // Add a little bounce to the cart icon
+    cartBtn.classList.add('cart-bounce');
+    setTimeout(() => cartBtn.classList.remove('cart-bounce'), 500);
+  }, 700);
 }
 
 export default ProductDetail;
