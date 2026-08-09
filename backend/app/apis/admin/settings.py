@@ -31,6 +31,17 @@ async def get_settings(db: db_dependency, admin: admin_dependency):
         "settings": {
             "logo_url": settings.logo_url,
             "site_name": settings.site_name,
+            "site_description": settings.site_description,
+            "contact_phone": settings.contact_phone,
+            "contact_email": settings.contact_email,
+            "contact_address": settings.contact_address,
+            "facebook_url": settings.facebook_url,
+            "youtube_url": settings.youtube_url,
+            "instagram_url": settings.instagram_url,
+            "twitter_url": settings.twitter_url,
+            "privacy_policy": settings.privacy_policy,
+            "terms_conditions": settings.terms_conditions,
+            "refund_policy": settings.refund_policy,
         },
     }
 
@@ -40,12 +51,45 @@ async def update_settings(
     db: db_dependency,
     admin: admin_dependency,
     site_name: str = Form(None),
+    site_description: str = Form(None),
+    contact_phone: str = Form(None),
+    contact_email: str = Form(None),
+    contact_address: str = Form(None),
+    facebook_url: str = Form(None),
+    youtube_url: str = Form(None),
+    instagram_url: str = Form(None),
+    twitter_url: str = Form(None),
+    privacy_policy: str = Form(None),
+    terms_conditions: str = Form(None),
+    refund_policy: str = Form(None),
     logo: UploadFile = File(None),
 ):
     settings = get_or_create_settings(db)
 
     if site_name is not None:
         settings.site_name = site_name
+    if site_description is not None:
+        settings.site_description = site_description
+    if contact_phone is not None:
+        settings.contact_phone = contact_phone
+    if contact_email is not None:
+        settings.contact_email = contact_email
+    if contact_address is not None:
+        settings.contact_address = contact_address
+    if facebook_url is not None:
+        settings.facebook_url = facebook_url
+    if youtube_url is not None:
+        settings.youtube_url = youtube_url
+    if instagram_url is not None:
+        settings.instagram_url = instagram_url
+    if twitter_url is not None:
+        settings.twitter_url = twitter_url
+    if privacy_policy is not None:
+        settings.privacy_policy = privacy_policy
+    if terms_conditions is not None:
+        settings.terms_conditions = terms_conditions
+    if refund_policy is not None:
+        settings.refund_policy = refund_policy
 
     if logo:
         logo_url = await upload_file_to_storage(logo, 0)
@@ -62,5 +106,16 @@ async def update_settings(
         "settings": {
             "logo_url": settings.logo_url,
             "site_name": settings.site_name,
+            "site_description": settings.site_description,
+            "contact_phone": settings.contact_phone,
+            "contact_email": settings.contact_email,
+            "contact_address": settings.contact_address,
+            "facebook_url": settings.facebook_url,
+            "youtube_url": settings.youtube_url,
+            "instagram_url": settings.instagram_url,
+            "twitter_url": settings.twitter_url,
+            "privacy_policy": settings.privacy_policy,
+            "terms_conditions": settings.terms_conditions,
+            "refund_policy": settings.refund_policy,
         },
     }

@@ -10,6 +10,7 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import TrackOrder from './pages/TrackOrder';
+import PolicyPage from './pages/PolicyPage';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -97,6 +98,30 @@ function App() {
             element={
               <StoreLayout>
                 <TrackOrder />
+              </StoreLayout>
+            }
+          />
+          <Route
+            path="/privacy-policy"
+            element={
+              <StoreLayout>
+                <PolicyPage />
+              </StoreLayout>
+            }
+          />
+          <Route
+            path="/terms-conditions"
+            element={
+              <StoreLayout>
+                <PolicyPage />
+              </StoreLayout>
+            }
+          />
+          <Route
+            path="/refund-policy"
+            element={
+              <StoreLayout>
+                <PolicyPage />
               </StoreLayout>
             }
           />
