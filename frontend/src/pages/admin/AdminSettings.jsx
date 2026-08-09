@@ -11,10 +11,13 @@ function AdminSettings() {
     contact_phone: '',
     contact_email: '',
     contact_address: '',
+    hotline_number: '',
     facebook_url: '',
     youtube_url: '',
     instagram_url: '',
     twitter_url: '',
+    whatsapp_number: '',
+    messenger_url: '',
     privacy_policy: '',
     terms_conditions: '',
     refund_policy: '',
@@ -28,22 +31,25 @@ function AdminSettings() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const data = await adminGetSettings();
-        const s = data.settings || {};
-        setFormData({
-          site_name: s.site_name || 'WaveNotebook',
-          site_description: s.site_description || '',
-          contact_phone: s.contact_phone || '',
-          contact_email: s.contact_email || '',
-          contact_address: s.contact_address || '',
-          facebook_url: s.facebook_url || '',
-          youtube_url: s.youtube_url || '',
-          instagram_url: s.instagram_url || '',
-          twitter_url: s.twitter_url || '',
-          privacy_policy: s.privacy_policy || '',
-          terms_conditions: s.terms_conditions || '',
-          refund_policy: s.refund_policy || '',
-        });
+      const data = await adminGetSettings();
+      const s = data.settings || {};
+      setFormData({
+        site_name: s.site_name || 'WaveNotebook',
+        site_description: s.site_description || '',
+        contact_phone: s.contact_phone || '',
+        contact_email: s.contact_email || '',
+        contact_address: s.contact_address || '',
+        hotline_number: s.hotline_number || '',
+        facebook_url: s.facebook_url || '',
+        youtube_url: s.youtube_url || '',
+        instagram_url: s.instagram_url || '',
+        twitter_url: s.twitter_url || '',
+        whatsapp_number: s.whatsapp_number || '',
+        messenger_url: s.messenger_url || '',
+        privacy_policy: s.privacy_policy || '',
+        terms_conditions: s.terms_conditions || '',
+        refund_policy: s.refund_policy || '',
+      });
         setLogoUrl(s.logo_url || '');
       } catch (err) {
         setError(err.response?.data?.detail || 'Failed to load settings.');
@@ -77,10 +83,13 @@ function AdminSettings() {
       fd.append('contact_phone', formData.contact_phone);
       fd.append('contact_email', formData.contact_email);
       fd.append('contact_address', formData.contact_address);
+      fd.append('hotline_number', formData.hotline_number);
       fd.append('facebook_url', formData.facebook_url);
       fd.append('youtube_url', formData.youtube_url);
       fd.append('instagram_url', formData.instagram_url);
       fd.append('twitter_url', formData.twitter_url);
+      fd.append('whatsapp_number', formData.whatsapp_number);
+      fd.append('messenger_url', formData.messenger_url);
       fd.append('privacy_policy', formData.privacy_policy);
       fd.append('terms_conditions', formData.terms_conditions);
       fd.append('refund_policy', formData.refund_policy);
@@ -144,7 +153,12 @@ function AdminSettings() {
           <h3>Contact Information</h3>
 
           <div className="form-group">
-            <label>Phone</label>
+            <label>Hotline Number (Header)</label>
+            <input type="text" name="hotline_number" value={formData.hotline_number} onChange={handleChange} placeholder="01700-000000" />
+          </div>
+
+          <div className="form-group">
+            <label>Phone (Footer)</label>
             <input type="text" name="contact_phone" value={formData.contact_phone} onChange={handleChange} placeholder="01700-000000" />
           </div>
 
@@ -182,6 +196,17 @@ function AdminSettings() {
           <div className="form-group">
             <label>Twitter URL</label>
             <input type="url" name="twitter_url" value={formData.twitter_url} onChange={handleChange} placeholder="https://twitter.com/..." />
+          </div>
+
+          <div className="form-group">
+            <label>WhatsApp Number</label>
+            <input type="text" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleChange} placeholder="+8801700000000" />
+            <p className="upload-hint">Enter full phone number with country code (e.g. +8801700000000)</p>
+          </div>
+
+          <div className="form-group">
+            <label>Messenger Link</label>
+            <input type="url" name="messenger_url" value={formData.messenger_url} onChange={handleChange} placeholder="https://m.me/yourpage" />
           </div>
         </div>
 

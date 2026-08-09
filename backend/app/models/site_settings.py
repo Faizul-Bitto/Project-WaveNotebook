@@ -17,12 +17,15 @@ class SiteSettings(Base):
     contact_phone = Column(String(50), nullable=True, server_default=None)
     contact_email = Column(String(255), nullable=True, server_default=None)
     contact_address = Column(String(500), nullable=True, server_default=None)
+    hotline_number = Column(String(50), nullable=True, server_default=None)
 
     # Social Links
     facebook_url = Column(String(500), nullable=True, server_default=None)
     youtube_url = Column(String(500), nullable=True, server_default=None)
     instagram_url = Column(String(500), nullable=True, server_default=None)
     twitter_url = Column(String(500), nullable=True, server_default=None)
+    whatsapp_number = Column(String(50), nullable=True, server_default=None)
+    messenger_url = Column(String(500), nullable=True, server_default=None)
 
     # Policy Pages
     privacy_policy = Column(Text, nullable=True, server_default=None)

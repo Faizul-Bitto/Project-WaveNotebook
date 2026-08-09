@@ -35,10 +35,13 @@ async def get_settings(db: db_dependency, admin: admin_dependency):
             "contact_phone": settings.contact_phone,
             "contact_email": settings.contact_email,
             "contact_address": settings.contact_address,
+            "hotline_number": settings.hotline_number,
             "facebook_url": settings.facebook_url,
             "youtube_url": settings.youtube_url,
             "instagram_url": settings.instagram_url,
             "twitter_url": settings.twitter_url,
+            "whatsapp_number": settings.whatsapp_number,
+            "messenger_url": settings.messenger_url,
             "privacy_policy": settings.privacy_policy,
             "terms_conditions": settings.terms_conditions,
             "refund_policy": settings.refund_policy,
@@ -55,10 +58,13 @@ async def update_settings(
     contact_phone: str = Form(None),
     contact_email: str = Form(None),
     contact_address: str = Form(None),
+    hotline_number: str = Form(None),
     facebook_url: str = Form(None),
     youtube_url: str = Form(None),
     instagram_url: str = Form(None),
     twitter_url: str = Form(None),
+    whatsapp_number: str = Form(None),
+    messenger_url: str = Form(None),
     privacy_policy: str = Form(None),
     terms_conditions: str = Form(None),
     refund_policy: str = Form(None),
@@ -76,6 +82,8 @@ async def update_settings(
         settings.contact_email = contact_email
     if contact_address is not None:
         settings.contact_address = contact_address
+    if hotline_number is not None:
+        settings.hotline_number = hotline_number
     if facebook_url is not None:
         settings.facebook_url = facebook_url
     if youtube_url is not None:
@@ -84,6 +92,10 @@ async def update_settings(
         settings.instagram_url = instagram_url
     if twitter_url is not None:
         settings.twitter_url = twitter_url
+    if whatsapp_number is not None:
+        settings.whatsapp_number = whatsapp_number
+    if messenger_url is not None:
+        settings.messenger_url = messenger_url
     if privacy_policy is not None:
         settings.privacy_policy = privacy_policy
     if terms_conditions is not None:
@@ -110,10 +122,13 @@ async def update_settings(
             "contact_phone": settings.contact_phone,
             "contact_email": settings.contact_email,
             "contact_address": settings.contact_address,
+            "hotline_number": settings.hotline_number,
             "facebook_url": settings.facebook_url,
             "youtube_url": settings.youtube_url,
             "instagram_url": settings.instagram_url,
             "twitter_url": settings.twitter_url,
+            "whatsapp_number": settings.whatsapp_number,
+            "messenger_url": settings.messenger_url,
             "privacy_policy": settings.privacy_policy,
             "terms_conditions": settings.terms_conditions,
             "refund_policy": settings.refund_policy,

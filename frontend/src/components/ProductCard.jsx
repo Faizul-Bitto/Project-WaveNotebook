@@ -60,12 +60,6 @@ function triggerFlyToCart(sourceEl) {
   const sourceRect = sourceEl.getBoundingClientRect();
   const cartRect = cartBtn.getBoundingClientRect();
 
-  // Create flying element
-  const flyEl = document.createElement('div');
-  flyEl.className = 'fly-to-cart';
-  flyEl.textContent = '📦';
-  document.body.appendChild(flyEl);
-
   // Set start position (center of the card)
   const startX = sourceRect.left + sourceRect.width / 2;
   const startY = sourceRect.top + sourceRect.height / 2;
@@ -74,24 +68,41 @@ function triggerFlyToCart(sourceEl) {
   const endX = cartRect.left + cartRect.width / 2;
   const endY = cartRect.top + cartRect.height / 2;
 
+  const deltaX = endX - startX;
+  const deltaY = endY - startY;
+
+  // Create flying element
+  const flyEl = document.createElement('div');
+  flyEl.className = 'fly-to-cart';
+  flyEl.textContent = '🛒';
+  document.body.appendChild(flyEl);
+
   // Position the flying element at start
   flyEl.style.left = `${startX}px`;
   flyEl.style.top = `${startY}px`;
+  flyEl.style.setProperty('--fly-to-x', `${deltaX}px`);
+  flyEl.style.setProperty('--fly-to-y', `${deltaY}px`);
+  flyEl.style.animation = 'fly-to-cart-parabolic 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
 
-  // Force reflow
-  void flyEl.offsetWidth;
-
-  // Animate to cart
-  flyEl.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(0.3)`;
-  flyEl.style.opacity = '0';
+  // Create sparkle particles
+  for (let i = 0; i < 6; i++) {
+    const sparkle = document.createElement('div');
+    sparkle.className = 'cart-sparkle';
+    sparkle.style.left = `${startX}px`;
+    sparkle.style.top = `${startY}px`;
+    sparkle.style.animationDelay = `${i * 0.05}s`;
+    sparkle.style.setProperty('--sparkle-rotation', `${i * 60}deg`);
+    document.body.appendChild(sparkle);
+  }
 
   // Remove after animation
   setTimeout(() => {
     flyEl.remove();
+    document.querySelectorAll('.cart-sparkle').forEach((el) => el.remove());
     // Add a little bounce to the cart icon
     cartBtn.classList.add('cart-bounce');
     setTimeout(() => cartBtn.classList.remove('cart-bounce'), 500);
-  }, 700);
+  }, 800);
 }
 
 export default ProductCard;

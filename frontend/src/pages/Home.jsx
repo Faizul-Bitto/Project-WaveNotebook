@@ -130,38 +130,20 @@ function Home() {
 
 function CategoryMarquee({ categories }) {
   const count = categories.length;
-  const PER_VIEW = 3;
-  const ITEM_WIDTH = 164; // item width (140px) + right margin (24px)
+  const ITEM_WIDTH = 164;
   const [index, setIndex] = useState(count);
   const [transitioning, setTransitioning] = useState(true);
 
-  // Triple the array so we can loop seamlessly forever
   const items = [...categories, ...categories, ...categories];
-  const canScroll = count > PER_VIEW;
 
-  const next = () => {
-    if (!canScroll) return;
-    setTransitioning(true);
-    setIndex((i) => i + 1);
-  };
-
-  const prev = () => {
-    if (!canScroll) return;
-    setTransitioning(true);
-    setIndex((i) => i - 1);
-  };
-
-  // Auto-flow the carousel continuously
   useEffect(() => {
-    if (!canScroll) return;
     const timer = setInterval(() => {
       setTransitioning(true);
       setIndex((i) => i + 1);
     }, 2500);
     return () => clearInterval(timer);
-  }, [canScroll]);
+  }, []);
 
-  // When we reach a duplicated boundary, jump back seamlessly (no animation)
   const handleTransitionEnd = () => {
     if (index >= count * 2) {
       setTransitioning(false);
@@ -172,24 +154,34 @@ function CategoryMarquee({ categories }) {
     }
   };
 
+  const next = () => {
+    setTransitioning(true);
+    setIndex((i) => i + 1);
+  };
+
+  const prev = () => {
+    setTransitioning(true);
+    setIndex((i) => i - 1);
+  };
+
+  if (count === 0) return null;
+
   return (
     <div className="cat-carousel">
-      {canScroll && (
-        <button className="cat-carousel-arrow cat-carousel-arrow-left" onClick={prev} aria-label="Previous">
-          <FaChevronLeft />
-        </button>
-      )}
+      <button className="cat-carousel-arrow cat-carousel-arrow-left" onClick={prev} aria-label="Previous">
+        <FaChevronLeft />
+      </button>
       <div className="cat-carousel-window">
         <div
           className="cat-carousel-track"
           style={{
-            transform: `translateX(${-(index * ITEM_WIDTH)}px)`,
+            transform: `translateX(-${index * ITEM_WIDTH}px)`,
             transition: transitioning ? 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
           }}
           onTransitionEnd={handleTransitionEnd}
         >
           {items.map((category, idx) => (
-            <Link to={`/products?category=${category.id}`} className="cat-carousel-item" key={idx}>
+            <Link to={`/products?category=${category.id}`} className="cat-carousel-item" key={`${category.id}-${idx}`}>
               <div className="cat-round">
                 {category.image_url ? (
                   <img src={category.image_url} alt={category.name} />
@@ -202,11 +194,9 @@ function CategoryMarquee({ categories }) {
           ))}
         </div>
       </div>
-      {canScroll && (
-        <button className="cat-carousel-arrow cat-carousel-arrow-right" onClick={next} aria-label="Next">
-          <FaChevronRight />
-        </button>
-      )}
+      <button className="cat-carousel-arrow cat-carousel-arrow-right" onClick={next} aria-label="Next">
+        <FaChevronRight />
+      </button>
     </div>
   );
 }

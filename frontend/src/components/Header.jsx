@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield } from 'react-icons/fa';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useCart } from '../context/CartContext';
 
 function Header() {
   const { settings } = useSiteSettings();
+  const { cartCount } = useCart();
   const logoUrl = settings.logo_url;
   const siteName = settings.site_name || 'WaveNotebook';
   const navigate = useNavigate();
@@ -23,7 +25,7 @@ function Header() {
         <div className="container top-bar-inner">
           <div className="top-bar-left">
             <FaPhoneAlt className="top-bar-icon" />
-            <span>Hotline: 01700-000000</span>
+            <span>Hotline: {settings.hotline_number || '01700-000000'}</span>
           </div>
           <div className="top-bar-right">
             <Link to="/track-order" className="top-bar-link">
@@ -63,8 +65,11 @@ function Header() {
             </button>
           </form>
 
-          <Link to="/cart" className="cart-icon-only">
+          <Link to="/cart" className="cart-icon-only cart-btn">
             <FaShoppingCart />
+            {cartCount > 0 && (
+              <span className="cart-count">{cartCount}</span>
+            )}
           </Link>
         </div>
       </div>

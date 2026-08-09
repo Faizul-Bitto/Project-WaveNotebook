@@ -4,6 +4,7 @@ import { DirectBuyProvider } from './context/DirectBuyContext';
 import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ChatIcons from './components/ChatIcons';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -41,6 +42,7 @@ function StoreLayout({ children }) {
       <Header />
       <main className="main-content">{children}</main>
       <Footer />
+      <ChatIcons />
     </>
   );
 }
