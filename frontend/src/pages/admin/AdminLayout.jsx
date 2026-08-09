@@ -12,6 +12,7 @@ import {
   FaTimes,
   FaList,
   FaCubes,
+  FaCog,
 } from 'react-icons/fa';
 
 function AdminLayout() {
@@ -32,6 +33,7 @@ function AdminLayout() {
     { path: '/admin/categories', label: 'Categories', icon: <FaTags /> },
     { path: '/admin/users', label: 'Users', icon: <FaUsers /> },
     { path: '/admin/banners', label: 'Banners', icon: <FaImage /> },
+    { path: '/admin/settings', label: 'Settings', icon: <FaCog /> },
   ];
 
   const isActive = (path) => location.pathname.startsWith(path);

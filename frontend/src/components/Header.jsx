@@ -1,9 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 
 function Header() {
   const { cartCount } = useCart();
+  const { settings } = useSiteSettings();
+  const logoUrl = settings.logo_url;
+  const siteName = settings.site_name || 'WaveNotebook';
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
@@ -38,9 +42,14 @@ function Header() {
       <div className="main-header">
         <div className="container main-header-inner">
           <Link to="/" className="logo">
-            <span className="logo-icon">📓</span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={siteName} className="logo-img" />
+            ) : (
+              <span className="logo-icon">📓</span>
+            )}
             <span className="logo-text">
-              Wave<span>Notebook</span>
+              {siteName.split('Notebook')[0]}
+              <span>Notebook</span>
             </span>
           </Link>
 

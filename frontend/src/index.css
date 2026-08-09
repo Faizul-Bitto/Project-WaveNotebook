@@ -224,6 +224,13 @@ textarea {
   font-size: 28px;
 }
 
+.logo-img {
+  height: 40px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+}
+
 .logo-text span {
   color: var(--primary);
 }
@@ -583,6 +590,24 @@ textarea {
 .category-icon {
   font-size: 36px;
   margin-bottom: 12px;
+}
+
+.category-image-wrap {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 12px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .category-card h3 {

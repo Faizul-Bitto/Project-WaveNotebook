@@ -18,6 +18,7 @@ function AdminCategories() {
     description: '',
     parent_id: '',
     is_active: true,
+    image_url: '',
   });
 
   const loadCategories = async () => {
@@ -69,6 +70,7 @@ function AdminCategories() {
         description: formData.description || null,
         parent_id: formData.parent_id ? parseInt(formData.parent_id) : null,
         is_active: formData.is_active,
+        image_url: formData.image_url || null,
       };
 
       if (editingCategory) {
@@ -79,7 +81,7 @@ function AdminCategories() {
 
       setShowForm(false);
       setEditingCategory(null);
-      setFormData({ name: '', description: '', parent_id: '', is_active: true });
+      setFormData({ name: '', description: '', parent_id: '', is_active: true, image_url: '' });
       await loadCategories();
     } catch (err) {
       alert(err.response?.data?.detail || 'Failed to save category.');
@@ -88,12 +90,13 @@ function AdminCategories() {
 
   const handleEdit = (category) => {
     setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      description: category.description || '',
-      parent_id: category.parent_id || '',
-      is_active: category.is_active,
-    });
+      setFormData({
+        name: category.name,
+        description: category.description || '',
+        parent_id: category.parent_id || '',
+        is_active: category.is_active,
+        image_url: category.image_url || '',
+      });
     setShowForm(true);
   };
 
@@ -114,7 +117,7 @@ function AdminCategories() {
         <h2>Categories</h2>
         <button className="btn btn-primary" onClick={() => {
           setEditingCategory(null);
-          setFormData({ name: '', description: '', parent_id: '', is_active: true });
+          setFormData({ name: '', description: '', parent_id: '', is_active: true, image_url: '' });
           setShowForm(!showForm);
         }}>
           <FaPlus /> {showForm ? 'Cancel' : 'Add Category'}
@@ -169,6 +172,18 @@ function AdminCategories() {
               onChange={handleChange}
               rows="2"
               placeholder="Category description"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="cat-image">Category Image URL</label>
+            <input
+              type="text"
+              id="cat-image"
+              name="image_url"
+              value={formData.image_url}
+              onChange={handleChange}
+              placeholder="https://... or leave empty for default icon"
             />
           </div>
 

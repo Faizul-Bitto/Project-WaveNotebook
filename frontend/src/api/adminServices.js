@@ -190,3 +190,15 @@ export const adminDeleteBanner = async (id) => {
   const { data } = await api.delete(`/admin/banners/${id}`);
   return data;
 };
+
+export const adminGetSettings = async () => {
+  const { data } = await api.get('/admin/settings');
+  return data;
+};
+
+export const adminUpdateSettings = async (formData) => {
+  const { data } = await api.put('/admin/settings', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+};

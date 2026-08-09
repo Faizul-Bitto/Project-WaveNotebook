@@ -30,9 +30,11 @@ from app.models.cart_item import CartItem
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.banner import Banner
+from app.models.site_settings import SiteSettings
 
 # Import routers
 from app.apis import auth, category, attribute, attribute_option, product, file, order, cart, lookup, banner
+from app.apis import settings as site_settings
 from app.apis.admin import category as admin_category
 from app.apis.admin import attribute as admin_attribute
 from app.apis.admin import attribute_option as admin_attribute_option
@@ -41,6 +43,7 @@ from app.apis.admin import file as admin_file
 from app.apis.admin import order as admin_order
 from app.apis.admin import user as admin_user
 from app.apis.admin import banner as admin_banner
+from app.apis.admin import settings as admin_settings
 
 
 @asynccontextmanager
@@ -274,6 +277,7 @@ app.include_router(order.router)
 app.include_router(cart.router)
 app.include_router(lookup.router)
 app.include_router(banner.router)
+app.include_router(site_settings.router)
 
 
 # ==========================================================
@@ -287,6 +291,7 @@ app.include_router(admin_file.router)
 app.include_router(admin_order.router)
 app.include_router(admin_user.router)
 app.include_router(admin_banner.router)
+app.include_router(admin_settings.router)
 
 
 # ==========================================================

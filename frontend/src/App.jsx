@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { DirectBuyProvider } from './context/DirectBuyContext';
+import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -20,6 +21,7 @@ import AdminOrderCreate from './pages/admin/AdminOrderCreate';
 import AdminCategories from './pages/admin/AdminCategories';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminBanners from './pages/admin/AdminBanners';
+import AdminSettings from './pages/admin/AdminSettings';
 import AdminAttributes from './pages/admin/AdminAttributes';
 import AdminAttributeOptions from './pages/admin/AdminAttributeOptions';
 
@@ -45,6 +47,7 @@ function StoreLayout({ children }) {
 function App() {
   return (
     <BrowserRouter>
+      <SiteSettingsProvider>
       <DirectBuyProvider>
       <CartProvider>
         <Routes>
@@ -122,6 +125,7 @@ function App() {
             <Route path="banners" element={<AdminBanners />} />
             <Route path="attributes" element={<AdminAttributes />} />
             <Route path="attribute-options" element={<AdminAttributeOptions />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
 
           {/* 404 */}
@@ -140,6 +144,7 @@ function App() {
         </Routes>
       </CartProvider>
       </DirectBuyProvider>
+      </SiteSettingsProvider>
     </BrowserRouter>
   );
 }

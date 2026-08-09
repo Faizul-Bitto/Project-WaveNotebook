@@ -80,6 +80,7 @@ async def create_category(
             parent_id=parent_id,
             description=category_data.description,
             is_active=category_data.is_active,
+            image_url=category_data.image_url,
         )
 
         db.add(new_category)

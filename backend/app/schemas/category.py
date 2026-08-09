@@ -7,6 +7,7 @@ class CategoryCreate(BaseModel):
     parent_id: Optional[int] = None
     description: Optional[str] = None
     is_active: bool = True
+    image_url: Optional[str] = None
 
 
 class CategoryUpdate(BaseModel):
@@ -15,3 +16,4 @@ class CategoryUpdate(BaseModel):
     parent_id: Optional[int] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    image_url: Optional[str] = None

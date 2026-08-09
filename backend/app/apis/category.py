@@ -24,6 +24,7 @@ def build_category_tree(categories, parent_id=None):
                     "name": category.name,
                     "slug": category.slug,
                     "description": category.description,
+                    "image_url": category.image_url,
                     "children": build_category_tree(categories, category.id),
                 }
             )

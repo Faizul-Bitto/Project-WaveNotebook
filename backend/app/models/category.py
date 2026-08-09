@@ -38,6 +38,11 @@ class Category(Base):
         nullable=True,
     )
 
+    image_url = Column(
+        String(500),
+        nullable=True,
+    )
+
     is_active = Column(
         Boolean,
         nullable=False,

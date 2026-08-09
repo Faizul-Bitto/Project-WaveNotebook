@@ -120,7 +120,13 @@ function Home() {
                 className="category-card"
                 key={category.id}
               >
-                <div className="category-icon">📚</div>
+                {category.image_url ? (
+                  <div className="category-image-wrap">
+                    <img src={category.image_url} alt={category.name} className="category-image" />
+                  </div>
+                ) : (
+                  <div className="category-icon">📚</div>
+                )}
                 <h3>{category.name}</h3>
                 {category.children?.length > 0 && (
                   <p>{category.children.length} subcategories</p>

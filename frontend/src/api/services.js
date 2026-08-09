@@ -39,6 +39,11 @@ export const getBanners = async () => {
   return data;
 };
 
+export const getSiteSettings = async () => {
+  const { data } = await api.get('/settings');
+  return data;
+};
+
 // ==========================================
 // Lookup
 // ==========================================
