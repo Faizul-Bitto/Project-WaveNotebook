@@ -1,10 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield } from 'react-icons/fa';
-import { useCart } from '../context/CartContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
 function Header() {
-  const { cartCount } = useCart();
   const { settings } = useSiteSettings();
   const logoUrl = settings.logo_url;
   const siteName = settings.site_name || 'WaveNotebook';
@@ -65,10 +63,8 @@ function Header() {
             </button>
           </form>
 
-          <Link to="/cart" className="cart-btn">
-            <FaShoppingCart className="cart-icon" />
-            <span className="cart-text">Cart</span>
-            {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+          <Link to="/cart" className="cart-icon-only">
+            <FaShoppingCart />
           </Link>
         </div>
       </div>
