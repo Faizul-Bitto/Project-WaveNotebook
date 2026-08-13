@@ -20,18 +20,47 @@ function ProductCard({ product }) {
       : `৳${parseFloat(priceRange.min).toLocaleString()} - ৳${parseFloat(priceRange.max).toLocaleString()}`
     : `৳${price.toLocaleString()}`;
 
+  // Determine if product is in stock based on actual variant stock data
+  const inStockVariants = product.in_stock_variants || [];
+  const isInStock = inStockVariants.length > 0 || product.is_in_stock;
+
+  // Find the first in-stock variant's selected attributes for auto-selection
+  const firstInStockAttrs = inStockVariants.length > 0
+    ? (() => {
+        try {
+          return JSON.parse(inStockVariants[0]);
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
+    if (!isInStock) {
+      addToast('This product is out of stock.', 'error');
+      return;
+    }
+
     const selectedAttributes = {};
     const attrs = product.attributes || [];
-    attrs.forEach((attr) => {
-      const options = attr.options || [];
-      if (options.length > 0) {
-        selectedAttributes[attr.id] = options[0].id;
-      }
-    });
+
+    if (firstInStockAttrs && attrs.length > 0) {
+      attrs.forEach((attr) => {
+        const options = attr.options || [];
+        // Match by attribute name, slug, or lowercase name
+        const attrName = attr.name.toLowerCase();
+        const matchingValue = firstInStockAttrs[attr.name] || firstInStockAttrs[attr.slug] || firstInStockAttrs[attrName];
+        if (matchingValue) {
+          const option = options.find((opt) => opt.value === matchingValue);
+          if (option) {
+            selectedAttributes[attr.id] = option.id;
+          }
+        }
+      });
+    }
 
     const attrsString = Object.keys(selectedAttributes).length > 0
       ? JSON.stringify(selectedAttributes)
@@ -53,7 +82,7 @@ function ProductCard({ product }) {
       <Link to={`/product/${product.slug}`} className="product-card-link">
         <div className="product-image-wrap">
           <img src={imageUrl} alt={product.name} className="product-image" loading="lazy" />
-          {!product.is_in_stock && (
+          {!isInStock && (
             <span className="product-out-of-stock">Out of Stock</span>
           )}
         </div>
@@ -67,7 +96,7 @@ function ProductCard({ product }) {
       <button
         className="add-to-cart-btn"
         onClick={handleAddToCart}
-        disabled={!product.is_in_stock}
+        disabled={!isInStock}
       >
         {added ? <><FaCheckCircle /> Added</> : <><FaShoppingCart /> Add to Cart</>}
       </button>

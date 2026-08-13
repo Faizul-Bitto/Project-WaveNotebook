@@ -383,16 +383,17 @@ async def get_product_by_id(
                 .all()
             )
 
-            # Mark which options are selected for this product
+            # Only include options that are selected for this product
             options = []
             for opt in all_options:
-                options.append(
-                    {
-                        "id": opt.id,
-                        "value": opt.value,
-                                                "is_selected": opt.id in selected_option_ids,
-                    }
-                )
+                if opt.id in selected_option_ids:
+                    options.append(
+                        {
+                            "id": opt.id,
+                            "value": opt.value,
+                            "is_selected": True,
+                        }
+                    )
 
             attributes.append(
                 {

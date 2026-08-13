@@ -107,6 +107,12 @@ async def get_products(
                     "max": str(max(prices)),
                 }
 
+            # Get selected_attributes of in-stock variants for frontend auto-selection
+            in_stock_variants = []
+            for v in variants:
+                if v.stock_quantity > 0:
+                    in_stock_variants.append(v.selected_attributes)
+
             result.append(
                 {
                     "id": product.id,
@@ -122,6 +128,7 @@ async def get_products(
                         for f in files
                     ],
                     "attributes": attributes,
+                    "in_stock_variants": in_stock_variants,
                 }
             )
 
