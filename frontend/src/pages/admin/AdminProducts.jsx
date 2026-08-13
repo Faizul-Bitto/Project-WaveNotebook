@@ -91,7 +91,6 @@ function AdminProducts() {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Image</th>
                 <th>Product Code</th>
                 <th>Name</th>
                 <th>Price</th>
@@ -105,19 +104,12 @@ function AdminProducts() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="table-empty">No products found</td>
+                  <td colSpan="9" className="table-empty">No products found</td>
                 </tr>
               ) : (
                 products.map((product) => (
                   <tr key={product.id}>
                     <td>{product.id}</td>
-                    <td>
-                      {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} className="table-image" />
-                      ) : (
-                        <img src="https://placehold.co/60x40?text=No+Image" alt="No Image" className="table-image" />
-                      )}
-                    </td>
                     <td>{product.product_code}</td>
                     <td>{product.name}</td>
                     <td>{product.price_range ? (parseFloat(product.price_range.min) === parseFloat(product.price_range.max) ? `৳${parseFloat(product.price_range.min).toLocaleString()}` : `৳${parseFloat(product.price_range.min).toLocaleString()} - ৳${parseFloat(product.price_range.max).toLocaleString()}`) : 'N/A'}</td>

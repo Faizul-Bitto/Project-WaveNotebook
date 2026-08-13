@@ -38,9 +38,6 @@ class ProductVariant(Base):
     # Direct selling price (no calculation - set by admin)
     price = Column(Numeric(10, 2), nullable=False)
 
-    # Buying/Cost price (set by admin)
-    buying_price = Column(Numeric(10, 2), nullable=True)
-
     # Stock quantity
     stock_quantity = Column(Integer, nullable=False, default=0)
 

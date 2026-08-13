@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit } from 'react-icons/fa';
+import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit, FaCopy } from 'react-icons/fa';
 import { adminGetOrder, adminDeleteOrder } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
@@ -47,7 +47,7 @@ function AdminOrderDetail() {
       <div className="order-detail-card">
         <h3><FaClipboardList /> Order Summary</h3>
         <div className="order-detail-grid">
-          <div className="detail-item"><span className="detail-label">Order Number</span><span className="detail-value">{order.order_number}</span></div>
+          <div className="detail-item"><span className="detail-label">Order Number</span><span className="detail-value">{order.order_number} <button type="button" className="btn btn-copy btn-sm" onClick={() => { navigator.clipboard.writeText(order.order_number ); addToast('Order number copied!', 'success'); }} title="Copy order number"><FaCopy /></button></span></div>
           <div className="detail-item"><span className="detail-label">Date</span><span className="detail-value">{new Date(order.created_at).toLocaleString()}</span></div>
           <div className="detail-item"><span className="detail-label">Total</span><span className="detail-value total-price">৳{parseFloat(order.total_price).toLocaleString()}</span></div>
         </div>
@@ -67,7 +67,7 @@ function AdminOrderDetail() {
         <h3><FaBoxOpen /> Items ({order.items.length})</h3>
         <div className="admin-table-wrap">
           <table className="admin-table">
-            <thead>
+              <thead>
               <tr><th>#</th><th>Product</th><th>Options</th><th>Qty</th><th>Total</th></tr>
             </thead>
             <tbody>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FaCheckCircle, FaTruck } from 'react-icons/fa';
+import { FaCheckCircle, FaTruck, FaCopy } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { createOrder, getDistricts } from '../api/services';
 import PhoneInput from '../components/PhoneInput';
@@ -140,8 +140,23 @@ function Checkout () {
       <div className="container order-success">
         <FaCheckCircle className="success-icon" />
         <h1>Order Placed Successfully!</h1>
-        <p className="order-number">Order Number: <strong>{ orderSuccess.order_number }</strong></p>
-        <p>Thank you for your order! We will contact you shortly to confirm.</p>
+        <p className="order-number">
+          Order Number: <strong>{ orderSuccess.order_number }</strong>
+          <button
+            type="button"
+            className="btn btn-copy"
+            onClick={() => {
+              navigator.clipboard.writeText( orderSuccess.order_number );
+              addToast( 'Order number copied!', 'success' );
+            }}
+            title="Copy order number for tracking"
+          >
+            <FaCopy /> Copy
+          </button>
+        </p>
+        <p style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '24px' }}>
+          Copy the order number above to track your order status.
+        </p>
         <div className="order-summary-box">
           <h3>Order Summary</h3>
           <p><strong>Name:</strong> { orderSuccess.full_name }</p>
@@ -163,6 +178,11 @@ function Checkout () {
                   >
                     <span>
                       { item.product_name || `Product #${item.product_id}` }
+                      { item.selected_attributes_display && (
+                        <span style={{ display: 'block', fontSize: '12px', color: 'var(--gray-600)' }}>
+                          { item.selected_attributes_display }
+                        </span>
+                      )}
                       { item.quantity > 1 && ` ×${ item.quantity }` }
                     </span>
                     <span>৳{ parseFloat( item.subtotal || 0 ).toLocaleString() }</span>

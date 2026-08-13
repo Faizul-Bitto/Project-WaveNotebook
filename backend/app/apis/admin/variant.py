@@ -55,22 +55,15 @@ async def get_product_variants(
             except json.JSONDecodeError:
                 selected_attrs = {}
 
-            profit = None
-            if variant.price is not None and variant.buying_price is not None:
-                profit = float(variant.price) - float(variant.buying_price)
-
             result.append(
                 {
                     "id": variant.id,
                     "sku": variant.sku,
                     "selected_attributes": selected_attrs,
                     "price": str(variant.price) if variant.price is not None else None,
-                    "buying_price": str(variant.buying_price) if variant.buying_price is not None else None,
-                    "profit": str(profit) if profit is not None else None,
                     "stock_quantity": variant.stock_quantity,
                     "is_active": variant.is_active,
                     "price_status": "filled" if variant.price is not None and float(variant.price) > 0 else "empty",
-                    "buying_price_status": "filled" if variant.buying_price is not None and float(variant.buying_price) > 0 else "empty",
                     "created_at": variant.created_at.isoformat(),
                     "updated_at": variant.updated_at.isoformat(),
                 }
@@ -111,10 +104,9 @@ async def update_variant(
     admin: admin_dependency,
     variant_id: int = Path(gt=0),
     price: float = Body(None),
-    buying_price: float = Body(None),
-    stock_quantity: int = Body(None),
-    is_active: bool = Body(None),
-):
+     stock_quantity: int = Body(None),
+     is_active: bool = Body(None),
+ ):
     """
     Update a single variant.
     PUT /admin/products/variants/{variant_id}
@@ -128,8 +120,6 @@ async def update_variant(
 
         if price is not None:
             variant.price = price
-        if buying_price is not None:
-            variant.buying_price = buying_price
         if stock_quantity is not None:
             variant.stock_quantity = stock_quantity
         if is_active is not None:
@@ -137,10 +127,6 @@ async def update_variant(
 
         db.commit()
         db.refresh(variant)
-
-        profit = None
-        if variant.price is not None and variant.buying_price is not None:
-            profit = float(variant.price) - float(variant.buying_price)
 
         logger.info(
             f"✅ Variant Updated | "
@@ -155,8 +141,6 @@ async def update_variant(
                 "id": variant.id,
                 "sku": variant.sku,
                 "price": str(variant.price) if variant.price is not None else None,
-                "buying_price": str(variant.buying_price) if variant.buying_price is not None else None,
-                "profit": str(profit) if profit is not None else None,
                 "stock_quantity": variant.stock_quantity,
                 "is_active": variant.is_active,
             },
@@ -187,7 +171,7 @@ async def bulk_update_variants(
     """
     Bulk update multiple variants.
     PUT /admin/products/{product_id}/variants/bulk
-    Input: {"1": {"price": 250, "buying_price": 150, "stock_quantity": 10}, ...}
+     Input: {"1": {"price": 250, "stock_quantity": 10}, ...}
     """
     try:
         product = db.query(Product).filter(Product.id == product_id).first()
@@ -216,8 +200,6 @@ async def bulk_update_variants(
 
             if "price" in data and data["price"] is not None:
                 variant.price = data["price"]
-            if "buying_price" in data and data["buying_price"] is not None:
-                variant.buying_price = data["buying_price"]
             if "stock_quantity" in data and data["stock_quantity"] is not None:
                 variant.stock_quantity = data["stock_quantity"]
             if "is_active" in data and data["is_active"] is not None:
@@ -345,8 +327,7 @@ async def generate_variants(
                     product_id=product_id,
                     sku=sku,
                     selected_attributes=json.dumps({}),
-                    price=0,
-                    buying_price=None,
+                     price=0,
                     stock_quantity=0,
                     is_active=True,
                 )
@@ -389,8 +370,7 @@ async def generate_variants(
                     product_id=product_id,
                     sku=sku,
                     selected_attributes=json.dumps(combo["selected_attributes"]),
-                    price=0,
-                    buying_price=None,
+                     price=0,
                     stock_quantity=0,
                     is_active=True,
                 )
@@ -541,8 +521,7 @@ async def add_new_variants(
                 product_id=product_id,
                 sku=sku,
                 selected_attributes=json.dumps(combo["selected_attributes"]),
-                price=0,
-                buying_price=None,
+                 price=0,
                 stock_quantity=0,
                 is_active=True,
             )

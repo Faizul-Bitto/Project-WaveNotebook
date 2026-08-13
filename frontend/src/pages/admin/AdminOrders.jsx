@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaTrash, FaSearch, FaEye, FaPlus } from 'react-icons/fa';
+import { FaTrash, FaSearch, FaEye, FaPlus, FaBan } from 'react-icons/fa';
 import {
   adminGetOrders,
   adminUpdateOrderStatus,
@@ -18,6 +18,17 @@ const STATUS_LABELS = {
   shipped: 'Shipped',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
+  returned: 'Returned',
+};
+
+const STATUS_DROPDOWN_LABELS = {
+  pending: 'Pending',
+  called: 'Called',
+  confirmed: 'Confirmed',
+  processing: 'Processing',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  returned: 'Returned',
 };
 
 function AdminOrders() {
@@ -76,6 +87,18 @@ function AdminOrders() {
       addToast('Order status updated!', 'success');
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to update order status.', 'error');
+    }
+  };
+
+  const handleCancelOrder = async (orderId, orderNumber) => {
+    if (window.confirm(`Are you sure you want to cancel order ${orderNumber}?`)) {
+      try {
+        await adminUpdateOrderStatus(orderId, 'cancelled');
+        await loadOrders(statusFilter);
+        addToast('Order cancelled successfully!', 'success');
+      } catch (err) {
+        addToast(err.response?.data?.detail || 'Failed to cancel order.', 'error');
+      }
     }
   };
 
@@ -186,8 +209,9 @@ function AdminOrders() {
                         className={`status-select status-${order.status}`}
                         value={order.status}
                         onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                        disabled={order.status === 'cancelled' || order.status === 'returned'}
                       >
-                        {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                        {Object.entries(STATUS_DROPDOWN_LABELS).map(([value, label]) => (
                           <option key={value} value={value}>{label}</option>
                         ))}
                       </select>
@@ -209,6 +233,15 @@ function AdminOrders() {
                       >
                         <FaTrash />
                       </button>
+                      {order.status !== 'cancelled' && order.status !== 'returned' && (
+                        <button
+                          className="action-btn action-cancel"
+                          onClick={() => handleCancelOrder(order.id, order.order_number)}
+                          aria-label={`Cancel order ${order.order_number}`}
+                        >
+                          <FaBan />
+                        </button>
+                      )}
                     </div>
 </td>
 </tr>

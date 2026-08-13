@@ -140,3 +140,61 @@ def compute_product_in_stock(db: Session, product_id: int) -> bool:
         .first()
     )
     return in_stock_variant is not None
+
+
+def build_attributes_display(db, selected_attributes: str = None):
+    """
+    Build a human-readable string of selected attributes.
+    Example: "Size: XL, Color: Red"
+    """
+    import json
+    from app.models.attribute import Attribute
+    from app.models.attribute_option import AttributeOption
+
+    if not selected_attributes:
+        return None
+    try:
+        attrs = json.loads(selected_attributes)
+        display_parts = []
+        for attr_id_str, option_id in attrs.items():
+            try:
+                attr_id = int(attr_id_str)
+                option = db.query(AttributeOption).filter(
+                    AttributeOption.id == option_id,
+                    AttributeOption.attribute_id == attr_id
+                ).first()
+                if option:
+                    attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+                    attr_name = attr.name if attr else f"Attribute {attr_id}"
+                    display_parts.append(f"{attr_name}: {option.value}")
+            except (ValueError, TypeError):
+                continue
+        return ", ".join(display_parts) if display_parts else None
+    except json.JSONDecodeError:
+        return None
+
+
+def resolve_attrs_display(db, attrs) -> dict:
+    """
+    Convert {attr_id: option_id} format to {attr_name: option_value} format.
+    Accepts a dict of {str(attr_id): option_id}.
+    """
+    from app.models.attribute import Attribute
+    from app.models.attribute_option import AttributeOption
+
+    if not attrs or not isinstance(attrs, dict):
+        return {}
+    selected_attrs = {}
+    for attr_id_str, option_id in attrs.items():
+        try:
+            attr_id = int(attr_id_str)
+            attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
+            option = db.query(AttributeOption).filter(
+                AttributeOption.id == option_id,
+                AttributeOption.attribute_id == attr_id
+            ).first()
+            if attr and option:
+                selected_attrs[attr.name] = option.value
+        except (ValueError, TypeError):
+            continue
+    return selected_attrs

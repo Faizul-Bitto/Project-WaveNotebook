@@ -12,6 +12,7 @@ const STATUS_LABELS = {
   shipped: 'Shipped',
   delivered: 'Delivered',
   cancelled: 'Cancelled',
+  returned: 'Returned',
 };
 
 function TrackOrder() {

@@ -19,7 +19,7 @@ from app.models.attribute_option import AttributeOption
 from app.models.attribute import Attribute
 from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate
-from app.utils.variant_generator import find_matching_variant, compute_product_in_stock
+from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, build_attributes_display, resolve_attrs_display
 
 router = APIRouter(
     prefix="/orders",
@@ -82,34 +82,6 @@ def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -
         return float(variant.price)
 
     return 0
-
-
-def build_attributes_display(db, selected_attributes: str = None) -> Optional[str]:
-    """
-    Build a human-readable string of selected attributes.
-    Example: "Size: XL, Color: Red"
-    """
-    if not selected_attributes:
-        return None
-    try:
-        attrs = json.loads(selected_attributes)
-        display_parts = []
-        for attr_id_str, option_id in attrs.items():
-            try:
-                attr_id = int(attr_id_str)
-                option = db.query(AttributeOption).filter(
-                    AttributeOption.id == option_id,
-                    AttributeOption.attribute_id == attr_id
-                ).first()
-                if option:
-                    attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
-                    attr_name = attr.name if attr else f"Attribute {attr_id}"
-                    display_parts.append(f"{attr_name}: {option.value}")
-            except (ValueError, TypeError):
-                continue
-        return ", ".join(display_parts) if display_parts else None
-    except json.JSONDecodeError:
-        return None
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -245,6 +217,16 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             )
             db.add(order_item)
 
+            # Decrement variant stock on order creation
+            try:
+                attrs = json.loads(item_data["selected_attributes"]) if item_data["selected_attributes"] else {}
+                variant = find_matching_variant(db, item_data["product_id"], resolve_attrs_display(db, attrs))
+                if variant and variant.stock_quantity >= item_data["quantity"]:
+                    variant.stock_quantity -= item_data["quantity"]
+                    db.add(variant)
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                continue
+
         db.commit()
         db.refresh(new_order)
 
@@ -283,6 +265,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                         "unit_price": str(item.unit_price),
                         "price_at_purchase": str(item.price_at_purchase),
                         "selected_attributes": item.selected_attributes,
+                        "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
                     }
                     for item in order_items
                 ],

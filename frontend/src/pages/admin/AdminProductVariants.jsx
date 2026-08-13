@@ -68,7 +68,7 @@ function AdminProductVariants() {
 
   const handleEdit = (variantId, field, value) => {
     let normalizedValue = value;
-    if (field === 'price' || field === 'buying_price') {
+    if (field === 'price') {
       if (value === '' || value === null || value === undefined) {
         normalizedValue = null;
       } else {
@@ -218,8 +218,6 @@ function AdminProductVariants() {
               <th>SKU</th>
               <th>Selected Attributes</th>
               <th>Selling Price (৳)</th>
-              <th>Buying Price (৳)</th>
-              <th>Profit (৳)</th>
               <th>Stock</th>
               <th>Status</th>
               <th>Actions</th>
@@ -228,21 +226,15 @@ function AdminProductVariants() {
           <tbody>
             {variants.length === 0 ? (
               <tr>
-                <td colSpan="8" className="table-empty">No variants found</td>
+                <td colSpan="7" className="table-empty">No variants found</td>
               </tr>
             ) : (
               variants.map((variant) => {
                 const price = getVariantValue(variant, 'price');
-                const buyingPrice = getVariantValue(variant, 'buying_price');
                 const stock = getVariantValue(variant, 'stock_quantity');
                 const isActive = getVariantValue(variant, 'is_active');
 
                 const priceFilled = price !== null && price !== undefined && price !== '' && Number(price) > 0;
-                const buyingFilled = buyingPrice !== null && buyingPrice !== undefined && buyingPrice !== '' && Number(buyingPrice) > 0;
-
-                const profit = priceFilled && buyingFilled
-                  ? (parseFloat(price) - parseFloat(buyingPrice)).toFixed(2)
-                  : null;
 
                 return (
                   <tr key={variant.id} className={!isActive ? 'variant-inactive' : ''}>
@@ -258,20 +250,6 @@ function AdminProductVariants() {
                         step="0.01"
                         onChange={(e) => handleEdit(variant.id, 'price', e.target.value)}
                       />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        className={`variant-input ${!buyingFilled ? 'variant-input-empty' : ''}`}
-                        value={buyingFilled ? buyingPrice : ''}
-                        placeholder="Set buying price"
-                        min="0"
-                        step="0.01"
-                        onChange={(e) => handleEdit(variant.id, 'buying_price', e.target.value)}
-                      />
-                    </td>
-                    <td className={profit !== null && profit < 0 ? 'profit-negative' : ''}>
-                      {profit !== null ? `৳${parseFloat(profit).toLocaleString()}` : '—'}
                     </td>
                     <td>
                       <input

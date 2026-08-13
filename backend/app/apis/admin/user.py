@@ -21,6 +21,7 @@ async def get_all_users(
     search: str = None,
     skip: int = 0,
     limit: int = 100,
+    exclude_role: str = None,
 ):
     """
     Get all users with optional search by phone, name (via order), or address (via order).
@@ -54,6 +55,11 @@ async def get_all_users(
                     User.id.in_(order_user_ids) if order_user_ids else False,
                 )
             )
+        else:
+            query = db.query(User)
+
+        if exclude_role:
+            query = query.filter(User.role != exclude_role)
 
         users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
         total = query.count()

@@ -15,7 +15,7 @@ from app.models.attribute_option import AttributeOption
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate, OrderStatusUpdate
-from app.utils.variant_generator import find_matching_variant, compute_product_in_stock
+from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, build_attributes_display, resolve_attrs_display
 
 router = APIRouter(
     prefix="/admin/orders",
@@ -37,21 +37,7 @@ def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -
     if selected_attributes:
         try:
             attrs = json.loads(selected_attributes)
-
-            # Convert attribute_id: option_id format to attribute_name: option_value format
-            selected_attrs = {}
-            for attr_id_str, option_id in attrs.items():
-                try:
-                    attr_id = int(attr_id_str)
-                    attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
-                    option = db.query(AttributeOption).filter(
-                        AttributeOption.id == option_id,
-                        AttributeOption.attribute_id == attr_id
-                    ).first()
-                    if attr and option:
-                        selected_attrs[attr.name] = option.value
-                except (ValueError, TypeError):
-                    continue
+            selected_attrs = resolve_attrs_display(db, attrs)
 
             if selected_attrs:
                 variant = find_matching_variant(db, product_id, selected_attrs)
@@ -165,29 +151,8 @@ async def get_order_by_id(
         for item in order_items:
             product = db.query(Product).filter(Product.id == item.product_id).first()
 
-            # Build selected attributes display
-            selected_attrs_display = None
-            if item.selected_attributes:
-                try:
-                    attrs = json.loads(item.selected_attributes)
-                    display_parts = []
-                    for attr_id_str, option_id in attrs.items():
-                        try:
-                            attr_id = int(attr_id_str)
-                            option = db.query(AttributeOption).filter(
-                                AttributeOption.id == option_id,
-                                AttributeOption.attribute_id == attr_id
-                            ).first()
-                            if option:
-                                attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
-                                attr_name = attr.name if attr else f"Attribute {attr_id}"
-                                display_parts.append(f"{attr_name}: {option.value}")
-                        except (ValueError, TypeError):
-                            continue
-                    if display_parts:
-                        selected_attrs_display = ", ".join(display_parts)
-                except json.JSONDecodeError:
-                    pass
+             # Build selected attributes display
+            selected_attrs_display = build_attributes_display(db, item.selected_attributes)
 
             items_data.append(
                 {
@@ -336,7 +301,7 @@ async def update_order_status(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found."
             )
 
-        valid_statuses = ["pending", "called", "confirmed", "processing", "shipped", "delivered", "cancelled"]
+        valid_statuses = ["pending", "called", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"]
 
         if status_data.status not in valid_statuses:
             raise HTTPException(
@@ -345,7 +310,23 @@ async def update_order_status(
             )
 
         old_status = order.status
-        order.status = status_data.status
+        new_status = status_data.status
+
+        # Manage variant stock based on status transitions
+        # Increment stock when transitioning to "returned" or "cancelled"
+        if new_status in ("returned", "cancelled") and old_status != new_status:
+            order_items = db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
+            for item in order_items:
+                try:
+                    attrs = json.loads(item.selected_attributes) if item.selected_attributes else {}
+                    variant = find_matching_variant(db, item.product_id, resolve_attrs_display(db, attrs))
+                    if variant:
+                        variant.stock_quantity += item.quantity
+                        db.add(variant)
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    continue
+
+        order.status = new_status
 
         db.commit()
         db.refresh(order)
@@ -492,6 +473,16 @@ async def create_order_for_user(
             )
             db.add(order_item)
 
+            # Decrement variant stock on order creation
+            try:
+                attrs = json.loads(item_data["selected_attributes"]) if item_data["selected_attributes"] else {}
+                variant = find_matching_variant(db, item_data["product_id"], resolve_attrs_display(db, attrs))
+                if variant and variant.stock_quantity >= item_data["quantity"]:
+                    variant.stock_quantity -= item_data["quantity"]
+                    db.add(variant)
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                continue
+
         db.commit()
         db.refresh(new_order)
 
@@ -522,14 +513,16 @@ async def create_order_for_user(
                 "address": new_order.address,
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),
-                "items": [
+                 "items": [
                     {
                         "id": item.id,
                         "product_id": item.product_id,
+                        "product_name": (lambda p: p.name if p else f"Product #{item.product_id}")(db.query(Product).filter(Product.id == item.product_id).first()),
                         "quantity": item.quantity,
                         "unit_price": str(item.unit_price),
                         "price_at_purchase": str(item.price_at_purchase),
                         "selected_attributes": item.selected_attributes,
+                        "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
                     }
                     for item in order_items
                 ],

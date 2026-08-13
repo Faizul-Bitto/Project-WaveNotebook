@@ -13,6 +13,7 @@ class OrderStatus(str, Enum):
     SHIPPED = "shipped"
     DELIVERED = "delivered"
     CANCELLED = "cancelled"
+    RETURNED = "returned"
 
 
 # All valid statuses for frontend dropdown
@@ -24,4 +25,5 @@ ORDER_STATUSES = [
     {"value": "shipped", "label": "Shipped"},
     {"value": "delivered", "label": "Delivered"},
     {"value": "cancelled", "label": "Cancelled"},
+    {"value": "returned", "label": "Returned"},
 ]

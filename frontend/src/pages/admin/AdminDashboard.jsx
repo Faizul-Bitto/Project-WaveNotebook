@@ -34,7 +34,7 @@ function AdminDashboard() {
         const [productData, orderData, userData, categoryData] = await Promise.all([
           adminGetProducts({ limit: 1 }),
           adminGetOrders({ limit: 100 }),
-          adminGetUsers({ limit: 1 }),
+          adminGetUsers({ limit: 1, exclude_role: 'admin' }),
           adminGetCategories({ limit: 1 }),
         ]);
 
