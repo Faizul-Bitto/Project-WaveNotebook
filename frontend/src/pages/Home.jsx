@@ -110,7 +110,7 @@ function Home () {
         <div className="container">
           <div className="section-header">
             <h2>Featured Products</h2>
-            <Link to="/products" className="view-all">View All</Link>
+            <Link to="/products" className="view-all">View All Products</Link>
           </div>
           { loading ? (
             <div className="loading">Loading products...</div>
