@@ -38,8 +38,12 @@ function AdminLayout() {
 
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: <FaTachometerAlt /> },
-    { path: '/admin/products', label: 'Products', icon: <FaBox /> },
+    { path: '/admin/banners', label: 'Banners', icon: <FaImage /> },
+    { path: '/admin/settings', label: 'Settings', icon: <FaCog /> },
+    { path: '/admin/users', label: 'Users', icon: <FaUsers /> },
+    { path: '/admin/categories', label: 'Categories', icon: <FaTags /> },
     { path: '/admin/attributes', label: 'Attributes', icon: <FaCubes /> },
+    { path: '/admin/products', label: 'Products', icon: <FaBox /> },
     { path: '/admin/orders', label: 'Orders', icon: <FaShoppingBag /> },
     {
       label: 'Expenses',
@@ -51,10 +55,6 @@ function AdminLayout() {
         { path: '/admin/expenses/payment-methods', label: 'Payment Methods' },
       ],
     },
-    { path: '/admin/categories', label: 'Categories', icon: <FaTags /> },
-    { path: '/admin/users', label: 'Users', icon: <FaUsers /> },
-    { path: '/admin/banners', label: 'Banners', icon: <FaImage /> },
-    { path: '/admin/settings', label: 'Settings', icon: <FaCog /> },
   ];
 
   const isActive = (path) => location.pathname === path;

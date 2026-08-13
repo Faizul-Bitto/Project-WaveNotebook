@@ -90,7 +90,7 @@ function AdminProducts() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Product Code</th>
                 <th>Name</th>
                 <th>Price</th>
@@ -107,9 +107,9 @@ function AdminProducts() {
                   <td colSpan="9" className="table-empty">No products found</td>
                 </tr>
               ) : (
-                products.map((product) => (
+                products.map((product, index) => (
                   <tr key={product.id}>
-                    <td>{product.id}</td>
+                    <td>{index + 1}</td>
                     <td>{product.product_code}</td>
                     <td>{product.name}</td>
                     <td>{product.price_range ? (parseFloat(product.price_range.min) === parseFloat(product.price_range.max) ? `৳${parseFloat(product.price_range.min).toLocaleString()}` : `৳${parseFloat(product.price_range.min).toLocaleString()} - ৳${parseFloat(product.price_range.max).toLocaleString()}`) : 'N/A'}</td>

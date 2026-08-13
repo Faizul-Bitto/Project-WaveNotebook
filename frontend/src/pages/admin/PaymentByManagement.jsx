@@ -95,7 +95,7 @@ function PaymentByManagement() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -106,9 +106,9 @@ function PaymentByManagement() {
               {items.length === 0 ? (
                 <tr><td colSpan="5" className="table-empty">No persons found</td></tr>
               ) : (
-                items.map((item) => (
+                items.map((item, index) => (
                   <tr key={item.id}>
-                    <td>{item.id}</td>
+                    <td>{index + 1}</td>
                     <td>{item.name}</td>
                     <td>{item.description || '—'}</td>
                     <td>

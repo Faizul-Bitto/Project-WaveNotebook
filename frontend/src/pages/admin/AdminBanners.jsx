@@ -245,7 +245,7 @@ function AdminBanners() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Image</th>
                 <th>Title</th>
                 <th>Subtitle</th>
@@ -260,9 +260,9 @@ function AdminBanners() {
                   <td colSpan="7" className="table-empty">No banners found</td>
                 </tr>
               ) : (
-                banners.map((banner) => (
+                banners.map((banner, index) => (
                   <tr key={banner.id}>
-                    <td>{banner.id}</td>
+                    <td>{index + 1}</td>
                     <td>
                       <img src={banner.image_url} alt={banner.title} className="table-image" />
                     </td>

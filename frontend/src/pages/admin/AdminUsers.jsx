@@ -92,7 +92,7 @@ function AdminUsers() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Role</th>
@@ -106,9 +106,9 @@ function AdminUsers() {
                   <td colSpan="6" className="table-empty">No users found</td>
                 </tr>
               ) : (
-                users.map((user) => (
+                users.map((user, index) => (
                   <tr key={user.id}>
-                    <td>{user.id}</td>
+                    <td>{index + 1}</td>
                     <td>{user.phone_number}</td>
                     <td>{user.email || '-'}</td>
                     <td>

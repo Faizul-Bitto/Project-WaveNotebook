@@ -95,7 +95,7 @@ function PaymentMethodManagement() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -106,9 +106,9 @@ function PaymentMethodManagement() {
               {methods.length === 0 ? (
                 <tr><td colSpan="5" className="table-empty">No payment methods found</td></tr>
               ) : (
-                methods.map((method) => (
+                methods.map((method, index) => (
                   <tr key={method.id}>
-                    <td>{method.id}</td>
+                    <td>{index + 1}</td>
                     <td>{method.name}</td>
                     <td>{method.description || '—'}</td>
                     <td>

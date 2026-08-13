@@ -114,7 +114,7 @@ function AdminAttributes() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Slug</th>
                 <th>Status</th>
@@ -128,9 +128,9 @@ function AdminAttributes() {
                   <td colSpan="6" className="table-empty">No attributes found</td>
                 </tr>
               ) : (
-                attributes.map((attr) => (
+                attributes.map((attr, index) => (
                   <tr key={attr.id}>
-                    <td>{attr.id}</td>
+                    <td>{index + 1}</td>
                     <td>{attr.name}</td>
                     <td>{attr.slug}</td>
                     <td>

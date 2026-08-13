@@ -144,7 +144,7 @@ function AdminAttributeOptions() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Value</th>
                 <th>Created</th>
                 <th>Actions</th>
@@ -156,9 +156,9 @@ function AdminAttributeOptions() {
                   <td colSpan="5" className="table-empty">No attribute options found. Click "Add Option" to create one.</td>
                 </tr>
               ) : (
-                options.map((option) => (
+                options.map((option, index) => (
                   <tr key={option.id}>
-                    <td>{option.id}</td>
+                    <td>{index + 1}</td>
                     <td>{option.value}</td>
                     <td>{new Date(option.created_at).toLocaleDateString()}</td>
                     <td>

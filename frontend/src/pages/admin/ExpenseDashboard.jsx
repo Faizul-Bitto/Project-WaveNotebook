@@ -185,7 +185,7 @@ function ExpenseDashboard() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Date</th>
                 <th>Items</th>
                 <th>Expense Type</th>
@@ -200,9 +200,9 @@ function ExpenseDashboard() {
               {expenses.length === 0 ? (
                 <tr><td colSpan="9" className="table-empty">No expenses found</td></tr>
               ) : (
-                expenses.map((expense) => (
+                expenses.map((expense, index) => (
                   <tr key={expense.id}>
-                    <td>{expense.id}</td>
+                    <td>{index + 1}</td>
                     <td>{expense.date}</td>
                     <td>{expense.items}</td>
                     <td>{expense.expense_type_name || '—'}</td>

@@ -188,7 +188,7 @@ function AdminCategories() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Image</th>
                 <th>Name</th>
                 <th>Slug</th>
@@ -202,9 +202,9 @@ function AdminCategories() {
               {categories.length === 0 ? (
                 <tr><td colSpan="8" className="table-empty">No categories found</td></tr>
               ) : (
-                categories.map((category) => (
+                categories.map((category, index) => (
                   <tr key={category.id}>
-                    <td>{category.id}</td>
+                    <td>{index + 1}</td>
                     <td>
                       {category.image_url ? (
                         <img src={category.image_url} alt={category.name} className="table-image" />

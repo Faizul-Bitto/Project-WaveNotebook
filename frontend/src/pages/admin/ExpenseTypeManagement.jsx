@@ -95,7 +95,7 @@ function ExpenseTypeManagement() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Status</th>
@@ -106,9 +106,9 @@ function ExpenseTypeManagement() {
               {types.length === 0 ? (
                 <tr><td colSpan="5" className="table-empty">No expense types found</td></tr>
               ) : (
-                types.map((type) => (
+                types.map((type, index) => (
                   <tr key={type.id}>
-                    <td>{type.id}</td>
+                    <td>{index + 1}</td>
                     <td>{type.name}</td>
                     <td>{type.description || '—'}</td>
                     <td>
