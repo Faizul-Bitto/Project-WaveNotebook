@@ -34,3 +34,7 @@
 .chat-icon-messenger {
   background-color: #0084ff;
 }
+
+.chat-icon-instagram {
+  background: linear-gradient(135deg, #e1306c, #c13584, #831974);
+}
