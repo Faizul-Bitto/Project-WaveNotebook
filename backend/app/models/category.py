@@ -1,4 +1,3 @@
-# app/models/category.py
 from sqlalchemy import Column, DateTime, Integer, String, Text, Boolean, ForeignKey
 from sqlalchemy.sql import func
 
