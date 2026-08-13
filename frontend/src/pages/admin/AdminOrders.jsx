@@ -29,6 +29,7 @@ const STATUS_DROPDOWN_LABELS = {
   shipped: 'Shipped',
   delivered: 'Delivered',
   returned: 'Returned',
+  cancelled: 'Cancelled',
 };
 
 function AdminOrders() {
@@ -40,6 +41,7 @@ function AdminOrders() {
   const [searchType, setSearchType] = useState('phone');
   const [searchValue, setSearchValue] = useState('');
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, number: '' });
+  const [cancelModal, setCancelModal] = useState({ show: false, id: null, number: '' });
 
   const loadOrders = async (status = '') => {
     try {
@@ -90,15 +92,19 @@ function AdminOrders() {
     }
   };
 
-  const handleCancelOrder = async (orderId, orderNumber) => {
-    if (window.confirm(`Are you sure you want to cancel order ${orderNumber}?`)) {
-      try {
-        await adminUpdateOrderStatus(orderId, 'cancelled');
-        await loadOrders(statusFilter);
-        addToast('Order cancelled successfully!', 'success');
-      } catch (err) {
-        addToast(err.response?.data?.detail || 'Failed to cancel order.', 'error');
-      }
+  const handleCancelOrder = (orderId, orderNumber) => {
+    setCancelModal({ show: true, id: orderId, number: orderNumber });
+  };
+
+  const confirmCancel = async () => {
+    const { id } = cancelModal;
+    setCancelModal({ show: false, id: null, number: '' });
+    try {
+      await adminUpdateOrderStatus(id, 'cancelled');
+      await loadOrders(statusFilter);
+      addToast('Order cancelled successfully!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to cancel order.', 'error');
     }
   };
 
@@ -205,16 +211,21 @@ function AdminOrders() {
                     <td>{order.district}</td>
                     <td>৳{parseFloat(order.total_price).toLocaleString()}</td>
                     <td>
-                      <select
-                        className={`status-select status-${order.status}`}
-                        value={order.status}
-                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                        disabled={order.status === 'cancelled' || order.status === 'returned'}
-                      >
-                        {Object.entries(STATUS_DROPDOWN_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))}
-                      </select>
+                      {order.status === 'cancelled' || order.status === 'returned' ? (
+                        <span className={`status-badge status-${order.status}`}>
+                          {STATUS_LABELS[order.status] || order.status}
+                        </span>
+                      ) : (
+                        <select
+                          className={`status-select status-${order.status}`}
+                          value={order.status}
+                          onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                        >
+                          {Object.entries(STATUS_DROPDOWN_LABELS).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                     <td>{new Date(order.created_at).toLocaleDateString()}</td>
                     <td>
@@ -259,6 +270,16 @@ function AdminOrders() {
         title="Delete Order"
         message={`Are you sure you want to delete order ${deleteModal.number}?`}
         confirmText="Delete"
+        type="danger"
+      />
+
+      <Modal
+        isOpen={cancelModal.show}
+        onClose={() => setCancelModal({ show: false, id: null, number: '' })}
+        onConfirm={confirmCancel}
+        title="Cancel Order"
+        message={`Are you sure you want to cancel order ${cancelModal.number}?`}
+        confirmText="Cancel Order"
         type="danger"
       />
     </div>

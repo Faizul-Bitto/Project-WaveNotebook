@@ -23,7 +23,21 @@ function ProductCard({ product }) {
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const result = await addItem(product.id, 1, null);
+
+    const selectedAttributes = {};
+    const attrs = product.attributes || [];
+    attrs.forEach((attr) => {
+      const options = attr.options || [];
+      if (options.length > 0) {
+        selectedAttributes[attr.id] = options[0].id;
+      }
+    });
+
+    const attrsString = Object.keys(selectedAttributes).length > 0
+      ? JSON.stringify(selectedAttributes)
+      : null;
+
+    const result = await addItem(product.id, 1, attrsString);
     if (result.success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
