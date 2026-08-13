@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FaCheckCircle, FaTruck, FaCopy } from 'react-icons/fa';
+import { FaCheckCircle, FaCopy, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { createOrder, getDistricts } from '../api/services';
 import PhoneInput from '../components/PhoneInput';
@@ -107,10 +107,10 @@ function Checkout () {
 
   // Compute effective unit price for a direct item (selected variant price)
   const computeDirectUnitPrice = () => {
-    if (!directItem) return 0;
+    if ( !directItem ) return 0;
     let price = directItem.variant?.price
-      ? parseFloat(directItem.variant.price)
-      : (directItem.product.price_range ? parseFloat(directItem.product.price_range.min) : 0);
+      ? parseFloat( directItem.variant.price )
+      : ( directItem.product.price_range ? parseFloat( directItem.product.price_range.min ) : 0 );
     return price;
   };
 
@@ -125,7 +125,7 @@ function Checkout () {
       ?.filter( ( attr ) => directItem.selectedOptions?.[ attr.id ] )
       .map( ( attr ) => {
         const opt = ( attr.options || [] ).find( ( o ) => o.id === directItem.selectedOptions[ attr.id ] );
-        return `${attr.name}: ${opt ? opt.value : ''}`;
+        return `${ attr.name }: ${ opt ? opt.value : '' }`;
       } )
       .join( ', ' ) || undefined,
     subtotal: ( directUnitPrice * directItem.quantity ).toFixed( 2 ),
@@ -145,16 +145,16 @@ function Checkout () {
           <button
             type="button"
             className="btn btn-copy"
-            onClick={() => {
+            onClick={ () => {
               navigator.clipboard.writeText( orderSuccess.order_number );
               addToast( 'Order number copied!', 'success' );
-            }}
+            } }
             title="Copy order number for tracking"
           >
             <FaCopy /> Copy
           </button>
         </p>
-        <p style={{ fontSize: '14px', color: 'var(--gray-600)', marginBottom: '24px' }}>
+        <p style={ { fontSize: '14px', color: 'var(--gray-600)', marginBottom: '24px' } }>
           Copy the order number above to track your order status.
         </p>
         <div className="order-summary-box">
@@ -169,25 +169,25 @@ function Checkout () {
 
           { items.length > 0 && (
             <div className="order-success-items">
-              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontWeight: 600, color: 'var(--gray-700)' }}>Ordered Items:</h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <h4 style={ { marginTop: '16px', marginBottom: '8px', fontWeight: 600, color: 'var(--gray-700)' } }>Ordered Items:</h4>
+              <ul style={ { listStyle: 'none', padding: 0, margin: 0 } }>
                 { items.map( ( item, idx ) => (
                   <li
                     key={ item.id || idx }
-                    style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: '14px' }}
+                    style={ { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: '14px' } }
                   >
                     <span>
-                      { item.product_name || `Product #${item.product_id}` }
+                      { item.product_name || `Product #${ item.product_id }` }
                       { item.selected_attributes_display && (
-                        <span style={{ display: 'block', fontSize: '12px', color: 'var(--gray-600)' }}>
+                        <span style={ { display: 'block', fontSize: '12px', color: 'var(--gray-600)' } }>
                           { item.selected_attributes_display }
                         </span>
-                      )}
+                      ) }
                       { item.quantity > 1 && ` ×${ item.quantity }` }
                     </span>
                     <span>৳{ parseFloat( item.subtotal || 0 ).toLocaleString() }</span>
                   </li>
-                )) }
+                ) ) }
               </ul>
             </div>
           ) }
@@ -332,9 +332,6 @@ function Checkout () {
               <span>Total</span>
               <span>৳{ totalPrice.toLocaleString() }</span>
             </div>
-            <p className="checkout-note">
-              * Delivery charge will be confirmed by phone.
-            </p>
           </div>
         </div>
       </div>
