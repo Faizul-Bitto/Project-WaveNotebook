@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaArrowLeft, FaSave, FaTrash, FaPlus, FaToggleOn, FaToggleOff, FaMagic } from 'react-icons/fa';
-import {
-  adminGetProductVariants,
-  adminBulkUpdateVariants,
-  adminDeleteVariant,
-  adminGetProduct,
-  adminAddNewVariants,
-  adminGetAttributes,
-  adminGenerateVariantsFromProduct,
-} from '../../api/adminServices';
+import { FaArrowLeft, FaSave, FaTrash, FaMagic, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { adminGetProductVariants, adminBulkUpdateVariants, adminDeleteVariant, adminGenerateVariantsFromProduct } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
 
@@ -24,9 +16,6 @@ function AdminProductVariants() {
   const [saving, setSaving] = useState(false);
   const [edits, setEdits] = useState({});
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, sku: '' });
-  const [addVariantsModal, setAddVariantsModal] = useState(false);
-  const [attributes, setAttributes] = useState([]);
-  const [selectedNewOptions, setSelectedNewOptions] = useState({});
 
   const loadVariants = async () => {
     try {
@@ -46,15 +35,12 @@ function AdminProductVariants() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [variantData, , attrData] = await Promise.all([
+        const [variantData] = await Promise.all([
           adminGetProductVariants(id),
-          adminGetProduct(id),
-          adminGetAttributes({ limit: 1000, is_active: true }),
         ]);
         if (mounted) {
           setProduct({ id: variantData.product_id, name: variantData.product_name });
           setVariants(variantData.variants || []);
-          setAttributes(attrData.attributes || []);
         }
       } catch (err) {
         if (mounted) addToast(err.response?.data?.detail || 'Failed to load variants.', 'error');
@@ -141,27 +127,6 @@ function AdminProductVariants() {
     }
   };
 
-  const handleAddVariants = async () => {
-    const newOptionIds = Object.values(selectedNewOptions).flat();
-    if (newOptionIds.length === 0) {
-      addToast('Please select at least one new option.', 'error');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const result = await adminAddNewVariants(id, newOptionIds);
-      addToast(result.message || 'New variants generated!', 'success');
-      setAddVariantsModal(false);
-      setSelectedNewOptions({});
-      await loadVariants();
-    } catch (err) {
-      addToast(err.response?.data?.detail || 'Failed to generate variants.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const formatAttributes = (attrs) => {
     if (!attrs) return '';
     return Object.entries(attrs)
@@ -194,11 +159,6 @@ function AdminProductVariants() {
           <button className="btn btn-warning" onClick={handleGenerateVariants} disabled={saving}>
             <FaMagic /> {saving ? 'Generating...' : 'Generate All Variants'}
           </button>
-          {variants.length > 0 && (
-            <button className="btn btn-primary" onClick={() => setAddVariantsModal(true)}>
-              <FaPlus /> Add Variants
-            </button>
-          )}
           <button className="btn btn-success" onClick={handleSaveAll} disabled={saving || Object.keys(edits).length === 0}>
             <FaSave /> {saving ? 'Saving...' : 'Save All'}
           </button>
@@ -297,52 +257,6 @@ function AdminProductVariants() {
         confirmText="Delete"
         type="danger"
       />
-
-      {addVariantsModal && (
-        <div className="modal-overlay" onClick={() => setAddVariantsModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Variants</h3>
-              <button className="modal-close" onClick={() => setAddVariantsModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <p>Select new attribute options to generate additional variants. New variants will have empty prices that need to be filled.</p>
-              {attributes.map(attr => (
-                <div key={attr.id} className="add-variant-attr-group">
-                  <h4>{attr.name}</h4>
-                  <div className="options-grid">
-                    {attr.options?.map(opt => (
-                      <label key={opt.id} className="option-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={(selectedNewOptions[attr.id] || []).includes(opt.id)}
-                          onChange={(e) => {
-                            const current = selectedNewOptions[attr.id] || [];
-                            const updated = e.target.checked
-                              ? [...current, opt.id]
-                              : current.filter(id => id !== opt.id);
-                            setSelectedNewOptions(prev => ({
-                              ...prev,
-                              [attr.id]: updated,
-                            }));
-                          }}
-                        />
-                        <span>{opt.value}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setAddVariantsModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAddVariants} disabled={saving}>
-                {saving ? 'Generating...' : 'Generate Variants'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
