@@ -9,6 +9,7 @@ from app.dependencies.database import db_dependency
 from app.models.category import Category
 from app.schemas.category import CategoryUpdate
 from app.utils.file_upload import upload_file_to_storage
+from app.utils.variant_generator import compute_product_in_stock
 
 router = APIRouter(
     prefix="/admin/categories",
@@ -443,8 +444,7 @@ async def get_category_products(
                     "id": product.id,
                     "name": product.name,
                     "slug": product.slug,
-                    "base_price": str(product.base_price),
-                    "is_in_stock": product.is_in_stock,
+                    "is_in_stock": compute_product_in_stock(db, product.id),
                     "is_active": product.is_active,
                     "created_at": product.created_at.isoformat(),
                 }

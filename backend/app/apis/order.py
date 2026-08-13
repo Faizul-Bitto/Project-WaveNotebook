@@ -17,7 +17,9 @@ from app.models.product_attribute import ProductAttribute
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.attribute_option import AttributeOption
 from app.models.attribute import Attribute
+from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate
+from app.utils.variant_generator import find_matching_variant, compute_product_in_stock
 
 router = APIRouter(
     prefix="/orders",
@@ -37,29 +39,49 @@ def generate_order_number() -> str:
 
 def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -> float:
     """
-    Calculate the unit price for an item including selected attribute option prices.
+    Calculate the unit price for an item using the variant system.
     """
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         return 0
-    total_price = float(product.base_price)
+
+    # If attributes are selected, find the matching variant
     if selected_attributes:
         try:
             attrs = json.loads(selected_attributes)
-            for attr_id_str, option_value in attrs.items():
+
+            # Convert attribute_id: option_id format to attribute_name: option_value format
+            selected_attrs = {}
+            for attr_id_str, option_id in attrs.items():
                 try:
                     attr_id = int(attr_id_str)
+                    attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
                     option = db.query(AttributeOption).filter(
-                        AttributeOption.id == option_value,
+                        AttributeOption.id == option_id,
                         AttributeOption.attribute_id == attr_id
                     ).first()
-                    if option and option.additional_price:
-                        total_price += float(option.additional_price)
+                    if attr and option:
+                        selected_attrs[attr.name] = option.value
                 except (ValueError, TypeError):
                     continue
+
+            if selected_attrs:
+                variant = find_matching_variant(db, product_id, selected_attrs)
+                if variant and variant.price is not None:
+                    return float(variant.price)
         except json.JSONDecodeError:
             pass
-    return total_price
+
+    # If no variant found, check if there's a single variant for this product
+    variant = (
+        db.query(ProductVariant)
+        .filter(ProductVariant.product_id == product_id)
+        .first()
+    )
+    if variant and variant.price is not None:
+        return float(variant.price)
+
+    return 0
 
 
 def build_attributes_display(db, selected_attributes: str = None) -> Optional[str]:
@@ -144,7 +166,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                     detail=f"Product '{product.name}' is not available.",
                 )
 
-            if not product.is_in_stock:
+            if not compute_product_in_stock(db, product.id):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product '{product.name}' is out of stock.",

@@ -106,6 +106,44 @@ export const adminDeleteProduct = async (id) => {
 };
 
 // ==========================================
+// Admin - Product Variants
+// ==========================================
+export const adminGetProductVariants = async (productId) => {
+  const { data } = await api.get(`/admin/products/${productId}/variants`);
+  return data;
+};
+
+export const adminUpdateVariant = async (variantId, variantData) => {
+  const { data } = await api.put(`/admin/products/variants/${variantId}`, variantData);
+  return data;
+};
+
+export const adminBulkUpdateVariants = async (productId, updates) => {
+  const { data } = await api.put(`/admin/products/${productId}/variants/bulk`, updates);
+  return data;
+};
+
+export const adminAddNewVariants = async (productId, newAttributeOptionIds) => {
+  const { data } = await api.post(`/admin/products/${productId}/variants`, newAttributeOptionIds);
+  return data;
+};
+
+export const adminGenerateVariants = async (productId, attributeOptionIds) => {
+  const { data } = await api.post(`/admin/products/${productId}/variants/generate`, attributeOptionIds);
+  return data;
+};
+
+export const adminGenerateVariantsFromProduct = async (productId) => {
+  const { data } = await api.post(`/admin/products/${productId}/variants/generate`, null);
+  return data;
+};
+
+export const adminDeleteVariant = async (variantId) => {
+  const { data } = await api.delete(`/admin/products/variants/${variantId}`);
+  return data;
+};
+
+// ==========================================
 // Admin - Orders
 // ==========================================
 export const adminGetOrders = async (params = {}) => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCubes } from 'react-icons/fa';
 import {
   adminGetProducts,
   adminDeleteProduct,
@@ -66,6 +66,10 @@ function AdminProducts() {
     navigate(`/admin/products/${id}/edit`);
   };
 
+  const handleViewVariants = (id) => {
+    navigate(`/admin/products/${id}/variants`);
+  };
+
   const handleCreate = () => {
     navigate('/admin/products/new');
   };
@@ -92,6 +96,7 @@ function AdminProducts() {
                 <th>Name</th>
                 <th>Price</th>
                 <th>Category</th>
+                <th>Variants</th>
                 <th>In Stock</th>
                 <th>Active</th>
                 <th>Actions</th>
@@ -100,7 +105,7 @@ function AdminProducts() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="table-empty">No products found</td>
+                  <td colSpan="10" className="table-empty">No products found</td>
                 </tr>
               ) : (
                 products.map((product) => (
@@ -115,8 +120,16 @@ function AdminProducts() {
                     </td>
                     <td>{product.product_code}</td>
                     <td>{product.name}</td>
-                    <td>৳{parseFloat(product.base_price).toLocaleString()}</td>
+                    <td>{product.price_range ? (parseFloat(product.price_range.min) === parseFloat(product.price_range.max) ? `৳${parseFloat(product.price_range.min).toLocaleString()}` : `৳${parseFloat(product.price_range.min).toLocaleString()} - ৳${parseFloat(product.price_range.max).toLocaleString()}`) : 'N/A'}</td>
                     <td>{product.category_name || product.category_id}</td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-variants"
+                        onClick={() => handleViewVariants(product.id)}
+                      >
+                        <FaCubes /> {product.total_variants || 0} Variants
+                      </button>
+                    </td>
                     <td>
                       <span className={`badge ${product.is_in_stock ? 'badge-green' : 'badge-red'}`}>
                         {product.is_in_stock ? 'Yes' : 'No'}
@@ -128,24 +141,24 @@ function AdminProducts() {
                       </span>
                     </td>
                     <td>
-<div className="table-actions">
-                      <button
-                        className="action-btn action-edit"
-                        onClick={() => handleEdit(product.id)}
-                        aria-label={`Edit ${product.name}`}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        className="action-btn action-delete"
-                        onClick={() => handleDelete(product.id, product.name)}
-                        aria-label={`Delete ${product.name}`}
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-</td>
-</tr>
+                      <div className="table-actions">
+                        <button
+                          className="action-btn action-edit"
+                          onClick={() => handleEdit(product.id)}
+                          aria-label={`Edit ${product.name}`}
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          className="action-btn action-delete"
+                          onClick={() => handleDelete(product.id, product.name)}
+                          aria-label={`Delete ${product.name}`}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))
               )}
             </tbody>

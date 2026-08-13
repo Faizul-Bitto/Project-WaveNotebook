@@ -22,7 +22,14 @@ from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.file import File
+from app.models.product_variant import ProductVariant
 from app.utils.file_upload import upload_file_to_storage
+from app.utils.variant_generator import (
+    generate_variant_combinations,
+    build_sku,
+    selected_attributes_to_key,
+    compute_product_in_stock,
+)
 
 router = APIRouter(
     prefix="/admin/products",
@@ -60,8 +67,6 @@ async def create_product(
     name: str = Form(...),
     description: str = Form(None),
     specifications: str = Form(None),
-    base_price: float = Form(...),
-    is_in_stock: bool = Form(True),
     is_active: bool = Form(True),
     attributes: str = Form(...),
     files: list[UploadFile] = FastAPIFile(None),
@@ -151,8 +156,6 @@ async def create_product(
             slug=slug,
             description=description,
             specifications=specifications,
-            base_price=base_price,
-            is_in_stock=is_in_stock,
             is_active=is_active,
         )
 
@@ -213,10 +216,8 @@ async def create_product(
                 "category_id": new_product.category_id,
                 "name": new_product.name,
                 "slug": new_product.slug,
-                "base_price": str(base_price),
                 "description": description,
                 "specifications": specifications,
-                "is_in_stock": is_in_stock,
                 "is_active": is_active,
                 "attributes": parsed_attributes,
                 "files": uploaded_files,
@@ -272,28 +273,51 @@ async def get_all_products(
             f"Admin={admin.phone_number}"
         )
 
-        return {
-            "message": "Products retrieved successfully.",
-            "total": total,
-            "skip": skip,
-            "limit": limit,
-            "products": [
+        result = []
+        for prod in products:
+            variant_count = (
+                db.query(ProductVariant)
+                .filter(ProductVariant.product_id == prod.id)
+                .count()
+            )
+
+            variants = (
+                db.query(ProductVariant)
+                .filter(ProductVariant.product_id == prod.id)
+                .all()
+            )
+            prices = [float(v.price) for v in variants if v.price is not None and float(v.price) > 0]
+            price_range = None
+            if prices:
+                price_range = {
+                    "min": str(min(prices)),
+                    "max": str(max(prices)),
+                }
+
+            result.append(
                 {
                     "id": prod.id,
                     "product_code": prod.product_code,
                     "category_id": prod.category_id,
                     "category_name": next((c.name for c in db.query(Category).filter(Category.id == prod.category_id).all()), ""),
-                    "name": prod.name,
-                    "slug": prod.slug,
-                    "base_price": str(prod.base_price),
-                    "image_url": (db.query(File).filter(File.product_id == prod.id).first().file_url if db.query(File).filter(File.product_id == prod.id).first() else None),
-                    "is_in_stock": prod.is_in_stock,
+                "name": prod.name,
+                "slug": prod.slug,
+                "image_url": (db.query(File).filter(File.product_id == prod.id).first().file_url if db.query(File).filter(File.product_id == prod.id).first() else None),
+                    "is_in_stock": compute_product_in_stock(db, prod.id),
                     "is_active": prod.is_active,
+                    "total_variants": variant_count,
+                    "price_range": price_range,
                     "created_at": prod.created_at.isoformat(),
                     "updated_at": prod.updated_at.isoformat(),
                 }
-                for prod in products
-            ],
+            )
+
+        return {
+            "message": "Products retrieved successfully.",
+            "total": total,
+            "skip": skip,
+            "limit": limit,
+            "products": result,
         }
 
     except Exception as e:
@@ -366,8 +390,7 @@ async def get_product_by_id(
                     {
                         "id": opt.id,
                         "value": opt.value,
-                        "additional_price": str(opt.additional_price),
-                        "is_selected": opt.id in selected_option_ids,
+                                                "is_selected": opt.id in selected_option_ids,
                     }
                 )
 
@@ -396,8 +419,7 @@ async def get_product_by_id(
                 "slug": product.slug,
                 "description": product.description,
                 "specifications": product.specifications,
-                "base_price": str(product.base_price),
-                "is_in_stock": product.is_in_stock,
+                "is_in_stock": compute_product_in_stock(db, product.id),
                 "is_active": product.is_active,
                 "files": [
                     {"id": f.id, "file_name": f.file_name, "file_url": f.file_url}
@@ -428,14 +450,12 @@ async def update_product(
     db: db_dependency,
     admin: admin_dependency,
     product_id: int = Path(gt=0),
-    category_id: int = Form(None),
-    name: str = Form(None),
-    description: str = Form(None),
-    specifications: str = Form(None),
-    base_price: float = Form(None),
-    is_in_stock: bool = Form(None),
-    is_active: bool = Form(None),
-    attributes: str = Form(None),
+     category_id: int = Form(None),
+     name: str = Form(None),
+     description: str = Form(None),
+     specifications: str = Form(None),
+     is_active: bool = Form(None),
+     attributes: str = Form(None),
     files: list[UploadFile] = FastAPIFile(None),
 ):
     """
@@ -535,7 +555,7 @@ async def update_product(
                 ProductAttributeOption.product_id == product_id
             ).delete()
 
-            # Add new attributes with selected options
+             # Add new attributes with selected options
             for attr_data in parsed_attributes:
                 product_attr = ProductAttribute(
                     product_id=product_id, attribute_id=attr_data["attribute_id"]
@@ -568,10 +588,6 @@ async def update_product(
             product.description = description
         if specifications is not None:
             product.specifications = specifications
-        if base_price is not None:
-            product.base_price = base_price
-        if is_in_stock is not None:
-            product.is_in_stock = is_in_stock
         if is_active is not None:
             product.is_active = is_active
 
@@ -614,8 +630,7 @@ async def update_product(
                     {
                         "id": opt.id,
                         "value": opt.value,
-                        "additional_price": str(opt.additional_price),
-                        "is_selected": opt.id in selected_option_ids,
+                                                "is_selected": opt.id in selected_option_ids,
                     }
                 )
 
@@ -636,10 +651,9 @@ async def update_product(
                 "category_id": product.category_id,
                 "name": product.name,
                 "slug": product.slug,
-                "base_price": str(product.base_price),
                 "description": product.description,
                 "specifications": product.specifications,
-                "is_in_stock": product.is_in_stock,
+                "is_in_stock": compute_product_in_stock(db, product.id),
                 "is_active": product.is_active,
                 "attributes": attributes,
                 "created_at": product.created_at.isoformat(),

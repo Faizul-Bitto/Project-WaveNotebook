@@ -105,19 +105,12 @@ function Checkout () {
     }
   };
 
-  // Compute effective unit price for a direct item (base + selected add-ons)
+  // Compute effective unit price for a direct item (selected variant price)
   const computeDirectUnitPrice = () => {
-    if ( !directItem ) return 0;
-    let price = parseFloat( directItem.product.base_price || '0' );
-    ( directItem.product.attributes || [] ).forEach( ( attr ) => {
-      const selectedOptionId = directItem.selectedOptions?.[ attr.id ];
-      if ( selectedOptionId ) {
-        const option = ( attr.options || [] ).find( ( opt ) => opt.id === selectedOptionId );
-        if ( option ) {
-          price += parseFloat( option.additional_price || '0' );
-        }
-      }
-    } );
+    if (!directItem) return 0;
+    let price = directItem.variant?.price
+      ? parseFloat(directItem.variant.price)
+      : (directItem.product.price_range ? parseFloat(directItem.product.price_range.min) : 0);
     return price;
   };
 

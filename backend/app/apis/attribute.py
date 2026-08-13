@@ -43,8 +43,7 @@ async def get_attributes(db: db_dependency):
                         {
                             "id": opt.id,
                             "value": opt.value,
-                            "additional_price": str(opt.additional_price),
-                        }
+                                                    }
                         for opt in options
                     ],
                 }
@@ -100,8 +99,7 @@ async def get_attribute_by_id(db: db_dependency, attribute_id: int = Path(gt=0))
                     {
                         "id": opt.id,
                         "value": opt.value,
-                        "additional_price": str(opt.additional_price),
-                    }
+                                            }
                     for opt in options
                 ],
             },
@@ -155,8 +153,7 @@ async def get_attribute_by_slug(db: db_dependency, attribute_slug: str):
                     {
                         "id": opt.id,
                         "value": opt.value,
-                        "additional_price": str(opt.additional_price),
-                    }
+                                            }
                     for opt in options
                 ],
             },

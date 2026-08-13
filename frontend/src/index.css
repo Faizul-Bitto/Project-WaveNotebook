@@ -148,6 +148,16 @@ textarea {
   color: var(--white);
 }
 
+.btn-warning {
+  background-color: #d97706;
+  color: var(--white);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: #b45309;
+  color: var(--white);
+}
+
 .btn-lg {
   padding: 14px 28px;
   font-size: 16px;
@@ -3696,4 +3706,173 @@ textarea {
 
 .modal-confirm-footer .btn {
   min-width: 100px;
+}
+
+/* ==========================================
+   Product Variant Management Styles
+   ========================================== */
+
+.variant-product-name {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.btn-variants {
+  background-color: var(--primary);
+  color: var(--white);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.btn-variants:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-sm {
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.variant-table {
+  min-width: 900px;
+}
+
+.variant-table .variant-sku {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--gray-600);
+  white-space: nowrap;
+}
+
+.variant-table .variant-attrs {
+  font-size: 13px;
+  color: var(--gray-700);
+  min-width: 200px;
+}
+
+.variant-input {
+  width: 100px;
+  padding: 6px 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: right;
+  transition: border-color 0.2s;
+}
+
+.variant-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
+}
+
+.variant-input-empty {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: var(--danger);
+}
+
+.variant-input-empty::placeholder {
+  color: var(--danger);
+  opacity: 0.7;
+}
+
+.variant-stock-input {
+  width: 80px;
+}
+
+.profit-negative {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.variant-inactive {
+  opacity: 0.5;
+}
+
+.variant-inactive td {
+  background-color: var(--gray-100) !important;
+}
+
+.status-toggle {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s;
+}
+
+.status-toggle:hover {
+  transform: scale(1.1);
+}
+
+.status-toggle.active {
+  color: var(--success);
+}
+
+.status-toggle.inactive {
+  color: var(--gray-400);
+}
+
+.unsaved-changes-banner {
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.add-variant-attr-group {
+  margin-bottom: 20px;
+}
+
+.add-variant-attr-group h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 10px;
+}
+
+.add-variant-attr-group .options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.add-variant-attr-group .option-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.add-variant-attr-group .option-checkbox:hover {
+  border-color: var(--primary);
+  background-color: var(--gray-50);
+}
+
+.add-variant-attr-group .option-checkbox input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+
+.price-range {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
 }

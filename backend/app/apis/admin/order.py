@@ -13,7 +13,9 @@ from app.models.user import User
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute_option import ProductAttributeOption
+from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate, OrderStatusUpdate
+from app.utils.variant_generator import find_matching_variant, compute_product_in_stock
 
 router = APIRouter(
     prefix="/admin/orders",
@@ -22,27 +24,52 @@ router = APIRouter(
 
 
 def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -> float:
+    """
+    Calculate the unit price for an item using the variant system.
+    Converts attr_id:option_id format to attr_name:option_value,
+    then finds the matching ProductVariant.
+    """
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         return 0
-    total_price = float(product.base_price)
+
+    # If attributes are selected, find the matching variant
     if selected_attributes:
         try:
             attrs = json.loads(selected_attributes)
-            for attr_id_str, option_value in attrs.items():
+
+            # Convert attribute_id: option_id format to attribute_name: option_value format
+            selected_attrs = {}
+            for attr_id_str, option_id in attrs.items():
                 try:
                     attr_id = int(attr_id_str)
+                    attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
                     option = db.query(AttributeOption).filter(
-                        AttributeOption.id == option_value,
+                        AttributeOption.id == option_id,
                         AttributeOption.attribute_id == attr_id
                     ).first()
-                    if option and option.additional_price:
-                        total_price += float(option.additional_price)
+                    if attr and option:
+                        selected_attrs[attr.name] = option.value
                 except (ValueError, TypeError):
                     continue
+
+            if selected_attrs:
+                variant = find_matching_variant(db, product_id, selected_attrs)
+                if variant and variant.price is not None:
+                    return float(variant.price)
         except json.JSONDecodeError:
             pass
-    return total_price
+
+    # If no variant found, check if there's a single variant for this product
+    variant = (
+        db.query(ProductVariant)
+        .filter(ProductVariant.product_id == product_id)
+        .first()
+    )
+    if variant and variant.price is not None:
+        return float(variant.price)
+
+    return 0
 
 
 @router.get("", status_code=status.HTTP_200_OK)
@@ -261,7 +288,7 @@ async def update_order(
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product ID {item.product_id} not found.")
             if not product.is_active:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is not available.")
-            if not product.is_in_stock:
+            if not compute_product_in_stock(db, item.product_id):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is out of stock.")
 
             unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
@@ -416,7 +443,7 @@ async def create_order_for_user(
                     detail=f"Product '{product.name}' is not available.",
                 )
 
-            if not product.is_in_stock:
+            if not compute_product_in_stock(db, item.product_id):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product '{product.name}' is out of stock.",

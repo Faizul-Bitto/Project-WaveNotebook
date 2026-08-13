@@ -45,8 +45,7 @@ async def create_attribute_option(
         new_option = AttributeOption(
             attribute_id=option_data.attribute_id,
             value=option_data.value,
-            additional_price=option_data.additional_price,
-        )
+                    )
 
         db.add(new_option)
         db.commit()
@@ -66,8 +65,7 @@ async def create_attribute_option(
                 "id": new_option.id,
                 "attribute_id": new_option.attribute_id,
                 "value": new_option.value,
-                "additional_price": str(new_option.additional_price),
-                "created_at": new_option.created_at.isoformat(),
+                                "created_at": new_option.created_at.isoformat(),
             },
         }
 
@@ -124,8 +122,7 @@ async def get_all_attribute_options(
                     "id": opt.id,
                     "attribute_id": opt.attribute_id,
                     "value": opt.value,
-                    "additional_price": str(opt.additional_price),
-                    "created_at": opt.created_at.isoformat(),
+                                        "created_at": opt.created_at.isoformat(),
                 }
                 for opt in options
             ],
@@ -180,8 +177,7 @@ async def get_attribute_option_by_id(
                 "id": option.id,
                 "attribute_id": option.attribute_id,
                 "value": option.value,
-                "additional_price": str(option.additional_price),
-                "created_at": option.created_at.isoformat(),
+                                "created_at": option.created_at.isoformat(),
             },
         }
 
@@ -246,8 +242,7 @@ async def update_attribute_option(
                 "id": option.id,
                 "attribute_id": option.attribute_id,
                 "value": option.value,
-                "additional_price": str(option.additional_price),
-                "created_at": option.created_at.isoformat(),
+                                "created_at": option.created_at.isoformat(),
             },
         }
 

@@ -133,8 +133,7 @@ async def get_all_attributes(
                         {
                             "id": opt.id,
                             "value": opt.value,
-                            "additional_price": str(opt.additional_price),
-                            "created_at": opt.created_at.isoformat(),
+                                                        "created_at": opt.created_at.isoformat(),
                         }
                         for opt in options
                     ],
@@ -214,8 +213,7 @@ async def get_attribute_by_id(
                     {
                         "id": opt.id,
                         "value": opt.value,
-                        "additional_price": str(opt.additional_price),
-                        "created_at": opt.created_at.isoformat(),
+                                                "created_at": opt.created_at.isoformat(),
                     }
                     for opt in options
                 ],

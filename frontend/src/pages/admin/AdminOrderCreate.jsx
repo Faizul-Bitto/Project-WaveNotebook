@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaPlus, FaTrash, FaSave } from 'react-icons/fa';
-import { getDistricts } from '../../api/services';
+import { getDistricts, findVariant } from '../../api/services';
 import { adminGetProducts, adminGetProduct, adminCreateOrder, adminUpdateOrder, adminGetOrder } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 
@@ -49,6 +49,45 @@ function AdminOrderCreate() {
     }
   };
 
+  const resolveItemPrice = async (item) => {
+    if (!item.attributes || item.attributes.length === 0) return null;
+    const selectedOptions = item.selected_options || {};
+    const allSelected = item.attributes.every((attr) => selectedOptions[attr.id]);
+    if (!allSelected) return null;
+
+    const selectedAttrs = {};
+    for (const [attrId, optId] of Object.entries(selectedOptions)) {
+      const attr = item.attributes.find((a) => String(a.id) === String(attrId));
+      if (attr) {
+        const option = (attr.options || []).find((o) => o.id === optId);
+        if (option) {
+          selectedAttrs[attr.name] = option.value;
+        }
+      }
+    }
+
+    if (Object.keys(selectedAttrs).length === 0) return null;
+
+    try {
+      const data = await findVariant(item.product_id, selectedAttrs);
+      return data.variant?.price || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleOptionChange = async (index, attrId, optionId) => {
+    const newItems = [...items];
+    const selected_options = { ...newItems[index].selected_options, [attrId]: optionId };
+    newItems[index] = { ...newItems[index], selected_options, unit_price: undefined };
+    setItems(newItems);
+
+    const price = await resolveItemPrice(newItems[index]);
+    if (price) {
+      setItems((prev) => prev.map((it, i) => (i === index ? { ...it, unit_price: price } : it)));
+    }
+  };
+
   // Load existing order when editing - show items immediately
   useEffect(() => {
     if (!isEditing) return;
@@ -90,6 +129,13 @@ function AdminOrderCreate() {
               setItems((prev) => prev.map((it) =>
                 it.product_id === item.product_id ? { ...it, attributes: detail.attributes } : it
               ));
+              // Resolve variant price for this item
+              const price = await resolveItemPrice({ ...item, attributes: detail.attributes });
+              if (price !== null) {
+                setItems((prev) => prev.map((it) =>
+                  it.product_id === item.product_id ? { ...it, unit_price: price } : it
+                ));
+              }
             }
           } catch {}
         }
@@ -124,14 +170,6 @@ function AdminOrderCreate() {
 
   const handleQuantityChange = (index, qty) => {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, quantity: Math.max(1, qty) } : it)));
-  };
-
-  const handleOptionChange = (index, attrId, optionId) => {
-    setItems((prev) => prev.map((it, i) => {
-      if (i !== index) return it;
-      const selected_options = { ...it.selected_options, [attrId]: optionId };
-      return { ...it, selected_options };
-    }));
   };
 
   const handleRemoveItem = (index) => {
@@ -184,13 +222,14 @@ function AdminOrderCreate() {
     }
   };
 
-  const calculateItemTotal = (item) => {
-    let unit = parseFloat(products.find((p) => p.id === item.product_id)?.base_price || '0');
+   const calculateItemTotal = (item) => {
+    let product = products.find((p) => p.id === item.product_id);
+    let unit = item.unit_price !== undefined ? item.unit_price : (product?.price_range ? parseFloat(product.price_range.min) : 0);
+
     item.attributes?.forEach((attr) => {
       const optId = item.selected_options[attr.id];
       if (optId) {
         const option = attr.options.find((o) => o.id === optId);
-        if (option) unit += parseFloat(option.additional_price || '0');
       }
     });
     return unit * item.quantity;
@@ -252,7 +291,7 @@ function AdminOrderCreate() {
           <div className="product-add-row">
             <select value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
               <option value="">Select a product...</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name} (৳{parseFloat(p.base_price).toLocaleString()})</option>)}
+               {products.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.price_range ? (parseFloat(p.price_range.min) === parseFloat(p.price_range.max) ? `৳${parseFloat(p.price_range.min).toLocaleString()}` : `৳${parseFloat(p.price_range.min).toLocaleString()} - ৳${parseFloat(p.price_range.max).toLocaleString()}`) : 'N/A'})</option>)}
             </select>
             <button type="button" className="btn btn-primary" onClick={handleAddProduct}>
               <FaPlus /> Add Product
@@ -286,7 +325,7 @@ function AdminOrderCreate() {
                             <option value="">Select...</option>
                             {attr.options.map((opt) => (
                               <option key={opt.id} value={opt.id}>
-                                {opt.value}{parseFloat(opt.additional_price) > 0 ? ` (+৳${parseFloat(opt.additional_price)})` : ''}
+                                {opt.value}
                               </option>
                             ))}
                           </select>

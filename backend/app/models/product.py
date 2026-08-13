@@ -59,17 +59,6 @@ class Product(Base):
         nullable=True,
     )
 
-    base_price = Column(
-        Numeric(10, 2),
-        nullable=False,
-    )
-
-    is_in_stock = Column(
-        Boolean,
-        nullable=False,
-        default=True,
-    )
-
     is_active = Column(
         Boolean,
         nullable=False,

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -23,12 +23,6 @@ class AttributeOption(Base):
     value = Column(
         String(255),
         nullable=False,
-    )
-
-    additional_price = Column(
-        Numeric(10, 2),
-        nullable=False,
-        default=0,
     )
 
     created_at = Column(

@@ -18,6 +18,19 @@ export const getProductBySlug = async (slug) => {
   return data;
 };
 
+export const findVariant = async (productId, selectedAttributes) => {
+  const { data } = await api.post('/products/find-variant', {
+    product_id: productId,
+    selected_attributes: selectedAttributes,
+  });
+  return data;
+};
+
+export const getDefaultVariant = async (productId) => {
+  const { data } = await api.get(`/products/${productId}/default-variant`);
+  return data;
+};
+
 // ==========================================
 // Categories
 // ==========================================

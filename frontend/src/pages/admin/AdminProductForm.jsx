@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaTrash, FaImage, FaSave, FaArrowLeft, FaPlus, FaTimes } from 'react-icons/fa';
+import { FaTrash, FaImage, FaSave, FaArrowLeft, FaTimes, FaCubes } from 'react-icons/fa';
 import {
   adminGetProduct,
   adminCreateProduct,
@@ -30,8 +30,6 @@ function AdminProductForm() {
     name: '',
     description: '',
     specifications: '',
-    base_price: '',
-    is_in_stock: true,
     is_active: true,
     attributes: [],
     files: [],
@@ -79,8 +77,6 @@ function AdminProductForm() {
             name: product.name,
             description: product.description || '',
             specifications: product.specifications || '',
-            base_price: product.base_price,
-            is_in_stock: product.is_in_stock,
             is_active: product.is_active,
             attributes: formattedAttributes,
             files: [],
@@ -194,8 +190,6 @@ function AdminProductForm() {
       formDataToSend.append('name', formData.name);
       formDataToSend.append('description', formData.description);
       formDataToSend.append('specifications', formData.specifications);
-      formDataToSend.append('base_price', formData.base_price);
-      formDataToSend.append('is_in_stock', formData.is_in_stock);
       formDataToSend.append('is_active', formData.is_active);
       formDataToSend.append('attributes', JSON.stringify(formData.attributes));
 
@@ -212,6 +206,41 @@ function AdminProductForm() {
       }
 
       setTimeout(() => navigate('/admin/products'), 1500);
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to save product.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateVariants = async () => {
+    setSaving(true);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('category_id', formData.category_id);
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('specifications', formData.specifications);
+      formDataToSend.append('is_active', formData.is_active);
+      formDataToSend.append('attributes', JSON.stringify(formData.attributes));
+
+      formData.files.forEach(file => {
+        formDataToSend.append('files', file);
+      });
+
+      let productId = id;
+      if (isEditing) {
+        await adminUpdateProduct(id, formDataToSend);
+        addToast('Product updated successfully!', 'success');
+      } else {
+        const result = await adminCreateProduct(formDataToSend);
+        productId = result.product.id;
+        addToast('Product created successfully!', 'success');
+      }
+
+      // Navigate to variants page where admin can generate variants and set prices
+      navigate(`/admin/products/${productId}/variants`);
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to save product.', 'error');
     } finally {
@@ -285,22 +314,6 @@ function AdminProductForm() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="base_price">Base Price (৳) *</label>
-              <input
-                type="number"
-                id="base_price"
-                name="base_price"
-                value={formData.base_price}
-                onChange={handleInputChange}
-                required
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-              />
-              <p className="form-hint">Attribute option prices are added on top of base price when customer selects options</p>
-            </div>
-
-            <div className="form-group">
               <label htmlFor="description">Description</label>
               <textarea
                 id="description"
@@ -325,15 +338,6 @@ function AdminProductForm() {
             </div>
 
             <div className="form-group checkbox-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="is_in_stock"
-                  checked={formData.is_in_stock}
-                  onChange={handleInputChange}
-                />
-                <span>In Stock</span>
-              </label>
               <label className="checkbox-label">
                 <input
                   type="checkbox"
@@ -428,12 +432,7 @@ function AdminProductForm() {
                                   }));
                                 }}
                               />
-                              <span>
-                                {opt.value}
-                                {opt.additional_price > 0 && (
-                                  <span className="option-price">(+৳{parseFloat(opt.additional_price).toLocaleString()})</span>
-                                )}
-                              </span>
+                              <span>{opt.value}</span>
                             </label>
                           ))}
                         </div>
@@ -498,6 +497,14 @@ function AdminProductForm() {
           <div className="actions-right">
             <button type="button" className="btn btn-secondary" onClick={() => navigate('/admin/products')}>               
               Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-success"
+              onClick={handleCreateVariants}
+              disabled={saving}
+            >
+              <FaCubes /> Create Variants
             </button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? 'Saving...' : isEditing ? 'Update Product' : 'Create Product'}

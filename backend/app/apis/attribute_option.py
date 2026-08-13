@@ -51,8 +51,7 @@ async def get_attribute_options(
                     "id": opt.id,
                     "attribute_id": opt.attribute_id,
                     "value": opt.value,
-                    "additional_price": str(opt.additional_price),
-                }
+                                    }
                 for opt in options
             ],
         }
@@ -95,8 +94,7 @@ async def get_attribute_option_by_id(db: db_dependency, option_id: int = Path(gt
                 "id": option.id,
                 "attribute_id": option.attribute_id,
                 "value": option.value,
-                "additional_price": str(option.additional_price),
-            },
+                            },
         }
 
     except HTTPException:
@@ -149,8 +147,7 @@ async def get_options_by_attribute(db: db_dependency, attribute_id: int = Path(g
                 {
                     "id": opt.id,
                     "value": opt.value,
-                    "additional_price": str(opt.additional_price),
-                }
+                                    }
                 for opt in options
             ],
         }

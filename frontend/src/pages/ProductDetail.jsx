@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaShoppingCart, FaBolt, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo } from 'react-icons/fa';
-import { getProductBySlug } from '../api/services';
+import { getProductBySlug, findVariant, getDefaultVariant } from '../api/services';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
 import { useToast } from '../context/ToastContext';
@@ -18,6 +18,9 @@ function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState({});
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const [currentVariant, setCurrentVariant] = useState(null);
+  const [variantLoading, setVariantLoading] = useState(false);
+  const [variantError, setVariantError] = useState(null);
   const pageRef = useRef(null);
 
   useEffect(() => {
@@ -26,8 +29,35 @@ function ProductDetail() {
         setLoading(true);
         const data = await getProductBySlug(slug);
         setProduct(data.product);
-        // No auto-selection: leave all options unselected so the user must pick manually
         setSelectedOptions({});
+        setCurrentVariant(null);
+        setVariantError(null);
+
+        // Auto-load default variant (preferably in-stock)
+        try {
+          const variantData = await getDefaultVariant(data.product.id);
+          if (variantData.variant) {
+            setCurrentVariant(variantData.variant);
+
+            // Auto-select the attribute options matching the default variant
+            const defaultAttrs = variantData.variant.selected_attributes || {};
+            const newSelectedOptions = {};
+            (data.product.attributes || []).forEach((attr) => {
+              const optionValue = defaultAttrs[attr.name];
+              if (optionValue) {
+                const option = attr.options.find((opt) => opt.value === optionValue);
+                if (option) {
+                  newSelectedOptions[attr.id] = option.id;
+                }
+              }
+            });
+            if (Object.keys(newSelectedOptions).length > 0) {
+              setSelectedOptions(newSelectedOptions);
+            }
+          }
+        } catch {
+          // No variant available, keep null
+        }
       } catch (err) {
         addToast(err.response?.data?.detail || 'Product not found', 'error');
       } finally {
@@ -37,6 +67,82 @@ function ProductDetail() {
     loadProduct();
   }, [slug]);
 
+  // Find variant when all attributes are selected
+  useEffect(() => {
+    if (!product) return;
+
+    const attributes = product.attributes || [];
+
+    // If no attributes, just get the single variant
+    if (attributes.length === 0) {
+      let cancelled = false;
+      const loadSingleVariant = async () => {
+        setVariantLoading(true);
+        try {
+          const data = await findVariant(product.id, {});
+          if (!cancelled) {
+            setCurrentVariant(data.variant);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setCurrentVariant(null);
+            setVariantError(err.response?.data?.detail || 'Variant not available.');
+          }
+        } finally {
+          if (!cancelled) {
+            setVariantLoading(false);
+          }
+        }
+      };
+      loadSingleVariant();
+      return () => { cancelled = true; };
+    }
+
+    const allSelected = attributes.every((attr) => selectedOptions[attr.id]);
+
+    if (!allSelected) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const findVariantForSelection = async () => {
+      setVariantLoading(true);
+      setVariantError(null);
+      try {
+        // Build selected attributes with names as keys
+        const selectedAttrs = {};
+        attributes.forEach((attr) => {
+          const optionId = selectedOptions[attr.id];
+          const option = attr.options.find((opt) => opt.id === optionId);
+          if (option) {
+            selectedAttrs[attr.name] = option.value;
+          }
+        });
+
+        const data = await findVariant(product.id, selectedAttrs);
+        if (!cancelled) {
+          setCurrentVariant(data.variant);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCurrentVariant(null);
+          setVariantError(err.response?.data?.detail || 'Variant not available.');
+        }
+      } finally {
+        if (!cancelled) {
+          setVariantLoading(false);
+        }
+      }
+    };
+
+    findVariantForSelection();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product, selectedOptions]);
+
   const handleOptionSelect = (attributeId, optionId) => {
     setSelectedOptions((prev) => ({
       ...prev,
@@ -44,33 +150,22 @@ function ProductDetail() {
     }));
   };
 
-  const calculatePrice = () => {
-    if (!product) return 0;
-    let price = parseFloat(product.base_price || '0');
-
-    // Add additional prices for selected options
-    product.attributes?.forEach((attr) => {
-      const selectedOptionId = selectedOptions[attr.id];
-      if (selectedOptionId) {
-        const option = attr.options.find((opt) => opt.id === selectedOptionId);
-        if (option) {
-          price += parseFloat(option.additional_price || '0');
-        }
-      }
-    });
-
-    return price * quantity;
-  };
-
   // Check if every attribute has a selected option
   const missingAttributes = (product?.attributes || []).filter(
     (attr) => !selectedOptions[attr.id]
   );
 
+  const allSelected = missingAttributes.length === 0;
+  const variantInStock = currentVariant?.in_stock && currentVariant?.stock_quantity > 0;
+
   const handleBuyNow = async () => {
-    // Validate all options are selected
-    if (missingAttributes.length > 0) {
+    if (!allSelected) {
       addToast('Please select all options before buying.', 'error');
+      return;
+    }
+
+    if (!currentVariant || !variantInStock) {
+      addToast('This variant is out of stock.', 'error');
       return;
     }
 
@@ -84,19 +179,21 @@ function ProductDetail() {
     const attrsString = Object.keys(selectedAttrs).length > 0
       ? JSON.stringify(selectedAttrs)
       : null;
-    setDirectItem({ product, selectedOptions, quantity, attrsString });
+    setDirectItem({ product, selectedOptions, quantity, attrsString, variant: currentVariant });
     navigate('/checkout');
   };
 
   const handleAddToCart = async () => {
-    // Validate all options are selected
-    if (missingAttributes.length > 0) {
+    if (!allSelected) {
       addToast('Please select all options before adding to cart.', 'error');
       return;
     }
 
-    // Build selected attributes JSON string with attribute IDs as keys and option IDs as values
-    // Format: {"1": 5, "2": 8} where 1,2 are attribute IDs and 5,8 are option IDs
+    if (!currentVariant || !variantInStock) {
+      addToast('This variant is out of stock.', 'error');
+      return;
+    }
+
     const selectedAttrs = {};
     product.attributes?.forEach((attr) => {
       const selectedOptionId = selectedOptions[attr.id];
@@ -135,7 +232,12 @@ function ProductDetail() {
 
   const validFiles = (product.files || []).filter((f) => f.file_url);
   const images = validFiles.length > 0 ? validFiles : [{ file_url: 'https://placehold.co/500x500?text=No+Image' }];
-  const totalPrice = calculatePrice();
+
+  // Display price: exact variant price if selected, otherwise price range
+  const displayPrice = currentVariant?.price
+    ? parseFloat(currentVariant.price)
+    : null;
+  const priceRange = product.price_range;
 
   return (
     <div className="product-detail-page" ref={pageRef}>
@@ -173,16 +275,34 @@ function ProductDetail() {
             <p className="product-code">Product Code: {product.product_code}</p>
 
             <div className="product-price-detail">
-              <span className="price">৳{totalPrice.toLocaleString()}</span>
-              {quantity > 1 && (
-                <span className="unit-price">(৳{(totalPrice / quantity).toLocaleString()} / unit)</span>
+              {displayPrice ? (
+                <>
+                  <span className="price">৳{displayPrice.toLocaleString()}</span>
+                  {quantity > 1 && (
+                    <span className="unit-price">(৳{(displayPrice * quantity).toLocaleString()} total)</span>
+                  )}
+                </>
+              ) : priceRange ? (
+                <span className="price-range">
+                  {parseFloat(priceRange.min) === parseFloat(priceRange.max)
+                    ? `৳${parseFloat(priceRange.min).toLocaleString()}`
+                    : `Starting from ৳${parseFloat(priceRange.min).toLocaleString()} - ৳${parseFloat(priceRange.max).toLocaleString()}`}
+                </span>
+              ) : (
+                <span className="price">৳0</span>
               )}
             </div>
 
-            {product.is_in_stock ? (
-              <span className="stock-badge in-stock">✓ In Stock</span>
+            {allSelected && currentVariant ? (
+              variantInStock ? (
+                <span className="stock-badge in-stock">✓ In Stock</span>
+              ) : (
+                <span className="stock-badge out-of-stock">✗ Out of Stock</span>
+              )
+            ) : variantError ? (
+              <span className="stock-badge out-of-stock">✗ {variantError}</span>
             ) : (
-              <span className="stock-badge out-of-stock">✗ Out of Stock</span>
+              <span className="stock-badge in-stock">✓ In Stock</span>
             )}
 
             {/* Attributes - no auto-selection, user must choose */}
@@ -242,7 +362,7 @@ function ProductDetail() {
             <button
               className="btn btn-primary btn-lg add-to-cart-detail"
               onClick={handleAddToCart}
-              disabled={!product.is_in_stock || missingAttributes.length > 0}
+              disabled={!allSelected || !currentVariant || !variantInStock || variantLoading}
             >
               {added ? <><FaCheckCircle /> Added to Cart</> : <><FaShoppingCart /> Add to Cart</>}
             </button>
@@ -251,7 +371,7 @@ function ProductDetail() {
             <button
               className="btn btn-success btn-lg add-to-cart-detail"
               onClick={handleBuyNow}
-              disabled={!product.is_in_stock || missingAttributes.length > 0}
+              disabled={!allSelected || !currentVariant || !variantInStock || variantLoading}
             >
               <FaBolt /> Buy Now
             </button>

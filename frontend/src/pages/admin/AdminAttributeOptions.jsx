@@ -22,8 +22,7 @@ function AdminAttributeOptions() {
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, value: '' });
   const [formData, setFormData] = useState({ 
     attribute_id: attributeId ? parseInt(attributeId) : '', 
-    value: '', 
-    additional_price: '' 
+    value: '' 
   });
 
   const loadOptions = async () => {
@@ -49,8 +48,7 @@ function AdminAttributeOptions() {
   const resetForm = () => {
     setFormData({ 
       attribute_id: attributeId ? parseInt(attributeId) : '', 
-      value: '', 
-      additional_price: '' 
+      value: '' 
     });
     setEditingOption(null);
   };
@@ -65,7 +63,6 @@ function AdminAttributeOptions() {
     setFormData({
       attribute_id: option.attribute_id,
       value: option.value,
-      additional_price: parseFloat(option.additional_price),
     });
     setShowModal(true);
   };
@@ -149,7 +146,6 @@ function AdminAttributeOptions() {
               <tr>
                 <th>ID</th>
                 <th>Value</th>
-                <th>Additional Price</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
@@ -164,7 +160,6 @@ function AdminAttributeOptions() {
                   <tr key={option.id}>
                     <td>{option.id}</td>
                     <td>{option.value}</td>
-                    <td>৳{parseFloat(option.additional_price).toLocaleString()}</td>
                     <td>{new Date(option.created_at).toLocaleDateString()}</td>
                     <td>
 <div className="table-actions">
@@ -215,19 +210,6 @@ function AdminAttributeOptions() {
                     onChange={handleInputChange}
                     required
                     placeholder="e.g., Red, Large, Cotton"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="additional_price">Additional Price (৳)</label>
-                  <input
-                    type="number"
-                    id="additional_price"
-                    name="additional_price"
-                    value={formData.additional_price}
-                    onChange={handleInputChange}
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
                   />
                 </div>
               </div>

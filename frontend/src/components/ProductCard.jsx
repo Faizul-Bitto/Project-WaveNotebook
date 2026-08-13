@@ -12,7 +12,13 @@ function ProductCard({ product }) {
 
   const validFiles = (product.files || []).filter((f) => f.file_url);
   const imageUrl = validFiles?.[0]?.file_url || 'https://placehold.co/300x300?text=No+Image';
-  const price = parseFloat(product.base_price || '0');
+  const price = product.price_range ? parseFloat(product.price_range.min) : 0;
+  const priceRange = product.price_range;
+  const displayPrice = priceRange
+    ? parseFloat(priceRange.min) === parseFloat(priceRange.max)
+      ? `৳${parseFloat(priceRange.min).toLocaleString()}`
+      : `৳${parseFloat(priceRange.min).toLocaleString()} - ৳${parseFloat(priceRange.max).toLocaleString()}`
+    : `৳${price.toLocaleString()}`;
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -40,7 +46,7 @@ function ProductCard({ product }) {
         <div className="product-info">
           <h3 className="product-name">{product.name}</h3>
           <div className="product-price-row">
-            <span className="product-price">৳{price.toLocaleString()}</span>
+            <span className="product-price">{displayPrice}</span>
           </div>
         </div>
       </Link>

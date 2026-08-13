@@ -26,6 +26,7 @@ from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute import ProductAttribute
 from app.models.product_attribute_option import ProductAttributeOption
+from app.models.product_variant import ProductVariant
 from app.models.cart_item import CartItem
 from app.models.order import Order
 from app.models.order_item import OrderItem
@@ -39,6 +40,7 @@ from app.apis.admin import category as admin_category
 from app.apis.admin import attribute as admin_attribute
 from app.apis.admin import attribute_option as admin_attribute_option
 from app.apis.admin import product as admin_product
+from app.apis.admin import variant as admin_variant
 from app.apis.admin import file as admin_file
 from app.apis.admin import order as admin_order
 from app.apis.admin import user as admin_user
@@ -287,6 +289,7 @@ app.include_router(admin_category.router)
 app.include_router(admin_attribute.router)
 app.include_router(admin_attribute_option.router)
 app.include_router(admin_product.router)
+app.include_router(admin_variant.router)
 app.include_router(admin_file.router)
 app.include_router(admin_order.router)
 app.include_router(admin_user.router)
