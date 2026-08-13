@@ -244,3 +244,110 @@ export const adminUpdateSettings = async (formData) => {
   });
   return data;
 };
+
+// ==========================================
+// Admin - Expense Types
+// ==========================================
+export const adminGetExpenseTypes = async (params = {}) => {
+  const { data } = await api.get('/admin/expenses/types', { params });
+  return data;
+};
+
+export const adminCreateExpenseType = async (typeData) => {
+  const { data } = await api.post('/admin/expenses/types', typeData);
+  return data;
+};
+
+export const adminUpdateExpenseType = async (id, typeData) => {
+  const { data } = await api.put(`/admin/expenses/types/${id}`, typeData);
+  return data;
+};
+
+export const adminDeleteExpenseType = async (id) => {
+  const { data } = await api.delete(`/admin/expenses/types/${id}`);
+  return data;
+};
+
+// ==========================================
+// Admin - Payment By
+// ==========================================
+export const adminGetPaymentByList = async (params = {}) => {
+  const { data } = await api.get('/admin/expenses/payment-by', { params });
+  return data;
+};
+
+export const adminCreatePaymentBy = async (payload) => {
+  const { data } = await api.post('/admin/expenses/payment-by', payload);
+  return data;
+};
+
+export const adminUpdatePaymentBy = async (id, payload) => {
+  const { data } = await api.put(`/admin/expenses/payment-by/${id}`, payload);
+  return data;
+};
+
+export const adminDeletePaymentBy = async (id) => {
+  const { data } = await api.delete(`/admin/expenses/payment-by/${id}`);
+  return data;
+};
+
+// ==========================================
+// Admin - Payment Methods
+// ==========================================
+export const adminGetPaymentMethods = async (params = {}) => {
+  const { data } = await api.get('/admin/expenses/payment-methods', { params });
+  return data;
+};
+
+export const adminCreatePaymentMethod = async (payload) => {
+  const { data } = await api.post('/admin/expenses/payment-methods', payload);
+  return data;
+};
+
+export const adminUpdatePaymentMethod = async (id, payload) => {
+  const { data } = await api.put(`/admin/expenses/payment-methods/${id}`, payload);
+  return data;
+};
+
+export const adminDeletePaymentMethod = async (id) => {
+  const { data } = await api.delete(`/admin/expenses/payment-methods/${id}`);
+  return data;
+};
+
+// ==========================================
+// Admin - Expenses
+// ==========================================
+export const adminGetExpenses = async (params = {}) => {
+  const { data } = await api.get('/admin/expenses', { params });
+  return data;
+};
+
+export const adminGetExpense = async (id) => {
+  const { data } = await api.get(`/admin/expenses/${id}`);
+  return data;
+};
+
+export const adminCreateExpense = async (expenseData) => {
+  const { data } = await api.post('/admin/expenses', expenseData);
+  return data;
+};
+
+export const adminUpdateExpense = async (id, expenseData) => {
+  const { data } = await api.put(`/admin/expenses/${id}`, expenseData);
+  return data;
+};
+
+export const adminDeleteExpense = async (id) => {
+  const { data } = await api.delete(`/admin/expenses/${id}`);
+  return data;
+};
+
+export const adminGetExpenseSummary = async (params = {}) => {
+  const { data } = await api.get('/admin/expenses/summary', { params });
+  return data;
+};
+
+export const adminGetExpenseDropdowns = async () => {
+  const { data } = await api.get('/admin/expenses/dropdown');
+  return data;
+};

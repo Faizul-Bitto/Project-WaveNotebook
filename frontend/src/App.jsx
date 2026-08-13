@@ -28,6 +28,10 @@ import AdminBanners from './pages/admin/AdminBanners';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminAttributes from './pages/admin/AdminAttributes';
 import AdminAttributeOptions from './pages/admin/AdminAttributeOptions';
+import AdminExpenses from './pages/admin/ExpenseDashboard';
+import AdminExpenseTypes from './pages/admin/ExpenseTypeManagement';
+import AdminPaymentBy from './pages/admin/PaymentByManagement';
+import AdminPaymentMethods from './pages/admin/PaymentMethodManagement';
 
 // Protected route component
 function ProtectedRoute({ children }) {
@@ -157,6 +161,10 @@ function App() {
             <Route path="attributes" element={<AdminAttributes />} />
             <Route path="attribute-options" element={<AdminAttributeOptions />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="expenses" element={<AdminExpenses />} />
+            <Route path="expenses/types" element={<AdminExpenseTypes />} />
+            <Route path="expenses/payment-by" element={<AdminPaymentBy />} />
+            <Route path="expenses/payment-methods" element={<AdminPaymentMethods />} />
           </Route>
 
           {/* 404 */}

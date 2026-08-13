@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   FaTachometerAlt,
   FaBox,
@@ -10,15 +10,26 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
-  FaList,
   FaCubes,
   FaCog,
+  FaReceipt,
+  FaChevronDown,
+  FaChevronRight,
 } from 'react-icons/fa';
 
 function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expensesExpanded, setExpensesExpanded] = useState(
+    location.pathname.startsWith('/admin/expenses')
+  );
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin/expenses')) {
+      setExpensesExpanded(true);
+    }
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
@@ -30,13 +41,24 @@ function AdminLayout() {
     { path: '/admin/products', label: 'Products', icon: <FaBox /> },
     { path: '/admin/attributes', label: 'Attributes', icon: <FaCubes /> },
     { path: '/admin/orders', label: 'Orders', icon: <FaShoppingBag /> },
+    {
+      label: 'Expenses',
+      icon: <FaReceipt />,
+      subItems: [
+        { path: '/admin/expenses', label: 'All Expenses' },
+        { path: '/admin/expenses/types', label: 'Expense Types' },
+        { path: '/admin/expenses/payment-by', label: 'Payment By' },
+        { path: '/admin/expenses/payment-methods', label: 'Payment Methods' },
+      ],
+    },
     { path: '/admin/categories', label: 'Categories', icon: <FaTags /> },
     { path: '/admin/users', label: 'Users', icon: <FaUsers /> },
     { path: '/admin/banners', label: 'Banners', icon: <FaImage /> },
     { path: '/admin/settings', label: 'Settings', icon: <FaCog /> },
   ];
 
-  const isActive = (path) => location.pathname.startsWith(path);
+  const isActive = (path) => location.pathname === path;
+  const isActiveStartsWith = (path) => location.pathname.startsWith(path);
 
   return (
     <div className="admin-layout">
@@ -54,17 +76,50 @@ function AdminLayout() {
         </div>
 
         <nav className="admin-nav">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`admin-nav-item ${isActive(item.path) ? 'active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <span className="admin-nav-icon">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            if (item.subItems) {
+              const isActiveThis = isActiveStartsWith(item.subItems[0].path);
+              return (
+                <div key={item.label}>
+                  <button
+                    className={`admin-nav-item admin-nav-parent ${isActiveThis ? 'active' : ''}`}
+                    onClick={() => setExpensesExpanded(!expensesExpanded)}
+                  >
+                    <span className="admin-nav-icon">{item.icon}</span>
+                    {item.label}
+                    <span className="admin-nav-chevron">
+                      {expensesExpanded ? <FaChevronDown /> : <FaChevronRight />}
+                    </span>
+                  </button>
+                  {expensesExpanded && (
+                    <div className="admin-nav-submenu">
+                      {item.subItems.map((sub) => (
+                        <Link
+                          key={sub.path}
+                          to={sub.path}
+                          className={`admin-nav-subitem ${isActive(sub.path) ? 'active' : ''}`}
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`admin-nav-item ${isActive(item.path) ? 'active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className="admin-nav-icon">{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="admin-sidebar-footer">

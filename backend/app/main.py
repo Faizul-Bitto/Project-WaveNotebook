@@ -32,6 +32,10 @@ from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.banner import Banner
 from app.models.site_settings import SiteSettings
+from app.models.expense import Expense
+from app.models.expense_type import ExpenseType
+from app.models.payment_by import PaymentBy
+from app.models.payment_method import PaymentMethod
 
 # Import routers
 from app.apis import auth, category, attribute, attribute_option, product, file, order, cart, lookup, banner
@@ -44,6 +48,8 @@ from app.apis.admin import variant as admin_variant
 from app.apis.admin import file as admin_file
 from app.apis.admin import order as admin_order
 from app.apis.admin import user as admin_user
+from app.apis.admin import expense as admin_expense
+from app.apis.admin import expense as admin_expense
 from app.apis.admin import banner as admin_banner
 from app.apis.admin import settings as admin_settings
 
@@ -295,6 +301,7 @@ app.include_router(admin_order.router)
 app.include_router(admin_user.router)
 app.include_router(admin_banner.router)
 app.include_router(admin_settings.router)
+app.include_router(admin_expense.router)
 
 
 # ==========================================================

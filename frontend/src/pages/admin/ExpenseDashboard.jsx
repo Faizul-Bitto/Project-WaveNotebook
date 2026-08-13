@@ -1,0 +1,264 @@
+import { useEffect, useState } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaMoneyCheck } from 'react-icons/fa';
+import {
+  adminGetExpenses,
+  adminDeleteExpense,
+  adminGetExpenseSummary,
+  adminGetExpenseDropdowns,
+} from '../../api/adminServices';
+import { useToast } from '../../context/ToastContext';
+import Modal from '../../components/Modal';
+
+import ExpenseForm from './ExpenseForm';
+
+const PAYMENT_STATUS_LABELS = {
+  paid: 'Paid',
+  due: 'Due',
+};
+
+function ExpenseDashboard() {
+  const { addToast } = useToast();
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ show: false, id: null, items: '' });
+  const [dropdowns, setDropdowns] = useState({ expense_types: [], payment_by: [], payment_methods: [] });
+  const [summary, setSummary] = useState(null);
+  const [summaryPeriod, setSummaryPeriod] = useState('all');
+  const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
+  const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1);
+
+  const loadDropdowns = async () => {
+    try {
+      const data = await adminGetExpenseDropdowns();
+      setDropdowns({
+        expense_types: data.expense_types || [],
+        payment_by: data.payment_by || [],
+        payment_methods: data.payment_methods || [],
+      });
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to load dropdown data.', 'error');
+    }
+  };
+
+  const loadExpenses = async () => {
+    try {
+      setLoading(true);
+      const data = await adminGetExpenses({});
+      setExpenses(data.expenses || []);
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to load expenses.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSummary = async () => {
+    try {
+      const params = { period: summaryPeriod };
+      if (summaryPeriod === 'year') params.year = summaryYear;
+      if (summaryPeriod === 'month') {
+        params.year = summaryYear;
+        params.month = summaryMonth;
+      }
+      const data = await adminGetExpenseSummary(params);
+      setSummary(data);
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to load summary.', 'error');
+    }
+  };
+
+  useEffect(() => {
+    loadDropdowns();
+    loadExpenses();
+  }, []);
+
+  useEffect(() => {
+    loadSummary();
+  }, [summaryPeriod, summaryYear, summaryMonth]);
+
+  const handleEdit = (expense) => {
+    setEditingExpense(expense);
+    setShowForm(true);
+  };
+
+  const handleDelete = (expense) => {
+    setDeleteModal({ show: true, id: expense.id, items: expense.items });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = deleteModal;
+    setDeleteModal({ show: false, id: null, items: '' });
+    try {
+      await adminDeleteExpense(id);
+      addToast('Expense deleted successfully!', 'success');
+      loadExpenses();
+      loadSummary();
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to delete expense.', 'error');
+    }
+  };
+
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setEditingExpense(null);
+    loadExpenses();
+    loadSummary();
+  };
+
+  const availableYears = [];
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear - 5; y <= currentYear; y++) availableYears.push(y);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  return (
+    <div className="admin-page">
+      <div className="admin-page-header">
+        <h2>Expenses</h2>
+        <button className="btn btn-primary" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
+          <FaPlus /> Add Expense
+        </button>
+      </div>
+
+      {/* Summary Cards */}
+      {summary && (
+        <div className="stats-grid" style={{ marginBottom: '24px' }}>
+          <div className="stat-card stat-blue">
+            <div className="stat-icon"><FaMoneyBillWave /></div>
+            <div className="stat-info">
+              <span className="stat-value">৳{summary.total_expense?.toLocaleString()}</span>
+              <span className="stat-label">Total Expense</span>
+            </div>
+          </div>
+          <div className="stat-card stat-green">
+            <div className="stat-icon"><FaMoneyCheck /></div>
+            <div className="stat-info">
+              <span className="stat-value">৳{summary.total_paid?.toLocaleString()}</span>
+              <span className="stat-label">Paid</span>
+            </div>
+          </div>
+          <div className="stat-card stat-orange">
+            <div className="stat-icon"><FaMoneyCheck /></div>
+            <div className="stat-info">
+              <span className="stat-value">৳{summary.total_due?.toLocaleString()}</span>
+              <span className="stat-label">Due</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Summary Filters */}
+      <div className="admin-filters">
+        <select value={summaryPeriod} onChange={(e) => setSummaryPeriod(e.target.value)}>
+          <option value="all">All Time</option>
+          <option value="year">Year</option>
+          <option value="month">Month</option>
+          <option value="week">Week</option>
+        </select>
+        {summaryPeriod === 'year' && (
+          <select value={summaryYear} onChange={(e) => setSummaryYear(parseInt(e.target.value))}>
+            {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        )}
+        {summaryPeriod === 'month' && (
+          <>
+            <select value={summaryYear} onChange={(e) => setSummaryYear(parseInt(e.target.value))}>
+              {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <select value={summaryMonth} onChange={(e) => setSummaryMonth(parseInt(e.target.value))}>
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {m.toString().padStart(2, '0')} - {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+      </div>
+
+      {/* Expenses Table */}
+      {loading ? (
+        <div className="loading">Loading expenses...</div>
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Expense Type</th>
+                <th>Payment By</th>
+                <th>Payment Method</th>
+                <th>Amount (৳)</th>
+                <th>Payment Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.length === 0 ? (
+                <tr><td colSpan="9" className="table-empty">No expenses found</td></tr>
+              ) : (
+                expenses.map((expense) => (
+                  <tr key={expense.id}>
+                    <td>{expense.id}</td>
+                    <td>{expense.date}</td>
+                    <td>{expense.items}</td>
+                    <td>{expense.expense_type_name || '—'}</td>
+                    <td>{expense.payment_by_name || '—'}</td>
+                    <td>{expense.payment_method_name || '—'}</td>
+                    <td>{parseFloat(expense.amount).toLocaleString()}</td>
+                    <td>
+                      <span className={`badge ${expense.payment_status === 'paid' ? 'badge-green' : 'badge-orange'}`}>
+                        {PAYMENT_STATUS_LABELS[expense.payment_status] || expense.payment_status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="table-actions">
+                        <button
+                          className="action-btn action-edit"
+                          onClick={() => handleEdit(expense)}
+                          aria-label={`Edit expense ${expense.id}`}
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          className="action-btn action-delete"
+                          onClick={() => handleDelete(expense)}
+                          aria-label={`Delete expense ${expense.id}`}
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ExpenseForm
+        show={showForm}
+        onClose={() => { setShowForm(false); setEditingExpense(null); }}
+        expense={editingExpense}
+        dropdowns={dropdowns}
+        onSuccess={handleFormSuccess}
+      />
+
+      <Modal
+        isOpen={deleteModal.show}
+        onClose={() => setDeleteModal({ show: false, id: null, items: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Expense"
+        message={`Are you sure you want to delete expense "${deleteModal.items}"?`}
+        confirmText="Delete"
+        type="danger"
+      />
+    </div>
+  );
+}
+
+export default ExpenseDashboard;
