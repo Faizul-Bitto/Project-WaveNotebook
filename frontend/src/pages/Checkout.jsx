@@ -145,6 +145,23 @@ function Checkout () {
       <div className="container order-success">
         <FaCheckCircle className="success-icon" />
         <h1>Order Placed Successfully!</h1>
+
+        {/* Highlighted message for the customer */}
+        <div className="order-notice-box">
+          <p className="order-notice-text">
+            <strong>Dear Customer,</strong>
+          </p>
+          <p className="order-notice-text">
+            Thank you for placing your order with us!
+          </p>
+          <p className="order-notice-text">
+            Your order has been received successfully. One of our representatives will contact you shortly via <strong>phone call or WhatsApp</strong> to confirm your order.
+          </p>
+          <p className="order-notice-text">
+            We truly appreciate your trust and look forward to serving you.
+          </p>
+        </div>
+
         <p className="order-number">
           Order Number: <strong>{ orderSuccess.order_number }</strong>
           <button
@@ -209,7 +226,12 @@ function Checkout () {
             </div>
           ) }
         </div>
-        <Link to="/" className="btn btn-primary">Continue Shopping</Link>
+        <Link
+          to="/"
+          className="btn btn-primary"
+        >
+          Continue Shopping
+        </Link>
       </div>
     );
   }

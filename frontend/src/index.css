@@ -1633,11 +1633,45 @@ textarea {
   color: var(--gray-600);
 }
 
+/* Order Notice Box - highlighted message on order success page */
+.order-notice-box {
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+  border: 2px solid var(--warning);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin: 24px 0;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.order-notice-text {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--warning-text);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.order-notice-text strong {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.order-notice-thanks {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray-900);
+  text-align: center;
+  margin: 0;
+}
+
 /* ==========================================
    Track Order
    ========================================== */
+
 .track-order-page {
   padding: 40px 0 60px;
+
 }
 
 .track-form {
