@@ -65,6 +65,12 @@ class Product(Base):
         default=True,
     )
 
+    is_featured = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
     created_at = Column(
         DateTime,
         server_default=func.now(),

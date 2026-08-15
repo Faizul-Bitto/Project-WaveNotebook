@@ -100,6 +100,13 @@ export const adminUpdateProduct = async (id, formData) => {
   return data;
 };
 
+export const adminToggleProductFeatured = async (id, isFeatured) => {
+  const { data } = await api.patch(`/admin/products/${id}/feature`, {
+    is_featured: isFeatured,
+  });
+  return data;
+};
+
 export const adminDeleteProduct = async (id) => {
   const { data } = await api.delete(`/admin/products/${id}`);
   return data;

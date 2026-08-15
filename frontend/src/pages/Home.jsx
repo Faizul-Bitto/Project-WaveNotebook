@@ -19,7 +19,7 @@ function Home () {
         const [ bannerData, categoryData, productData ] = await Promise.all( [
           getBanners(),
           getCategories(),
-          getProducts( { limit: 8 } ),
+          getProducts( { is_featured: true, limit: 8 } ),
         ] );
         setBanners( bannerData.banners || [] );
         setCategories( categoryData.categories || [] );

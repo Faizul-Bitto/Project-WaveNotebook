@@ -21,7 +21,7 @@ router = APIRouter(
 
 @router.get("", status_code=status.HTTP_200_OK)
 async def get_products(
-    db: db_dependency, category_id: int = None, search: str = None, skip: int = 0, limit: int = 100
+    db: db_dependency, category_id: int = None, search: str = None, is_featured: bool = None, skip: int = 0, limit: int = 100
 ):
     """
     Retrieve all active products.
@@ -37,6 +37,9 @@ async def get_products(
         if search:
             search_term = f"%{search}%"
             query = query.filter(Product.name.ilike(search_term))
+
+        if is_featured is not None:
+            query = query.filter(Product.is_featured == is_featured)
 
         products = query.offset(skip).limit(limit).all()
         total = query.count()
@@ -122,6 +125,7 @@ async def get_products(
                     "category_id": product.category_id,
                         "description": product.description,
                     "is_in_stock": compute_product_in_stock(db, product.id),
+                    "is_featured": product.is_featured,
                     "price_range": price_range,
                     "files": [
                         {"id": f.id, "file_name": f.file_name, "file_url": f.file_url}

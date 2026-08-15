@@ -4,6 +4,7 @@ import { FaPlus, FaEdit, FaTrash, FaCubes } from 'react-icons/fa';
 import {
   adminGetProducts,
   adminDeleteProduct,
+  adminToggleProductFeatured,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
@@ -13,6 +14,7 @@ function AdminProducts() {
   const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
 
   const loadProducts = async () => {
@@ -70,6 +72,30 @@ function AdminProducts() {
     navigate(`/admin/products/${id}/variants`);
   };
 
+  const handleToggleFeatured = async (id, current) => {
+    setTogglingId(id);
+    try {
+      const newValue = !current;
+      await adminToggleProductFeatured(id, newValue);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, is_featured: newValue } : p
+        )
+      );
+      addToast(
+        `Product ${newValue ? 'marked as' : 'removed from'} featured.`,
+        'success'
+      );
+    } catch (err) {
+      addToast(
+        err.response?.data?.detail || 'Failed to update featured status.',
+        'error'
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const handleCreate = () => {
     navigate('/admin/products/new');
   };
@@ -96,6 +122,7 @@ function AdminProducts() {
                 <th>Price</th>
                 <th>Category</th>
                 <th>Variants</th>
+                <th>Featured</th>
                 <th>In Stock</th>
                 <th>Active</th>
                 <th>Actions</th>
@@ -104,7 +131,7 @@ function AdminProducts() {
             <tbody>
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="table-empty">No products found</td>
+                  <td colSpan="10" className="table-empty">No products found</td>
                 </tr>
               ) : (
                 products.map((product, index) => (
@@ -120,6 +147,17 @@ function AdminProducts() {
                         onClick={() => handleViewVariants(product.id)}
                       >
                         <FaCubes /> {product.total_variants || 0} Variants
+                      </button>
+                    </td>
+                    <td className="text-center">
+                      <button
+                        className={`btn btn-sm ${product.is_featured ? 'btn-warning' : 'btn-secondary'}`}
+                        onClick={() => handleToggleFeatured(product.id, product.is_featured)}
+                        disabled={togglingId === product.id}
+                        aria-label={product.is_featured ? 'Unmark as featured' : 'Mark as featured'}
+                        title={product.is_featured ? 'Featured - click to unmark' : 'Mark as featured'}
+                      >
+                        {togglingId === product.id ? '...' : product.is_featured ? '★' : '☆'}
                       </button>
                     </td>
                     <td>

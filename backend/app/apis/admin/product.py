@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import uuid
 from datetime import datetime
 from fastapi import (
@@ -7,6 +7,7 @@ from fastapi import (
     HTTPException,
     Path,
     Form,
+    Body,
     UploadFile,
     File as FastAPIFile,
 )
@@ -68,6 +69,7 @@ async def create_product(
     description: str = Form(None),
     specifications: str = Form(None),
     is_active: bool = Form(True),
+    is_featured: bool = Form(False),
     attributes: str = Form(...),
     files: list[UploadFile] = FastAPIFile(None),
 ):
@@ -157,6 +159,7 @@ async def create_product(
             description=description,
             specifications=specifications,
             is_active=is_active,
+            is_featured=is_featured,
         )
 
         db.add(new_product)
@@ -219,6 +222,7 @@ async def create_product(
                 "description": description,
                 "specifications": specifications,
                 "is_active": is_active,
+                "is_featured": is_featured,
                 "attributes": parsed_attributes,
                 "files": uploaded_files,
                 "created_at": new_product.created_at.isoformat(),
@@ -305,6 +309,7 @@ async def get_all_products(
                 "image_url": (db.query(File).filter(File.product_id == prod.id).first().file_url if db.query(File).filter(File.product_id == prod.id).first() else None),
                     "is_in_stock": compute_product_in_stock(db, prod.id),
                     "is_active": prod.is_active,
+                    "is_featured": prod.is_featured,
                     "total_variants": variant_count,
                     "price_range": price_range,
                     "created_at": prod.created_at.isoformat(),
@@ -456,8 +461,9 @@ async def update_product(
      description: str = Form(None),
      specifications: str = Form(None),
      is_active: bool = Form(None),
+     is_featured: bool = Form(None),
      attributes: str = Form(None),
-    files: list[UploadFile] = FastAPIFile(None),
+     files: list[UploadFile] = FastAPIFile(None),
 ):
     """
     Update product details and attributes.
@@ -591,6 +597,8 @@ async def update_product(
             product.specifications = specifications
         if is_active is not None:
             product.is_active = is_active
+        if is_featured is not None:
+            product.is_featured = is_featured
 
         db.commit()
         db.refresh(product)
@@ -656,6 +664,7 @@ async def update_product(
                 "specifications": product.specifications,
                 "is_in_stock": compute_product_in_stock(db, product.id),
                 "is_active": product.is_active,
+                "is_featured": product.is_featured,
                 "attributes": attributes,
                 "created_at": product.created_at.isoformat(),
                 "updated_at": product.updated_at.isoformat(),
@@ -674,6 +683,64 @@ async def update_product(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update product.",
+        )
+
+
+
+@router.patch("/{product_id}/feature", status_code=status.HTTP_200_OK)
+async def toggle_product_featured(
+    db: db_dependency,
+    admin: admin_dependency,
+    product_id: int = Path(gt=0),
+    is_featured: bool = Body(..., embed=True),
+):
+    """
+    Toggle featured status of a product.
+    PATCH /admin/products/{product_id}/feature
+    Body: {"is_featured": true}
+    """
+    try:
+        product = db.query(Product).filter(Product.id == product_id).first()
+
+        if not product:
+            logger.warning(
+                f"⚠️ Product Not Found | "
+                f"ID={product_id} | "
+                f"Admin={admin.phone_number}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Product not found."
+            )
+
+        product.is_featured = is_featured
+        db.commit()
+        db.refresh(product)
+
+        logger.info(
+            f"✅ Product Featured Toggled | "
+            f"ID={product.id} | "
+            f"is_featured={product.is_featured} | "
+            f"Admin={admin.phone_number}"
+        )
+
+        return {
+            "message": "Product featured status updated successfully.",
+            "product_id": product.id,
+            "is_featured": product.is_featured,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            f"❌ Product Featured Toggle Failed | "
+            f"Error={str(e)} | "
+            f"Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update product featured status.",
         )
 
 

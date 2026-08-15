@@ -31,6 +31,7 @@ function AdminProductForm() {
     description: '',
     specifications: '',
     is_active: true,
+    is_featured: false,
     attributes: [],
     files: [],
   });
@@ -78,6 +79,7 @@ function AdminProductForm() {
             description: product.description || '',
             specifications: product.specifications || '',
             is_active: product.is_active,
+            is_featured: product.is_featured ?? false,
             attributes: formattedAttributes,
             files: [],
           });
@@ -191,6 +193,7 @@ function AdminProductForm() {
       formDataToSend.append('description', formData.description);
       formDataToSend.append('specifications', formData.specifications);
       formDataToSend.append('is_active', formData.is_active);
+      formDataToSend.append('is_featured', formData.is_featured);
       formDataToSend.append('attributes', JSON.stringify(formData.attributes));
 
       formData.files.forEach(file => {
@@ -223,6 +226,7 @@ function AdminProductForm() {
       formDataToSend.append('description', formData.description);
       formDataToSend.append('specifications', formData.specifications);
       formDataToSend.append('is_active', formData.is_active);
+      formDataToSend.append('is_featured', formData.is_featured);
       formDataToSend.append('attributes', JSON.stringify(formData.attributes));
 
       formData.files.forEach(file => {
@@ -346,6 +350,18 @@ function AdminProductForm() {
                   onChange={handleInputChange}
                 />
                 <span>Active</span>
+              </label>
+            </div>
+
+            <div className="form-group checkbox-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="is_featured"
+                  checked={formData.is_featured}
+                  onChange={handleInputChange}
+                />
+                <span>Featured (shows on homepage)</span>
               </label>
             </div>
           </div>

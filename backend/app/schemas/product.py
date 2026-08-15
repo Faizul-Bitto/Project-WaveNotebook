@@ -9,6 +9,7 @@ class ProductCreate(BaseModel):
     description: Optional[str] = None
     specifications: Optional[str] = None
     is_active: bool = True
+    is_featured: bool = False
     attributes: List[int]
 
 
@@ -18,4 +19,5 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     specifications: Optional[str] = None
     is_active: Optional[bool] = None
+    is_featured: Optional[bool] = None
     attributes: Optional[List[int]] = None

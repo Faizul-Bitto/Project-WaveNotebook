@@ -984,9 +984,24 @@ textarea {
   border-radius: var(--radius-full);
 }
 
-/* ==========================================
-   Product Detail
-   ========================================== */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 0;
+  gap: 12px;
+}
+
+.load-more-container .btn {
+  min-width: 140px;
+}
+
+.no-more-text {
+  color: var(--gray-500);
+  font-size: 14px;
+  text-align: center;
+}
+
 .product-detail-page {
   padding: 20px 0 60px;
 }
@@ -1284,6 +1299,10 @@ textarea {
    ========================================== */
 .admin-table .table-actions {
   align-items: center;
+}
+
+.text-center {
+  text-align: center;
 }
 
 .cart-items {
