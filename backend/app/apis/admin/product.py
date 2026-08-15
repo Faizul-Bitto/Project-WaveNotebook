@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
+from sqlalchemy import or_
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -253,9 +254,14 @@ async def get_all_products(
     skip: int = 0,
     limit: int = 100,
     is_active: bool = None,
+    is_featured: bool = None,
+    search: str = None,
+    sort_by: str = None,
+    order: str = "asc",
 ):
     """
     Get all products (active + inactive) for admin.
+    Supports search (by name/code), category, is_active, is_featured, and sorting.
     GET /admin/products
     """
 
@@ -268,8 +274,40 @@ async def get_all_products(
         if is_active is not None:
             query = query.filter(Product.is_active == is_active)
 
+        if is_featured is not None:
+            query = query.filter(Product.is_featured == is_featured)
+
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Product.name.ilike(search_term),
+                    Product.product_code.ilike(search_term),
+                )
+            )
+
+        # Apply sorting
+        if sort_by:
+            valid_sort_fields = {
+                "name": Product.name,
+                "price": Product.id,  # placeholder; price is from variants
+                "category": Product.category_id,
+                "stock": Product.id,  # is_in_stock is computed; sort by id as placeholder
+                "active": Product.is_active,
+                "featured": Product.is_featured,
+                "created_at": Product.created_at,
+                "updated_at": Product.updated_at,
+            }
+            sort_column = valid_sort_fields.get(sort_by, Product.id)
+            if order.lower() == "desc":
+                query = query.order_by(sort_column.desc())
+            else:
+                query = query.order_by(sort_column.asc())
+
+        # Compute total with the same filters (excluding limit/skip/sort)
+        total = query.order_by(None).count()
+
         products = query.offset(skip).limit(limit).all()
-        total = db.query(Product).count()
 
         logger.info(
             f"📦 Products Retrieved | "
