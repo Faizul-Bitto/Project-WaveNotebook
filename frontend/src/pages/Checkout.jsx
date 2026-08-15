@@ -162,23 +162,26 @@ function Checkout () {
           </p>
         </div>
 
-        <p className="order-number">
-          Order Number: <strong>{ orderSuccess.order_number }</strong>
-          <button
-            type="button"
-            className="btn btn-copy"
-            onClick={ () => {
-              navigator.clipboard.writeText( orderSuccess.order_number );
-              addToast( 'Order number copied!', 'success' );
-            } }
-            title="Copy order number for tracking"
-          >
-            <FaCopy /> Copy
-          </button>
-        </p>
-        <p style={ { fontSize: '14px', color: 'var(--gray-600)', marginBottom: '24px' } }>
-          Copy the order number above to track your order status.
-        </p>
+        <div className="order-number-highlight">
+          <p className="order-number">
+            Order Number: <strong>{ orderSuccess.order_number }</strong>
+            <button
+              type="button"
+              className="btn btn-copy"
+              onClick={ () => {
+                navigator.clipboard.writeText( orderSuccess.order_number );
+                addToast( 'Order number copied!', 'success' );
+              } }
+              title="Copy order number for tracking"
+            >
+              <FaCopy /> Copy
+            </button>
+          </p>
+          <p className="order-number-hint">
+            Copy the order number above to track your order status.
+          </p>
+        </div>
+
         <div className="order-summary-box">
           <h3>Order Summary</h3>
           <p><strong>Name:</strong> { orderSuccess.full_name }</p>
@@ -374,8 +377,7 @@ function Checkout () {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>  );
 }
 
 export default Checkout;

@@ -1610,10 +1610,41 @@ textarea {
   font-size: 18px;
   color: var(--gray-700);
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.order-number-highlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin: 24px 0;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
+}
+
+.order-number-hint {
+  font-size: 15px;
+  color: var(--primary-dark);
+  font-weight: 600;
+  margin-top: 12px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.order-number-hint svg {
+  font-size: 16px;
 }
 
 .order-summary-box {
   background-color: var(--white);
+
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -1640,7 +1671,7 @@ textarea {
   border-radius: var(--radius-lg);
   padding: 20px 24px;
   margin: 24px 0;
-  text-align: left;
+  text-align: center;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
 }
 
@@ -1657,13 +1688,6 @@ textarea {
   font-weight: 700;
 }
 
-.order-notice-thanks {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--gray-900);
-  text-align: center;
-  margin: 0;
-}
 
 /* ==========================================
    Track Order
