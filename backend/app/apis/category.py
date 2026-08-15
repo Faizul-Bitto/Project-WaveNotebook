@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 from starlette import status
 
 from app.core.logger import logger
@@ -31,11 +31,36 @@ def build_category_tree(categories, parent_id=None):
     return tree
 
 
+def build_category_tree_with_counts(categories, counts, parent_id=None):
+    """
+    Build nested category tree structure with product counts.
+    """
+    tree = []
+    for category in categories:
+        if category.parent_id == parent_id:
+            tree.append(
+                {
+                    "id": category.id,
+                    "name": category.name,
+                    "slug": category.slug,
+                    "description": category.description,
+                    "image_url": category.image_url,
+                    "product_count": counts.get(category.id, 0),
+                    "children": build_category_tree_with_counts(categories, counts, category.id),
+                }
+            )
+    return tree
+
+
 @router.get("", status_code=status.HTTP_200_OK)
-async def get_categories(db: db_dependency):
+async def get_categories(
+    db: db_dependency,
+    include_counts: bool = Query(False, description="Include product counts per category"),
+):
     """
     Retrieve all active categories in hierarchical tree structure.
     GET /categories
+    GET /categories?include_counts=true
     """
 
     try:
@@ -45,7 +70,39 @@ async def get_categories(db: db_dependency):
             logger.info("📂 No Active Categories Found")
             return {"message": "No active categories found.", "categories": []}
 
-        tree = build_category_tree(categories)
+        if include_counts:
+            from app.models.product import Product
+            from sqlalchemy import func as sql_func
+
+            # Build a flat map of category_id -> descendant_ids (including self)
+            cat_children = {}
+            cat_ids = [c.id for c in categories]
+            for c in categories:
+                cat_children[c.id] = []
+            for c in categories:
+                if c.parent_id and c.parent_id in cat_children:
+                    cat_children[c.parent_id].append(c.id)
+
+            # Recursively collect all descendant IDs for each category
+            def get_all_descendants(cat_id):
+                result = [cat_id]
+                for child_id in cat_children.get(cat_id, []):
+                    result.extend(get_all_descendants(child_id))
+                return result
+
+            # Count products per category (including subcategories)
+            product_counts = {}
+            for c in categories:
+                descendant_ids = get_all_descendants(c.id)
+                count = db.query(Product).filter(
+                    Product.category_id.in_(descendant_ids),
+                    Product.is_active == True,
+                ).count()
+                product_counts[c.id] = count
+
+            tree = build_category_tree_with_counts(categories, product_counts)
+        else:
+            tree = build_category_tree(categories)
 
         logger.info(f"📂 Categories Retrieved | Count={len(categories)}")
 

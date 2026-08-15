@@ -34,8 +34,9 @@ export const getDefaultVariant = async (productId) => {
 // ==========================================
 // Categories
 // ==========================================
-export const getCategories = async () => {
-  const { data } = await api.get('/categories');
+export const getCategories = async (includeCounts = false) => {
+  const params = includeCounts ? { include_counts: true } : {};
+  const { data } = await api.get('/categories', { params });
   return data;
 };
 

@@ -21,11 +21,14 @@ router = APIRouter(
 
 @router.get("", status_code=status.HTTP_200_OK)
 async def get_products(
-    db: db_dependency, category_id: int = None, search: str = None, is_featured: bool = None, skip: int = 0, limit: int = 100
+    db: db_dependency, category_id: int = None, search: str = None, is_featured: bool = None,
+    price_min: float = None, price_max: float = None, sort_by: str = None,
+    skip: int = 0, limit: int = 100
 ):
     """
     Retrieve all active products.
     GET /products
+    Sort: ?sort_by=latest|price_asc|price_desc
     """
 
     try:
@@ -40,6 +43,23 @@ async def get_products(
 
         if is_featured is not None:
             query = query.filter(Product.is_featured == is_featured)
+
+        if price_min is not None or price_max is not None:
+            variant_filters = [ProductVariant.product_id == Product.id, ProductVariant.is_active == True]
+            if price_min is not None:
+                variant_filters.append(ProductVariant.price >= price_min)
+            if price_max is not None:
+                variant_filters.append(ProductVariant.price <= price_max)
+            query = query.filter(
+                db.query(ProductVariant.id).filter(*variant_filters).exists()
+            )
+
+        if sort_by == 'latest':
+            query = query.order_by(Product.created_at.desc())
+        elif sort_by == 'price_asc':
+            query = query.join(ProductVariant).filter(ProductVariant.is_active == True).order_by(ProductVariant.price.asc()).distinct()
+        elif sort_by == 'price_desc':
+            query = query.join(ProductVariant).filter(ProductVariant.is_active == True).order_by(ProductVariant.price.desc()).distinct()
 
         products = query.offset(skip).limit(limit).all()
         total = query.count()

@@ -7,6 +7,7 @@ import { ToastProvider } from './context/ToastContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ChatIcons from './components/ChatIcons';
+import BackToTop from './components/BackToTop';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -50,6 +51,7 @@ function StoreLayout({ children }) {
       <main className="main-content">{children}</main>
       <Footer />
       <ChatIcons />
+      <BackToTop />
     </>
   );
 }
