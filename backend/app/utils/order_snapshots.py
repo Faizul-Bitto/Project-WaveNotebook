@@ -9,7 +9,7 @@ from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 
 
-def build_user_snapshot(db: Session, user_id: int, full_name: str, phone_number: str) -> str:
+def build_user_snapshot(db: Session, user_id: int, full_name: str, phone_number: str, email: str = None) -> str:
     """
     Build a JSON snapshot of user info at the time of ordering.
     This survives user deletion so order history is always preserved.
@@ -19,7 +19,7 @@ def build_user_snapshot(db: Session, user_id: int, full_name: str, phone_number:
         "user_id": user_id,
         "full_name": full_name,
         "phone_number": phone_number,
-        "email": user.email if user else None,
+        "email": email if email is not None else (user.email if user else None),
     }
     return json.dumps(snapshot)
 

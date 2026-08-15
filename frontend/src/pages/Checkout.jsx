@@ -17,6 +17,7 @@ function Checkout () {
   const [ formData, setFormData ] = useState( {
     full_name: '',
     phone_number: '',
+    email: '',
     district: '',
     thana: '',
     note: '',
@@ -88,6 +89,7 @@ function Checkout () {
       const orderData = {
         full_name: formData.full_name,
         phone_number: formData.phone_number,
+        email: formData.email || null,
         district: formData.district,
         thana: formData.thana,
         note: formData.note || null,
@@ -185,8 +187,9 @@ function Checkout () {
         <div className="order-summary-box">
           <h3>Order Summary</h3>
           <p><strong>Name:</strong> { orderSuccess.full_name }</p>
-          <p><strong>Phone:</strong> { orderSuccess.phone_number }</p>
-          <p><strong>District:</strong> { orderSuccess.district }</p>
+           <p><strong>Phone:</strong> { orderSuccess.phone_number }</p>
+           { orderSuccess.email && <p><strong>Email:</strong> { orderSuccess.email }</p> }
+           <p><strong>District:</strong> { orderSuccess.district }</p>
           <p><strong>Thana:</strong> { orderSuccess.thana }</p>
           <p><strong>Address:</strong> { orderSuccess.address }</p>
           <p><strong>Total:</strong> ৳{ successTotal.toLocaleString() }</p>
@@ -281,6 +284,18 @@ function Checkout () {
                 value={ formData.phone_number }
                 onChange={ ( name, val ) => setFormData( ( prev ) => ( { ...prev, [ name ]: val } ) ) }
                 placeholder="XXXXXXXXXXX"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email">Email (optional)</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={ formData.email }
+                onChange={ handleChange }
+                placeholder="you@example.com"
               />
             </div>
 

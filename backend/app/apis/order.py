@@ -120,7 +120,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
         if not user:
             user = User(
                 phone_number=order_data.phone_number,
-                email=None,
+                email=order_data.email,
                 role="customer",
                 password=None,  # Cash-on-delivery: no password needed
             )
@@ -218,6 +218,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             user_id=user.id,
             full_name=order_data.full_name,
             phone_number=order_data.phone_number,
+            email=order_data.email,
             district=order_data.district,
             thana=order_data.thana or "",
             note=order_data.note,
@@ -225,7 +226,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             status="pending",
             total_price=total_price,
             user_snapshot=build_user_snapshot(
-                db, user.id, order_data.full_name, order_data.phone_number
+                db, user.id, order_data.full_name, order_data.phone_number, order_data.email
             ),
         )
 
@@ -289,6 +290,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 "order_number": new_order.order_number,
                 "full_name": new_order.full_name,
                 "phone_number": new_order.phone_number,
+                "email": new_order.email,
                 "district": new_order.district,
                 "thana": new_order.thana or "",
                 "note": new_order.note,
@@ -349,6 +351,7 @@ async def get_orders_by_phone(db: db_dependency, phone_number: str = Path(...)):
                     "order_number": order.order_number,
                     "full_name": order.full_name,
                     "phone_number": order.phone_number,
+                    "email": order.email,
                     "district": order.district,
                     "thana": order.thana or "",
                     "note": order.note,
@@ -408,6 +411,7 @@ async def get_order_by_number(db: db_dependency, order_number: str = Path(...)):
                 "order_number": order.order_number,
                 "full_name": order.full_name,
                 "phone_number": order.phone_number,
+                "email": order.email,
                 "district": order.district,
                 "thana": order.thana or "",
                 "note": order.note,
@@ -458,6 +462,7 @@ async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
                 "order_number": order.order_number,
                 "full_name": order.full_name,
                 "phone_number": order.phone_number,
+                "email": order.email,
                 "district": order.district,
                 "thana": order.thana or "",
                 "note": order.note,

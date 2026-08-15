@@ -14,6 +14,7 @@ class OrderItemCreate(BaseModel):
 class OrderCreate(BaseModel):
     full_name: str
     phone_number: str
+    email: Optional[str] = None
     district: str
     thana: Optional[str] = ""
     note: Optional[str] = None

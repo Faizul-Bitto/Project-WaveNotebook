@@ -105,6 +105,7 @@ async def get_all_orders(
                     "user_id": order.user_id,
                     "full_name": order.full_name,
                     "phone_number": order.phone_number,
+                    "email": order.email,
                     "district": order.district,
                     "address": order.address,
                     "status": order.status,
@@ -169,6 +170,7 @@ async def get_order_by_id(
                 "order_number": order.order_number,
                 "full_name": order.full_name,
                 "phone_number": order.phone_number,
+                "email": order.email,
                 "district": order.district,
                 "thana": order.thana or "",
                 "note": order.note,
@@ -218,20 +220,25 @@ async def update_order(
         # Find or create user by phone number
         user = db.query(User).filter(User.phone_number == order_data.phone_number).first()
         if not user:
-            user = User(phone_number=order_data.phone_number, email=None, role="customer", password=None)
+            user = User(phone_number=order_data.phone_number, email=order_data.email, role="customer", password=None)
             db.add(user)
             db.flush()
+
+        # Update user email if provided
+        if order_data.email and not user.email:
+            user.email = order_data.email
 
         # Update order fields
         order.user_id = user.id
         order.full_name = order_data.full_name
         order.phone_number = order_data.phone_number
+        order.email = order_data.email
         order.district = order_data.district
         order.thana = order_data.thana or ""
         order.note = order_data.note
         order.address = order_data.address
         order.user_snapshot = build_user_snapshot(
-            db, user.id, order_data.full_name, order_data.phone_number
+            db, user.id, order_data.full_name, order_data.phone_number, order_data.email
         )
 
         # Capture existing snapshots BEFORE deleting old items
@@ -420,7 +427,7 @@ async def create_order_for_user(
         if not user:
             user = User(
                 phone_number=order_data.phone_number,
-                email=None,
+                email=order_data.email,
                 role="customer",
                 password=None,
             )
@@ -482,6 +489,7 @@ async def create_order_for_user(
             user_id=user.id,
             full_name=order_data.full_name,
             phone_number=order_data.phone_number,
+            email=order_data.email,
             district=order_data.district,
             thana=order_data.thana or "",
             note=order_data.note,
@@ -489,7 +497,7 @@ async def create_order_for_user(
             status="pending",
             total_price=total_price,
             user_snapshot=build_user_snapshot(
-                db, user.id, order_data.full_name, order_data.phone_number
+                db, user.id, order_data.full_name, order_data.phone_number, order_data.email
             ),
         )
 
@@ -547,6 +555,7 @@ async def create_order_for_user(
                 "order_number": new_order.order_number,
                 "full_name": new_order.full_name,
                 "phone_number": new_order.phone_number,
+                "email": new_order.email,
                 "district": new_order.district,
                 "thana": new_order.thana or "",
                 "note": new_order.note,
@@ -629,6 +638,7 @@ async def search_orders(
                     "order_number": order.order_number,
                     "full_name": order.full_name,
                     "phone_number": order.phone_number,
+                    "email": order.email,
                     "district": order.district,
                     "address": order.address,
                     "status": order.status,

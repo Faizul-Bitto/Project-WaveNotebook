@@ -44,6 +44,11 @@ class Order(Base):
         nullable=False,
     )
 
+    email = Column(
+        String(255),
+        nullable=True,
+    )
+
     district = Column(
         String(100),
         nullable=False,
