@@ -19,7 +19,19 @@ from app.models.attribute_option import AttributeOption
 from app.models.attribute import Attribute
 from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate
-from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, build_attributes_display, resolve_attrs_display
+from app.utils.variant_generator import (
+    find_matching_variant,
+    compute_product_in_stock,
+    build_attributes_display,
+    resolve_attrs_display,
+)
+from app.utils.order_snapshots import (
+    build_user_snapshot,
+    build_product_snapshot,
+    build_variant_snapshot,
+    parse_snapshot,
+    serialize_order_item,
+)
 
 router = APIRouter(
     prefix="/orders",
@@ -56,10 +68,14 @@ def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -
                 try:
                     attr_id = int(attr_id_str)
                     attr = db.query(Attribute).filter(Attribute.id == attr_id).first()
-                    option = db.query(AttributeOption).filter(
-                        AttributeOption.id == option_id,
-                        AttributeOption.attribute_id == attr_id
-                    ).first()
+                    option = (
+                        db.query(AttributeOption)
+                        .filter(
+                            AttributeOption.id == option_id,
+                            AttributeOption.attribute_id == attr_id,
+                        )
+                        .first()
+                    )
                     if attr and option:
                         selected_attrs[attr.name] = option.value
                 except (ValueError, TypeError):
@@ -74,9 +90,7 @@ def calculate_unit_price(db, product_id: int, selected_attributes: str = None) -
 
     # If no variant found, check if there's a single variant for this product
     variant = (
-        db.query(ProductVariant)
-        .filter(ProductVariant.product_id == product_id)
-        .first()
+        db.query(ProductVariant).filter(ProductVariant.product_id == product_id).first()
     )
     if variant and variant.price is not None:
         return float(variant.price)
@@ -112,7 +126,9 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             )
             db.add(user)
             db.flush()
-            logger.info(f"✅ New User Auto-Created | User ID={user.id} | Phone={user.phone_number}")
+            logger.info(
+                f"✅ New User Auto-Created | User ID={user.id} | Phone={user.phone_number}"
+            )
 
         # Generate unique order number
         order_number = generate_order_number()
@@ -165,8 +181,14 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 for pa in product_attrs:
                     attr_id = str(pa.attribute_id)
                     if attr_id not in selected or not selected[attr_id]:
-                        attr = db.query(Attribute).filter(Attribute.id == pa.attribute_id).first()
-                        missing_attrs.append(attr.name if attr else f"Attribute {pa.attribute_id}")
+                        attr = (
+                            db.query(Attribute)
+                            .filter(Attribute.id == pa.attribute_id)
+                            .first()
+                        )
+                        missing_attrs.append(
+                            attr.name if attr else f"Attribute {pa.attribute_id}"
+                        )
 
                 if missing_attrs:
                     raise HTTPException(
@@ -174,7 +196,9 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                         detail=f"Please select the following option(s) for '{product.name}': {', '.join(missing_attrs)}.",
                     )
 
-            unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
+            unit_price = calculate_unit_price(
+                db, item.product_id, item.selected_attributes
+            )
             line_total = unit_price * item.quantity
             total_price += line_total
 
@@ -188,7 +212,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 }
             )
 
-        # Create order
+        # Create order with user snapshot
         new_order = Order(
             order_number=order_number,
             user_id=user.id,
@@ -200,27 +224,41 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             address=order_data.address,
             status="pending",
             total_price=total_price,
+            user_snapshot=build_user_snapshot(
+                db, user.id, order_data.full_name, order_data.phone_number
+            ),
         )
 
         db.add(new_order)
         db.flush()
 
-        # Create order items
+        # Create order items with product & variant snapshots
         for item_data in order_items_data:
+            product_id = item_data["product_id"]
             order_item = OrderItem(
                 order_id=new_order.id,
-                product_id=item_data["product_id"],
+                product_id=product_id,
                 quantity=item_data["quantity"],
                 unit_price=item_data["unit_price"],
                 price_at_purchase=item_data["price_at_purchase"],
                 selected_attributes=item_data["selected_attributes"],
+                product_snapshot=build_product_snapshot(db, product_id),
+                variant_snapshot=build_variant_snapshot(
+                    db, product_id, item_data["selected_attributes"]
+                ),
             )
             db.add(order_item)
 
             # Decrement variant stock on order creation
             try:
-                attrs = json.loads(item_data["selected_attributes"]) if item_data["selected_attributes"] else {}
-                variant = find_matching_variant(db, item_data["product_id"], resolve_attrs_display(db, attrs))
+                attrs = (
+                    json.loads(item_data["selected_attributes"])
+                    if item_data["selected_attributes"]
+                    else {}
+                )
+                variant = find_matching_variant(
+                    db, item_data["product_id"], resolve_attrs_display(db, attrs)
+                )
                 if variant and variant.stock_quantity >= item_data["quantity"]:
                     variant.stock_quantity -= item_data["quantity"]
                     db.add(variant)
@@ -258,16 +296,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),
                 "items": [
-                    {
-                        "id": item.id,
-                        "product_id": item.product_id,
-                        "quantity": item.quantity,
-                        "unit_price": str(item.unit_price),
-                        "price_at_purchase": str(item.price_at_purchase),
-                        "selected_attributes": item.selected_attributes,
-                        "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
-                    }
-                    for item in order_items
+                    serialize_order_item(db, item) for item in order_items
                 ],
                 "created_at": new_order.created_at.isoformat(),
                 "updated_at": new_order.updated_at.isoformat(),
@@ -286,9 +315,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
 
 
 @router.get("/track/{phone_number}", status_code=status.HTTP_200_OK)
-async def get_orders_by_phone(
-    db: db_dependency, phone_number: str = Path(...)
-):
+async def get_orders_by_phone(db: db_dependency, phone_number: str = Path(...)):
     """
     Get orders by phone number.
     GET /orders/track/{phone_number}
@@ -314,21 +341,7 @@ async def get_orders_by_phone(
                 db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
             )
 
-            items_data = []
-            for item in order_items:
-                product = db.query(Product).filter(Product.id == item.product_id).first()
-                items_data.append(
-                    {
-                        "id": item.id,
-                        "product_id": item.product_id,
-                        "product_name": product.name if product else f"Product #{item.product_id}",
-                        "quantity": item.quantity,
-                        "unit_price": str(item.unit_price),
-                        "price_at_purchase": str(item.price_at_purchase),
-                        "selected_attributes": item.selected_attributes,
-                        "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
-                    }
-                )
+            items_data = [serialize_order_item(db, item) for item in order_items]
 
             result.append(
                 {
@@ -367,9 +380,7 @@ async def get_orders_by_phone(
 
 
 @router.get("/track-number/{order_number}", status_code=status.HTTP_200_OK)
-async def get_order_by_number(
-    db: db_dependency, order_number: str = Path(...)
-):
+async def get_order_by_number(db: db_dependency, order_number: str = Path(...)):
     """
     Get single order by order number.
     GET /orders/track-number/{order_number}
@@ -384,25 +395,9 @@ async def get_order_by_number(
                 detail="Order not found.",
             )
 
-        order_items = (
-            db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
-        )
+        order_items = db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
 
-        items_data = []
-        for item in order_items:
-            product = db.query(Product).filter(Product.id == item.product_id).first()
-            items_data.append(
-                {
-                    "id": item.id,
-                    "product_id": item.product_id,
-                    "product_name": product.name if product else f"Product #{item.product_id}",
-                    "quantity": item.quantity,
-                    "unit_price": str(item.unit_price),
-                    "price_at_purchase": str(item.price_at_purchase),
-                    "selected_attributes": item.selected_attributes,
-                    "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
-                }
-            )
+        items_data = [serialize_order_item(db, item) for item in order_items]
 
         logger.info(f"✅ Order Retrieved by Number | Order Number={order_number}")
 
@@ -450,25 +445,9 @@ async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found."
             )
 
-        order_items = (
-            db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
-        )
+        order_items = db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
 
-        items_data = []
-        for item in order_items:
-            product = db.query(Product).filter(Product.id == item.product_id).first()
-            items_data.append(
-                {
-                    "id": item.id,
-                    "product_id": item.product_id,
-                    "product_name": product.name if product else f"Product #{item.product_id}",
-                    "quantity": item.quantity,
-                    "unit_price": str(item.unit_price),
-                    "price_at_purchase": str(item.price_at_purchase),
-                    "selected_attributes": item.selected_attributes,
-                    "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
-                }
-            )
+        items_data = [serialize_order_item(db, item) for item in order_items]
 
         logger.info(f"✅ Order Retrieved | ID={order.id}")
 

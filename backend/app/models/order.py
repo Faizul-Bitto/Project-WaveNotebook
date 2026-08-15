@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.sql import func
 
@@ -21,12 +23,16 @@ class Order(Base):
         index=True,
     )
 
+    # CHANGED: ondelete SET NULL, nullable True so order survives user deletion
     user_id = Column(
         Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
+
+    # NEW: JSON snapshot of user info at time of order (survives user deletion)
+    user_snapshot = Column(Text, nullable=False, server_default="{}")
 
     full_name = Column(
         String(255),
@@ -83,3 +89,10 @@ class Order(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    def get_user_snapshot(self) -> dict:
+        """Parse user_snapshot JSON and return dict, or {} on failure."""
+        try:
+            return json.loads(self.user_snapshot) if self.user_snapshot else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}

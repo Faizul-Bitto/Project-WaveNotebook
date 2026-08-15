@@ -73,7 +73,7 @@ function AdminOrderCreate () {
       const data = await findVariant( item.product_id, selectedAttrs );
       const price = data.variant?.price;
       return price || null;
-    } catch ( err ) {
+    } catch {
       return null;
     }
   };
@@ -111,11 +111,15 @@ function AdminOrderCreate () {
           address: order.address || '',
         } );
 
-        // Build items immediately from order data
+        // Build items immediately from order data - use snapshot prices as fallback
         const baseItems = ( order.items || [] ).map( ( item ) => {
           let selected_options = {};
           if ( item.selected_attributes ) {
-            try { selected_options = JSON.parse( item.selected_attributes ); } catch { }
+            try {
+              selected_options = JSON.parse( item.selected_attributes );
+            } catch {
+              selected_options = {};
+            }
           }
           return {
             product_id: item.product_id,
@@ -123,27 +127,35 @@ function AdminOrderCreate () {
             quantity: item.quantity,
             selected_options,
             attributes: [],
+            // Use the order's saved unit_price (snapshot) as initial value
+            unit_price: item.unit_price !== undefined ? parseFloat( item.unit_price ) : undefined,
           };
         } );
         setItems( baseItems );
 
         // Then asynchronously load product attributes for each item
+        // If product is deleted, keep using the snapshot price
         for ( const item of baseItems ) {
+          if ( item.product_id === null || item.product_id === undefined ) {
+            continue; // Product deleted - keep snapshot data as-is
+          }
           try {
             const detail = await loadProductDetail( item.product_id );
             if ( detail?.attributes ) {
               setItems( ( prev ) => prev.map( ( it ) =>
                 it.product_id === item.product_id ? { ...it, attributes: detail.attributes } : it
               ) );
-              // Resolve variant price for this item
+              // Resolve variant price for this item - only override if successfully resolved
               const price = await resolveItemPrice( { ...item, attributes: detail.attributes } );
-              if ( price !== null ) {
+              if ( price !== null && price !== undefined && price > 0 ) {
                 setItems( ( prev ) => prev.map( ( it ) =>
                   it.product_id === item.product_id ? { ...it, unit_price: price } : it
                 ) );
               }
             }
-          } catch { }
+          } catch {
+            // Product deleted or failed to load - keep snapshot unit_price
+          }
         }
       } catch ( err ) {
         addToast( err.response?.data?.detail || 'Failed to load order.', 'error' );

@@ -16,6 +16,13 @@ from app.models.product_attribute_option import ProductAttributeOption
 from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate, OrderStatusUpdate
 from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, build_attributes_display, resolve_attrs_display
+from app.utils.order_snapshots import (
+    build_user_snapshot,
+    build_product_snapshot,
+    build_variant_snapshot,
+    parse_snapshot,
+    serialize_order_item,
+)
 
 router = APIRouter(
     prefix="/admin/orders",
@@ -147,25 +154,7 @@ async def get_order_by_id(
         # Get user info
         user = db.query(User).filter(User.id == order.user_id).first()
 
-        items_data = []
-        for item in order_items:
-            product = db.query(Product).filter(Product.id == item.product_id).first()
-
-             # Build selected attributes display
-            selected_attrs_display = build_attributes_display(db, item.selected_attributes)
-
-            items_data.append(
-                {
-                    "id": item.id,
-                    "product_id": item.product_id,
-                    "product_name": product.name if product else f"Product #{item.product_id}",
-                    "quantity": item.quantity,
-                    "unit_price": str(item.unit_price),
-                    "price_at_purchase": str(item.price_at_purchase),
-                    "selected_attributes": item.selected_attributes,
-                    "selected_attributes_display": selected_attrs_display,
-                }
-            )
+        items_data = [serialize_order_item(db, item) for item in order_items]
 
         logger.info(
             f"📦 Order Retrieved | "
@@ -241,6 +230,22 @@ async def update_order(
         order.thana = order_data.thana or ""
         order.note = order_data.note
         order.address = order_data.address
+        order.user_snapshot = build_user_snapshot(
+            db, user.id, order_data.full_name, order_data.phone_number
+        )
+
+        # Capture existing snapshots BEFORE deleting old items
+        old_items = (
+            db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
+        )
+        old_snapshot_map = {}
+        for old_item in old_items:
+            old_snapshot_map[old_item.product_id] = {
+                "unit_price": float(old_item.unit_price),
+                "product_snapshot": old_item.product_snapshot,
+                "variant_snapshot": old_item.variant_snapshot,
+                "selected_attributes": old_item.selected_attributes,
+            }
 
         # Delete old items
         db.query(OrderItem).filter(OrderItem.order_id == order_id).delete()
@@ -248,6 +253,31 @@ async def update_order(
         # Create new items
         total_price = 0
         for item in order_data.items:
+            if item.product_id is None:
+                # Product was deleted - keep original snapshot from existing order items
+                fallback = old_snapshot_map.get(None)
+                if not fallback:
+                    # Try to find any snapshot with null product_id
+                    for key, snap in old_snapshot_map.items():
+                        if key is None:
+                            fallback = snap
+                            break
+
+                if not fallback:
+                    # No existing snapshot to fall back to - skip
+                    continue
+
+                unit_price = fallback["unit_price"]
+                line_total = unit_price * item.quantity
+                total_price += line_total
+                db.add(OrderItem(
+                    order_id=order_id, product_id=None, quantity=item.quantity,
+                    unit_price=unit_price, price_at_purchase=line_total, selected_attributes=item.selected_attributes or fallback["selected_attributes"],
+                    product_snapshot=fallback["product_snapshot"],
+                    variant_snapshot=fallback["variant_snapshot"],
+                ))
+                continue
+
             product = db.query(Product).filter(Product.id == item.product_id).first()
             if not product:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product ID {item.product_id} not found.")
@@ -261,7 +291,9 @@ async def update_order(
             total_price += line_total
             db.add(OrderItem(
                 order_id=order_id, product_id=item.product_id, quantity=item.quantity,
-                unit_price=unit_price, price_at_purchase=line_total, selected_attributes=item.selected_attributes
+                unit_price=unit_price, price_at_purchase=line_total, selected_attributes=item.selected_attributes,
+                product_snapshot=build_product_snapshot(db, item.product_id),
+                variant_snapshot=build_variant_snapshot(db, item.product_id, item.selected_attributes)
             ))
 
         order.total_price = total_price
@@ -444,7 +476,7 @@ async def create_order_for_user(
                 }
             )
 
-        # Create order
+        # Create order with user snapshot
         new_order = Order(
             order_number=order_number,
             user_id=user.id,
@@ -456,20 +488,28 @@ async def create_order_for_user(
             address=order_data.address,
             status="pending",
             total_price=total_price,
+            user_snapshot=build_user_snapshot(
+                db, user.id, order_data.full_name, order_data.phone_number
+            ),
         )
 
         db.add(new_order)
         db.flush()
 
-        # Create order items
+        # Create order items with product & variant snapshots
         for item_data in order_items_data:
+            product_id = item_data["product_id"]
             order_item = OrderItem(
                 order_id=new_order.id,
-                product_id=item_data["product_id"],
+                product_id=product_id,
                 quantity=item_data["quantity"],
                 unit_price=item_data["unit_price"],
                 price_at_purchase=item_data["price_at_purchase"],
                 selected_attributes=item_data["selected_attributes"],
+                product_snapshot=build_product_snapshot(db, product_id),
+                variant_snapshot=build_variant_snapshot(
+                    db, product_id, item_data["selected_attributes"]
+                ),
             )
             db.add(order_item)
 
@@ -514,17 +554,7 @@ async def create_order_for_user(
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),
                  "items": [
-                    {
-                        "id": item.id,
-                        "product_id": item.product_id,
-                        "product_name": (lambda p: p.name if p else f"Product #{item.product_id}")(db.query(Product).filter(Product.id == item.product_id).first()),
-                        "quantity": item.quantity,
-                        "unit_price": str(item.unit_price),
-                        "price_at_purchase": str(item.price_at_purchase),
-                        "selected_attributes": item.selected_attributes,
-                        "selected_attributes_display": build_attributes_display(db, item.selected_attributes),
-                    }
-                    for item in order_items
+                    serialize_order_item(db, item) for item in order_items
                 ],
                 "created_at": new_order.created_at.isoformat(),
                 "updated_at": new_order.updated_at.isoformat(),

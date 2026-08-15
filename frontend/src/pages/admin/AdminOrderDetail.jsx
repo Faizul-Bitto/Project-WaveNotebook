@@ -74,7 +74,13 @@ function AdminOrderDetail() {
               {order.items.map((item, i) => (
                 <tr key={item.id || i}>
                   <td>{i + 1}</td>
-                  <td>{item.product_name || `Product #${item.product_id}`}</td>
+                  <td>
+                    <div className="product-cell">
+                      <span className="product-name">{item.product_name || `Product #${item.product_id || '(deleted)'}`}</span>
+                      {item.product_code && <span className="product-code">Code: {item.product_code}</span>}
+                      {item.product_id === null && <span className="badge badge-warning">Deleted</span>}
+                    </div>
+                  </td>
                   <td>{item.selected_attributes_display || '—'}</td>
                   <td>{item.quantity}</td>
                   <td>৳{parseFloat(item.price_at_purchase).toLocaleString()}</td>

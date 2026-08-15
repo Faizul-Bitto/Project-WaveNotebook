@@ -184,7 +184,10 @@ function TrackOrder() {
                 <div className="order-card-items">
                   {order.items.map((item) => (
                     <div className="order-item" key={item.id}>
-                      <span>{item.product_name || `Product #${item.product_id}`}</span>
+                      <span>
+                        {item.product_name || `Product #${item.product_id || '(deleted)'}`}
+                        {item.product_code && <small className="order-item-code"> ({item.product_code})</small>}
+                      </span>
                       {item.selected_attributes_display && (
                         <span className="order-item-attributes">{item.selected_attributes_display}</span>
                       )}

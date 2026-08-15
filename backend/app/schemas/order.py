@@ -6,7 +6,7 @@ from app.constants.order_status import OrderStatus
 
 
 class OrderItemCreate(BaseModel):
-    product_id: int
+    product_id: Optional[int] = None  # None when product was deleted (snapshot fallback)
     quantity: int = 1
     selected_attributes: Optional[str] = None  # JSON string of selected attribute options
 

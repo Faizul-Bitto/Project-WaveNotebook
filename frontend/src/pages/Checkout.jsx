@@ -134,8 +134,13 @@ function Checkout () {
     ? directUnitPrice * directItem.quantity
     : parseFloat( cart?.total_price || '0' );
 
-  // Order success screen
+  // Order success screen - use API response data (items, total) not cart state
   if ( orderSuccess ) {
+    const successItems = orderSuccess.items || [];
+    const successTotal = orderSuccess.total_price
+      ? parseFloat( orderSuccess.total_price )
+      : 0;
+
     return (
       <div className="container order-success">
         <FaCheckCircle className="success-icon" />
@@ -164,30 +169,42 @@ function Checkout () {
           <p><strong>District:</strong> { orderSuccess.district }</p>
           <p><strong>Thana:</strong> { orderSuccess.thana }</p>
           <p><strong>Address:</strong> { orderSuccess.address }</p>
-          <p><strong>Total:</strong> ৳{ totalPrice.toLocaleString() }</p>
+          <p><strong>Total:</strong> ৳{ successTotal.toLocaleString() }</p>
           <p><strong>Payment:</strong> Cash on Delivery</p>
 
-          { items.length > 0 && (
+          { successItems.length > 0 && (
             <div className="order-success-items">
               <h4 style={ { marginTop: '16px', marginBottom: '8px', fontWeight: 600, color: 'var(--gray-700)' } }>Ordered Items:</h4>
               <ul style={ { listStyle: 'none', padding: 0, margin: 0 } }>
-                { items.map( ( item, idx ) => (
-                  <li
-                    key={ item.id || idx }
-                    style={ { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: '14px' } }
-                  >
-                    <span>
-                      { item.product_name || `Product #${ item.product_id }` }
-                      { item.selected_attributes_display && (
+                { successItems.map( ( item, idx ) => {
+                  const itemSubtotal = item.price_at_purchase !== undefined
+                    ? parseFloat( item.price_at_purchase )
+                    : ( parseFloat( item.unit_price || 0 ) * item.quantity );
+                  return (
+                    <li
+                      key={ item.id || idx }
+                      style={ { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--gray-100)', fontSize: '14px' } }
+                    >
+                      <span>
+                        { item.product_name || `Product #${ item.product_id || '(deleted)' }` }
+                        { item.product_code && (
+                          <span style={ { display: 'block', fontSize: '12px', color: 'var(--gray-500)' } }>
+                            Code: { item.product_code }
+                          </span>
+                        ) }
+                        { item.selected_attributes_display && (
+                          <span style={ { display: 'block', fontSize: '12px', color: 'var(--gray-600)' } }>
+                            { item.selected_attributes_display }
+                          </span>
+                        ) }
                         <span style={ { display: 'block', fontSize: '12px', color: 'var(--gray-600)' } }>
-                          { item.selected_attributes_display }
+                          Qty: { item.quantity } × ৳{ parseFloat( item.unit_price || 0 ).toLocaleString() }
                         </span>
-                      ) }
-                      { item.quantity > 1 && ` ×${ item.quantity }` }
-                    </span>
-                    <span>৳{ parseFloat( item.subtotal || 0 ).toLocaleString() }</span>
-                  </li>
-                ) ) }
+                      </span>
+                      <span>৳{ itemSubtotal.toLocaleString() }</span>
+                    </li>
+                  );
+                } ) }
               </ul>
             </div>
           ) }
