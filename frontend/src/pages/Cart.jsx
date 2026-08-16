@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaTrash, FaShoppingCart, FaArrowLeft } from 'react-icons/fa';
+import { FaTrash, FaShoppingCart, FaArrowLeft, FaSync } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import Modal from '../components/Modal';
 
 function Cart() {
-  const { cart, loading, updateItem, removeItem, clearAll } = useCart();
+  const { cart, loading, fetchCart, updateItem, removeItem, clearAll } = useCart();
   const { addToast } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
 
@@ -25,6 +25,11 @@ function Cart() {
 
   const handleClear = async () => {
     setShowClearModal(true);
+  };
+
+  const handleRefresh = async () => {
+    await fetchCart();
+    addToast('Stock refreshed.', 'success');
   };
 
   const confirmClear = async () => {
@@ -59,9 +64,14 @@ function Cart() {
       <div className="container">
         <div className="page-header">
           <h1>Shopping Cart</h1>
-          <button className="btn btn-outline" onClick={handleClear}>
-            Clear Cart
-          </button>
+          <div className="header-actions">
+            <button className="btn btn-outline" onClick={handleRefresh} aria-label="Refresh stock">
+              <FaSync /> Refresh Stock
+            </button>
+            <button className="btn btn-outline" onClick={handleClear}>
+              Clear Cart
+            </button>
+          </div>
         </div>
 
         <div className="cart-layout">
@@ -84,31 +94,43 @@ function Cart() {
                      <p className="cart-item-attributes">{item.selected_attributes_display}</p>
                    )}
                    <p className="cart-item-price">৳{parseFloat(item.unit_price).toLocaleString()} / unit</p>
-                   {item.available_stock !== undefined && (
-                     <span className="cart-item-stock">
-                       {item.available_stock > 0
-                         ? `${item.available_stock} in stock`
-                         : <span className="out-of-stock">Out of stock</span>}
-                     </span>
-                   )}
+                    {item.available_stock !== undefined && (
+                      <span className="cart-item-stock">
+                        {item.available_stock > 0
+                          ? item.quantity > item.available_stock
+                            ? <span className="stock-warning-small">Only {item.available_stock} left - reduce quantity</span>
+                            : `${item.available_stock} in stock`
+                          : <span className="stock-warning-small out-of-stock">Out of stock</span>}
+                      </span>
+                    )}
                  </div>
 
-                 <div className="cart-item-quantity">
-                   <button
-                     onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.available_stock)}
-                     aria-label="Decrease quantity"
-                     disabled={item.quantity <= 1}
-                   >
-                     -
-                   </button>
-                   <span>{item.quantity}</span>
-                   <button
-                     onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.available_stock)}
-                     aria-label="Increase quantity"
-                     disabled={item.quantity >= (item.available_stock || 0)}
-                   >
-                     +
-                   </button>
+                 <div className="cart-item-qty-wrapper">
+                   <div className="cart-item-quantity">
+                     <button
+                       onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.available_stock)}
+                       aria-label="Decrease quantity"
+                       disabled={item.quantity <= 1}
+                     >
+                       -
+                     </button>
+                     <span>{item.quantity}</span>
+                     <button
+                       onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.available_stock)}
+                       aria-label="Increase quantity"
+                       disabled={item.quantity >= (item.available_stock || 0)}
+                       title={item.available_stock ? `Only ${item.available_stock} in stock` : 'Out of stock'}
+                     >
+                       +
+                     </button>
+                   </div>
+                   {item.available_stock !== undefined && item.available_stock !== null && item.quantity >= (item.available_stock || 0) && (
+                     <span className="cart-qty-limit">
+                       {item.available_stock > 0
+                         ? `Only ${item.available_stock} in stock - max quantity reached`
+                         : 'Out of stock'}
+                     </span>
+                   )}
                  </div>
 
                  <div className="cart-item-subtotal">
@@ -141,7 +163,24 @@ function Cart() {
               <span>Total</span>
               <span>৳{parseFloat(cart?.total_price || '0').toLocaleString()}</span>
             </div>
-            <Link to="/checkout" className="btn btn-primary btn-lg checkout-btn">
+
+            {items.some(i => !i.available_stock || i.available_stock === 0 || i.quantity > (i.available_stock || 0)) && (
+              <div className="cart-stock-warning">
+                Some items are out of stock or have insufficient quantity. Please review your cart before checkout.
+              </div>
+            )}
+
+            <Link
+              to="/checkout"
+              className="btn btn-primary btn-lg checkout-btn"
+              onClick={() => {
+                const hasStockIssues = items.some(i => !i.available_stock || i.available_stock === 0 || i.quantity > (i.available_stock || 0));
+                if (hasStockIssues) {
+                  addToast('Some items are out of stock or exceed available quantity. Please fix your cart before checkout.', 'error');
+                  return false;
+                }
+              }}
+            >
               Proceed to Checkout
             </Link>
             <Link to="/products" className="continue-shopping">
