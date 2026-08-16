@@ -16,7 +16,7 @@ from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_variant import ProductVariant
 from app.schemas.cart import CartItemCreate, CartItemUpdate
-from app.utils.variant_generator import find_matching_variant, compute_product_in_stock
+from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, get_variant_stock
 
 router = APIRouter(
     prefix="/cart",
@@ -52,7 +52,8 @@ async def add_to_cart(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Product not found."
             )
 
-        if not compute_product_in_stock(db, product.id):
+        available_stock = get_variant_stock(db, product.id, item.selected_attributes)
+        if available_stock <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Product '{product.name}' is out of stock.",
@@ -100,8 +101,14 @@ async def add_to_cart(
         )
 
         if existing:
+            total_qty = existing.quantity + item.quantity
+            if total_qty > available_stock:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
+                )
             # Update quantity instead of adding duplicate
-            existing.quantity += item.quantity
+            existing.quantity = total_qty
             db.commit()
             db.refresh(existing)
 
@@ -119,6 +126,7 @@ async def add_to_cart(
                     "product_id": existing.product_id,
                     "quantity": existing.quantity,
                     "selected_attributes": existing.selected_attributes,
+                    "available_stock": available_stock,
                 },
             }
 
@@ -148,6 +156,7 @@ async def add_to_cart(
                 "product_id": new_item.product_id,
                 "quantity": new_item.quantity,
                 "selected_attributes": new_item.selected_attributes,
+                "available_stock": available_stock,
                 "created_at": new_item.created_at.isoformat(),
             },
         }
@@ -290,8 +299,9 @@ async def get_cart(
                     "selected_attributes": cart_item.selected_attributes,
                     "selected_attributes_display": selected_attrs_display,
                     "image_url": file.file_url if file else None,
-                    "is_in_stock": compute_product_in_stock(db, product.id),
-                    "created_at": cart_item.created_at.isoformat(),
+                     "is_in_stock": compute_product_in_stock(db, product.id),
+                     "available_stock": get_variant_stock(db, product.id, cart_item.selected_attributes),
+                     "created_at": cart_item.created_at.isoformat(),
                 }
             )
 
@@ -350,6 +360,18 @@ async def update_cart_item(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Quantity must be greater than 0.",
                 )
+
+            selected_attrs = item_data.selected_attributes if item_data.selected_attributes is not None else cart_item.selected_attributes
+
+            available_stock = get_variant_stock(db, cart_item.product_id, selected_attrs)
+            if item_data.quantity > available_stock:
+                product = db.query(Product).filter(Product.id == cart_item.product_id).first()
+                product_name = product.name if product else f"Product #{cart_item.product_id}"
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Only {available_stock} item(s) of '{product_name}' available in stock.",
+                )
+
             cart_item.quantity = item_data.quantity
 
         if item_data.selected_attributes is not None:

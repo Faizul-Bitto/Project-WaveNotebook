@@ -50,11 +50,18 @@ function AdminOrderCreate () {
     }
   };
 
-  const resolveItemPrice = async ( item ) => {
-    if ( !item.attributes || item.attributes.length === 0 ) return null;
+  const resolveItemVariant = async ( item ) => {
+    if ( !item.attributes || item.attributes.length === 0 ) {
+      try {
+        const data = await findVariant( item.product_id, {} );
+        return { price: data.variant?.price || null, stock_quantity: data.variant?.stock_quantity ?? 0 };
+      } catch {
+        return { price: null, stock_quantity: 0 };
+      }
+    }
     const selectedOptions = item.selected_options || {};
     const allSelected = item.attributes.every( ( attr ) => selectedOptions[ attr.id ] );
-    if ( !allSelected ) return null;
+    if ( !allSelected ) return { price: null, stock_quantity: 0 };
 
     const selectedAttrs = {};
     for ( const [ attrId, optId ] of Object.entries( selectedOptions ) ) {
@@ -67,26 +74,25 @@ function AdminOrderCreate () {
       }
     }
 
-    if ( Object.keys( selectedAttrs ).length === 0 ) return null;
+    if ( Object.keys( selectedAttrs ).length === 0 ) return { price: null, stock_quantity: 0 };
 
     try {
       const data = await findVariant( item.product_id, selectedAttrs );
-      const price = data.variant?.price;
-      return price || null;
+      return { price: data.variant?.price || null, stock_quantity: data.variant?.stock_quantity ?? 0 };
     } catch {
-      return null;
+      return { price: null, stock_quantity: 0 };
     }
   };
 
   const handleOptionChange = async ( index, attrId, optionId ) => {
     const newItems = [ ...items ];
     const selected_options = { ...newItems[ index ].selected_options, [ attrId ]: optionId };
-    newItems[ index ] = { ...newItems[ index ], selected_options, unit_price: undefined };
+    newItems[ index ] = { ...newItems[ index ], selected_options, unit_price: undefined, stock_quantity: undefined };
     setItems( newItems );
 
-    const price = await resolveItemPrice( newItems[ index ] );
-    if ( price ) {
-      setItems( ( prev ) => prev.map( ( it, i ) => ( i === index ? { ...it, unit_price: price } : it ) ) );
+    const { price, stock_quantity } = await resolveItemVariant( newItems[ index ] );
+    if ( price !== null ) {
+      setItems( ( prev ) => prev.map( ( it, i ) => ( i === index ? { ...it, unit_price: price, stock_quantity } : it ) ) );
     }
   };
 
@@ -127,8 +133,8 @@ function AdminOrderCreate () {
             quantity: item.quantity,
             selected_options,
             attributes: [],
-            // Use the order's saved unit_price (snapshot) as initial value
             unit_price: item.unit_price !== undefined ? parseFloat( item.unit_price ) : undefined,
+            stock_quantity: undefined,
           };
         } );
         setItems( baseItems );
@@ -145,11 +151,11 @@ function AdminOrderCreate () {
               setItems( ( prev ) => prev.map( ( it ) =>
                 it.product_id === item.product_id ? { ...it, attributes: detail.attributes } : it
               ) );
-              // Resolve variant price for this item - only override if successfully resolved
-              const price = await resolveItemPrice( { ...item, attributes: detail.attributes } );
+              // Resolve variant price and stock for this item - only override if successfully resolved
+              const { price, stock_quantity } = await resolveItemVariant( { ...item, attributes: detail.attributes } );
               if ( price !== null && price !== undefined && price > 0 ) {
                 setItems( ( prev ) => prev.map( ( it ) =>
-                  it.product_id === item.product_id ? { ...it, unit_price: price } : it
+                  it.product_id === item.product_id ? { ...it, unit_price: price, stock_quantity } : it
                 ) );
               }
             }
@@ -173,6 +179,16 @@ function AdminOrderCreate () {
     if ( !product ) return;
 
     const detail = await loadProductDetail( pid );
+    const attrs = detail?.attributes || [];
+    let unit_price = undefined;
+    let stock_quantity = undefined;
+
+    if ( attrs.length === 0 ) {
+      const resolved = await resolveItemVariant( { product_id: pid, attributes: [] } );
+      if ( resolved.price !== null ) unit_price = resolved.price;
+      stock_quantity = resolved.stock_quantity;
+    }
+
     setItems( ( prev ) => [
       ...prev,
       {
@@ -180,14 +196,22 @@ function AdminOrderCreate () {
         product_name: product.name,
         quantity: 1,
         selected_options: {},
-        attributes: detail?.attributes || [],
+        attributes: attrs,
+        unit_price,
+        stock_quantity,
       },
     ] );
     setSelectedProductId( '' );
   };
 
   const handleQuantityChange = ( index, qty ) => {
-    setItems( ( prev ) => prev.map( ( it, i ) => ( i === index ? { ...it, quantity: Math.max( 1, qty ) } : it ) ) );
+    const item = items[ index ];
+    const maxStock = item.stock_quantity ?? Infinity;
+    const clamped = Math.max( 1, Math.min( qty, maxStock ) );
+    if ( qty > maxStock ) {
+      addToast( `Only ${ maxStock } item(s) available in stock.`, 'error' );
+    }
+    setItems( ( prev ) => prev.map( ( it, i ) => ( i === index ? { ...it, quantity: clamped } : it ) ) );
   };
 
   const handleRemoveItem = ( index ) => {
@@ -224,6 +248,14 @@ function AdminOrderCreate () {
     if ( !customer.district ) return addToast( 'Select a district.', 'error' );
     if ( !customer.address.trim() ) return addToast( 'Enter the address.', 'error' );
     if ( items.length === 0 ) return addToast( 'Add at least one product.', 'error' );
+
+    // Validate quantities against available stock
+    for ( const item of items ) {
+      if ( item.stock_quantity !== undefined && item.stock_quantity !== null && item.quantity > item.stock_quantity ) {
+        const prodName = item.product_name || `Product #${ item.product_id }`;
+        return addToast( `Quantity for "${ prodName }" exceeds stock (${ item.quantity } > ${ item.stock_quantity }).`, 'error' );
+      }
+    }
 
     try {
       setSaving( true );
@@ -324,39 +356,52 @@ function AdminOrderCreate () {
                   <div className="item-builder-header">
                     <strong>{ item.product_name }</strong>
                     <div className="qty-row">
-                      <button type="button" onClick={ () => handleQuantityChange( index, item.quantity - 1 ) }>-</button>
+                      <button type="button" onClick={ () => handleQuantityChange( index, item.quantity - 1 ) } disabled={ item.quantity <= 1 }>-</button>
                       <span>{ item.quantity }</span>
-                      <button type="button" onClick={ () => handleQuantityChange( index, item.quantity + 1 ) }>+</button>
+                      <button
+                        type="button"
+                        onClick={ () => handleQuantityChange( index, item.quantity + 1 ) }
+                        disabled={ item.stock_quantity !== undefined && item.quantity >= item.stock_quantity }
+                      >
+                        +
+                      </button>
                     </div>
                     <button type="button" className="btn-remove-item" onClick={ () => handleRemoveItem( index ) }>
                       <FaTrash />
                     </button>
                   </div>
                   { item.attributes?.length > 0 && (
-                    <div className="item-options">
-                      { item.attributes.map( ( attr ) => (
-                        <div className="option-group" key={ attr.id }>
-                          <span className="option-name">{ attr.name }:</span>
-                          <select
-                            value={ item.selected_options[ attr.id ] || '' }
-                            onChange={ ( e ) => handleOptionChange( index, attr.id, parseInt( e.target.value ) ) }
-                          >
-                            <option value="">Select...</option>
-                            { attr.options.map( ( opt ) => (
-                              <option key={ opt.id } value={ opt.id }>
-                                { opt.value }
-                              </option>
-                            ) ) }
-                          </select>
-                        </div>
-                      ) ) }
-                      { Object.keys( item.selected_options || {} ).length > 0 && (
-                        <button type="button" className="btn-reset-options" onClick={ () => handleResetOptions( index ) }>
-                          Reset
-                        </button>
-                      ) }
-                    </div>
-                  ) }
+                     <div className="item-options">
+                       { item.attributes.map( ( attr ) => (
+                         <div className="option-group" key={ attr.id }>
+                           <span className="option-name">{ attr.name }:</span>
+                           <select
+                             value={ item.selected_options[ attr.id ] || '' }
+                             onChange={ ( e ) => handleOptionChange( index, attr.id, parseInt( e.target.value ) ) }
+                           >
+                             <option value="">Select...</option>
+                             { attr.options.map( ( opt ) => (
+                               <option key={ opt.id } value={ opt.id }>
+                                 { opt.value }
+                               </option>
+                             ) ) }
+                           </select>
+                         </div>
+                       ) ) }
+                       { Object.keys( item.selected_options || {} ).length > 0 && (
+                         <button type="button" className="btn-reset-options" onClick={ () => handleResetOptions( index ) }>
+                           Reset
+                         </button>
+                       ) }
+                     </div>
+                   ) }
+                   { item.stock_quantity !== undefined && item.stock_quantity !== null && (
+                     <div className="item-stock-info">
+                       { item.stock_quantity > 0
+                         ? `Stock: ${ item.stock_quantity } available`
+                         : 'Out of stock' }
+                     </div>
+                   ) }
                   <div className="item-builder-total">
                     { item.unit_price !== undefined ? (
                       <>৳{ parseFloat( item.unit_price ).toLocaleString() } × { item.quantity } = ৳{ ( parseFloat( item.unit_price ) * item.quantity ).toLocaleString() }</>

@@ -1299,6 +1299,20 @@ textarea {
   color: #991b1b;
 }
 
+.stock-warning {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.stock-available {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
+}
+
 .attributes-section {
   margin-bottom: 24px;
 }
@@ -1562,6 +1576,17 @@ textarea {
   color: var(--secondary);
   min-width: 80px;
   text-align: right;
+}
+
+.cart-item-stock {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #059669;
+}
+
+.cart-item-stock .out-of-stock {
+  color: var(--danger);
 }
 
 .cart-item-remove {
@@ -3779,6 +3804,15 @@ textarea {
   font-weight: 700;
   color: var(--primary);
 }
+.order-create-page .item-stock-info {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-top: 4px;
+}
+.order-create-page .item-stock-info.out-of-stock {
+  color: var(--danger);
+  font-weight: 600;
+}
 .order-create-page .total-price {
   font-size: 24px;
   font-weight: 700;
@@ -4413,6 +4447,21 @@ textarea {
 /* ==========================================
    Confirmation Modal
    ========================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
 .modal-confirm {
   background: var(--white);
   border-radius: 18px;

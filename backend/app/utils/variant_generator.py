@@ -1,11 +1,13 @@
 import json
 from itertools import product
 
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute_option import ProductAttributeOption
+from app.models.product_variant import ProductVariant
 
 
 async def generate_variant_combinations(
@@ -140,6 +142,88 @@ def compute_product_in_stock(db: Session, product_id: int) -> bool:
         .first()
     )
     return in_stock_variant is not None
+
+
+def get_variant_for_order(db: Session, product_id: int, selected_attributes: str = None):
+    """
+    Find the specific ProductVariant for a product based on selected attribute
+    selections. The selected_attributes parameter is a JSON string in
+    {attr_id: option_id} format (as used by cart items / order items).
+
+    Returns the matching variant or None if no variant is found.
+    """
+    selected_attrs = {}
+    if selected_attributes:
+        try:
+            attrs = json.loads(selected_attributes)
+            selected_attrs = resolve_attrs_display(db, attrs)
+        except (json.JSONDecodeError, TypeError):
+            selected_attrs = {}
+
+    return find_matching_variant(db, product_id, selected_attrs)
+
+
+def get_variant_stock(db: Session, product_id: int, selected_attributes: str = None) -> int:
+    """
+    Get the stock quantity of the specific variant for a product.
+    Returns 0 if the variant is not found.
+    """
+    variant = get_variant_for_order(db, product_id, selected_attributes)
+    if not variant:
+        return 0
+    return variant.stock_quantity
+
+
+def validate_and_decrement_stock(db: Session, product_id: int, selected_attributes: str = None, quantity: int = 1) -> ProductVariant:
+    """
+    Atomically validate that sufficient stock exists and decrement it.
+
+    Uses a conditional UPDATE (``WHERE stock_quantity >= quantity``) so that
+    concurrent transactions cannot oversell — only one will succeed per unit of
+    stock.
+
+    Raises ValueError if the variant is not found, inactive, or has insufficient
+    stock. Returns the refreshed variant on success.
+    """
+    variant = get_variant_for_order(db, product_id, selected_attributes)
+
+    if not variant:
+        raise ValueError("Variant not found for this product configuration.")
+
+    if not variant.is_active:
+        raise ValueError("Selected variant is not available.")
+
+    stmt = (
+        update(ProductVariant)
+        .where(
+            ProductVariant.id == variant.id,
+            ProductVariant.stock_quantity >= quantity,
+        )
+        .values(stock_quantity=ProductVariant.stock_quantity - quantity)
+    )
+    result = db.execute(stmt)
+
+    if result.rowcount == 0:
+        db.refresh(variant)
+        raise ValueError(
+            f"Insufficient stock. Only {variant.stock_quantity} item(s) available, "
+            f"but {quantity} requested."
+        )
+
+    db.refresh(variant)
+    return variant
+
+
+def restore_variant_stock(db: Session, product_id: int, selected_attributes: str = None, quantity: int = 1) -> None:
+    """
+    Increment variant stock back (used when an order is cancelled, returned,
+    or its items are modified/removed).
+    """
+    variant = get_variant_for_order(db, product_id, selected_attributes)
+    if variant:
+        variant.stock_quantity += quantity
+        db.add(variant)
+
 
 
 def build_attributes_display(db, selected_attributes: str = None):

@@ -21,9 +21,8 @@ from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate
 from app.utils.variant_generator import (
     find_matching_variant,
-    compute_product_in_stock,
-    build_attributes_display,
-    resolve_attrs_display,
+    get_variant_stock,
+    validate_and_decrement_stock,
 )
 from app.utils.order_snapshots import (
     build_user_snapshot,
@@ -154,10 +153,16 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                     detail=f"Product '{product.name}' is not available.",
                 )
 
-            if not compute_product_in_stock(db, product.id):
+            available_stock = get_variant_stock(db, product.id, item.selected_attributes)
+            if available_stock <= 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product '{product.name}' is out of stock.",
+                )
+            if available_stock < item.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
                 )
 
             # Validate that all product attributes have a selected option
@@ -250,21 +255,20 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             )
             db.add(order_item)
 
-            # Decrement variant stock on order creation
+            # Atomically validate and decrement variant stock
             try:
-                attrs = (
-                    json.loads(item_data["selected_attributes"])
-                    if item_data["selected_attributes"]
-                    else {}
+                validate_and_decrement_stock(
+                    db,
+                    item_data["product_id"],
+                    item_data["selected_attributes"],
+                    item_data["quantity"],
                 )
-                variant = find_matching_variant(
-                    db, item_data["product_id"], resolve_attrs_display(db, attrs)
+            except ValueError as e:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=str(e),
                 )
-                if variant and variant.stock_quantity >= item_data["quantity"]:
-                    variant.stock_quantity -= item_data["quantity"]
-                    db.add(variant)
-            except (json.JSONDecodeError, TypeError, AttributeError):
-                continue
 
         db.commit()
         db.refresh(new_order)

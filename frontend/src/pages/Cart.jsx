@@ -10,8 +10,12 @@ function Cart() {
   const { addToast } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
 
-  const handleQuantityChange = async (itemId, newQuantity) => {
+  const handleQuantityChange = async (itemId, newQuantity, availableStock) => {
     if (newQuantity < 1) return;
+    if (newQuantity > availableStock) {
+      addToast( `Only ${ availableStock } item(s) available in stock.`, 'error' );
+      return;
+    }
     await updateItem(itemId, newQuantity);
   };
 
@@ -73,42 +77,51 @@ function Cart() {
                 </Link>
 
                 <div className="cart-item-info">
-                  <Link to={`/product/${item.slug}`} className="cart-item-name">
-                    {item.product_name}
-                  </Link>
-                  {item.selected_attributes_display && (
-                    <p className="cart-item-attributes">{item.selected_attributes_display}</p>
-                  )}
-                  <p className="cart-item-price">৳{parseFloat(item.unit_price).toLocaleString()} / unit</p>
-                </div>
+                   <Link to={`/product/${item.slug}`} className="cart-item-name">
+                     {item.product_name}
+                   </Link>
+                   {item.selected_attributes_display && (
+                     <p className="cart-item-attributes">{item.selected_attributes_display}</p>
+                   )}
+                   <p className="cart-item-price">৳{parseFloat(item.unit_price).toLocaleString()} / unit</p>
+                   {item.available_stock !== undefined && (
+                     <span className="cart-item-stock">
+                       {item.available_stock > 0
+                         ? `${item.available_stock} in stock`
+                         : <span className="out-of-stock">Out of stock</span>}
+                     </span>
+                   )}
+                 </div>
 
-                <div className="cart-item-quantity">
-                  <button
-                    onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                    aria-label="Decrease quantity"
-                  >
-                    -
-                  </button>
-                  <span>{item.quantity}</span>
-                  <button
-                    onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                    aria-label="Increase quantity"
-                  >
-                    +
-                  </button>
-                </div>
+                 <div className="cart-item-quantity">
+                   <button
+                     onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.available_stock)}
+                     aria-label="Decrease quantity"
+                     disabled={item.quantity <= 1}
+                   >
+                     -
+                   </button>
+                   <span>{item.quantity}</span>
+                   <button
+                     onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.available_stock)}
+                     aria-label="Increase quantity"
+                     disabled={item.quantity >= (item.available_stock || 0)}
+                   >
+                     +
+                   </button>
+                 </div>
 
-                <div className="cart-item-subtotal">
-                  <span>৳{parseFloat(item.subtotal).toLocaleString()}</span>
-                </div>
+                 <div className="cart-item-subtotal">
+                   <span>৳{parseFloat(item.subtotal).toLocaleString()}</span>
+                 </div>
 
-                <button
-                  className="cart-item-remove"
-                  onClick={() => handleRemove(item.id)}
-                  aria-label={`Remove ${item.product_name} from cart`}
-                >
-                  <FaTrash />
-                </button>
+                 <button
+                   className="cart-item-remove"
+                   onClick={() => handleRemove(item.id)}
+                   aria-label={`Remove ${item.product_name} from cart`}
+                 >
+                   <FaTrash />
+                 </button>
               </div>
             ))}
           </div>

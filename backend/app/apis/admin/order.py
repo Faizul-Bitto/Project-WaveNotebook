@@ -15,7 +15,13 @@ from app.models.attribute_option import AttributeOption
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.product_variant import ProductVariant
 from app.schemas.order import OrderCreate, OrderStatusUpdate
-from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, build_attributes_display, resolve_attrs_display
+from app.utils.variant_generator import (
+    find_matching_variant,
+    resolve_attrs_display,
+    get_variant_stock,
+    validate_and_decrement_stock,
+    restore_variant_stock,
+)
 from app.utils.order_snapshots import (
     build_user_snapshot,
     build_product_snapshot,
@@ -241,7 +247,7 @@ async def update_order(
             db, user.id, order_data.full_name, order_data.phone_number, order_data.email
         )
 
-        # Capture existing snapshots BEFORE deleting old items
+        # Capture existing items BEFORE deleting so we can restore their stock
         old_items = (
             db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
         )
@@ -254,6 +260,19 @@ async def update_order(
                 "selected_attributes": old_item.selected_attributes,
             }
 
+        # Restore stock for old items (they were decremented when the order was created)
+        for old_item in old_items:
+            if old_item.product_id is not None:
+                try:
+                    restore_variant_stock(
+                        db,
+                        old_item.product_id,
+                        old_item.selected_attributes,
+                        old_item.quantity,
+                    )
+                except Exception:
+                    pass
+
         # Delete old items
         db.query(OrderItem).filter(OrderItem.order_id == order_id).delete()
 
@@ -264,14 +283,12 @@ async def update_order(
                 # Product was deleted - keep original snapshot from existing order items
                 fallback = old_snapshot_map.get(None)
                 if not fallback:
-                    # Try to find any snapshot with null product_id
                     for key, snap in old_snapshot_map.items():
                         if key is None:
                             fallback = snap
                             break
 
                 if not fallback:
-                    # No existing snapshot to fall back to - skip
                     continue
 
                 unit_price = fallback["unit_price"]
@@ -290,8 +307,12 @@ async def update_order(
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product ID {item.product_id} not found.")
             if not product.is_active:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is not available.")
-            if not compute_product_in_stock(db, item.product_id):
+
+            available_stock = get_variant_stock(db, item.product_id, item.selected_attributes)
+            if available_stock <= 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is out of stock.")
+            if available_stock < item.quantity:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Only {available_stock} item(s) of '{product.name}' are available, but {item.quantity} requested.")
 
             unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
             line_total = unit_price * item.quantity
@@ -302,6 +323,20 @@ async def update_order(
                 product_snapshot=build_product_snapshot(db, item.product_id),
                 variant_snapshot=build_variant_snapshot(db, item.product_id, item.selected_attributes)
             ))
+
+            try:
+                validate_and_decrement_stock(
+                    db,
+                    item.product_id,
+                    item.selected_attributes,
+                    item.quantity,
+                )
+            except ValueError as e:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=str(e),
+                )
 
         order.total_price = total_price
         db.commit()
@@ -463,10 +498,16 @@ async def create_order_for_user(
                     detail=f"Product '{product.name}' is not available.",
                 )
 
-            if not compute_product_in_stock(db, item.product_id):
+            available_stock = get_variant_stock(db, item.product_id, item.selected_attributes)
+            if available_stock <= 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product '{product.name}' is out of stock.",
+                )
+            if available_stock < item.quantity:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
                 )
 
             unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
@@ -521,15 +562,20 @@ async def create_order_for_user(
             )
             db.add(order_item)
 
-            # Decrement variant stock on order creation
+            # Atomically validate and decrement variant stock
             try:
-                attrs = json.loads(item_data["selected_attributes"]) if item_data["selected_attributes"] else {}
-                variant = find_matching_variant(db, item_data["product_id"], resolve_attrs_display(db, attrs))
-                if variant and variant.stock_quantity >= item_data["quantity"]:
-                    variant.stock_quantity -= item_data["quantity"]
-                    db.add(variant)
-            except (json.JSONDecodeError, TypeError, AttributeError):
-                continue
+                validate_and_decrement_stock(
+                    db,
+                    item_data["product_id"],
+                    item_data["selected_attributes"],
+                    item_data["quantity"],
+                )
+            except ValueError as e:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=str(e),
+                )
 
         db.commit()
         db.refresh(new_order)

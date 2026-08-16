@@ -157,6 +157,7 @@ function ProductDetail() {
 
   const allSelected = missingAttributes.length === 0;
   const variantInStock = currentVariant?.in_stock && currentVariant?.stock_quantity > 0;
+  const maxQuantity = currentVariant?.stock_quantity || 0;
 
   const handleBuyNow = async () => {
     if (!allSelected) {
@@ -166,6 +167,11 @@ function ProductDetail() {
 
     if (!currentVariant || !variantInStock) {
       addToast('This variant is out of stock.', 'error');
+      return;
+    }
+
+    if (quantity > maxQuantity) {
+      addToast(`Only ${maxQuantity} item(s) available in stock.`, 'error');
       return;
     }
 
@@ -191,6 +197,11 @@ function ProductDetail() {
 
     if (!currentVariant || !variantInStock) {
       addToast('This variant is out of stock.', 'error');
+      return;
+    }
+
+    if (quantity > maxQuantity) {
+      addToast(`Only ${maxQuantity} item(s) available in stock.`, 'error');
       return;
     }
 
@@ -350,19 +361,26 @@ function ProductDetail() {
                 </button>
                 <span>{quantity}</span>
                 <button
-                  onClick={() => setQuantity((q) => q + 1)}
+                  onClick={() => setQuantity((q) => Math.min(q + 1, maxQuantity || 1))}
+                  disabled={allSelected && currentVariant && (quantity >= maxQuantity || !variantInStock)}
                   aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
+              {allSelected && currentVariant && !variantInStock && (
+                <p className="stock-warning">Out of stock</p>
+              )}
+              {allSelected && currentVariant && variantInStock && maxQuantity > 0 && (
+                <p className="stock-available">{maxQuantity} in stock</p>
+              )}
             </div>
 
             {/* Add to Cart */}
             <button
               className="btn btn-primary btn-lg add-to-cart-detail"
               onClick={handleAddToCart}
-              disabled={!allSelected || !currentVariant || !variantInStock || variantLoading}
+              disabled={!allSelected || !currentVariant || !variantInStock || variantLoading || quantity > maxQuantity}
             >
               {added ? <><FaCheckCircle /> Added to Cart</> : <><FaShoppingCart /> Add to Cart</>}
             </button>
@@ -371,7 +389,7 @@ function ProductDetail() {
             <button
               className="btn btn-success btn-lg add-to-cart-detail"
               onClick={handleBuyNow}
-              disabled={!allSelected || !currentVariant || !variantInStock || variantLoading}
+              disabled={!allSelected || !currentVariant || !variantInStock || variantLoading || quantity > maxQuantity}
             >
               <FaBolt /> Buy Now
             </button>
