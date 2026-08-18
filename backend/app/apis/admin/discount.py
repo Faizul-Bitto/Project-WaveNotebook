@@ -106,9 +106,16 @@ def get_discount_detail(db, discount: Discount) -> dict:
 
     # Scopes
     scopes = db.query(DiscountScope).filter(DiscountScope.discount_id == discount.id).all()
-    result["scopes"] = [
-        {"scope_type": s.scope_type, "scope_id": s.scope_id} for s in scopes
-    ]
+    result["scopes"] = []
+    for s in scopes:
+        scope_entry = {"scope_type": s.scope_type, "scope_id": s.scope_id}
+        if s.scope_type == "product":
+            prod = db.query(Product).filter(Product.id == s.scope_id).first()
+            scope_entry["scope_name"] = prod.name if prod else None
+        elif s.scope_type == "category":
+            cat = db.query(Category).filter(Category.id == s.scope_id).first()
+            scope_entry["scope_name"] = cat.name if cat else None
+        result["scopes"].append(scope_entry)
 
     # Bundle rule
     br = db.query(BundleRule).filter(BundleRule.discount_id == discount.id).first()
@@ -136,10 +143,14 @@ def get_discount_detail(db, discount: Discount) -> dict:
     # BOGO rule
     bogo = db.query(BogoRule).filter(BogoRule.discount_id == discount.id).all()
     if bogo:
+        bogo_product_ids = [b.product_id for b in bogo]
+        bogo_products = db.query(Product).filter(Product.id.in_(bogo_product_ids)).all()
+        product_map = {p.id: p.name for p in bogo_products}
         result["bogo_rule"] = {
             "id": bogo[0].id,
             "product_id": bogo[0].product_id,
-            "product_ids": [b.product_id for b in bogo],
+            "product_ids": bogo_product_ids,
+            "product_names": [product_map.get(pid) for pid in bogo_product_ids],
             "buy_quantity": bogo[0].buy_quantity,
             "get_quantity": bogo[0].get_quantity,
             "get_discount_percent": str(bogo[0].get_discount_percent),

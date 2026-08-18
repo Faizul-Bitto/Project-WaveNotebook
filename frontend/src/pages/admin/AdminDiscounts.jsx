@@ -215,13 +215,20 @@ function AdminDiscounts() {
                           : '-';
 
                   const scopeDisplay = discount.scopes && discount.scopes.length > 0
-                    ? discount.scopes.map(s => `${s.scope_type} #${s.scope_id}`).join(', ')
+                    ? discount.scopes.map(s => {
+                        const name = s.scope_name;
+                        const label = name || `#${s.scope_id}`;
+                        const prefix = s.scope_type === 'product' ? 'Product ' : s.scope_type === 'category' ? 'Category ' : '';
+                        return `${prefix}${label}`;
+                      }).join(', ')
                     : discount.bundle_rule
                       ? (discount.bundle_rule.bundle_type === 'quantity'
                         ? 'Product-scoped'
                         : 'Multi-product')
                       : discount.bogo_rule
-                        ? `Product #${discount.bogo_rule.product_id}`
+                        ? (discount.bogo_rule.product_names && discount.bogo_rule.product_names.length > 0
+                            ? `Product: ${discount.bogo_rule.product_names.join(', ')}`
+                            : `Product #${discount.bogo_rule.product_id}`)
                         : 'Global';
 
                   return (

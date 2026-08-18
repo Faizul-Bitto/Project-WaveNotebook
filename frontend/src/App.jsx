@@ -189,10 +189,11 @@ function App() {
             <Route path="expenses/types" element={<AdminExpenseTypes />} />
             <Route path="expenses/payment-by" element={<AdminPaymentBy />} />
              <Route path="expenses/payment-methods" element={<AdminPaymentMethods />} />
-              <Route path="discounts" element={<AdminDiscounts />} />
-              <Route path="discounts/new" element={<AdminDiscountForm />} />
-              <Route path="discounts/:id/edit" element={<AdminDiscountForm />} />
-              <Route path="shipping-charges" element={<AdminShippingCharges />} />
+<Route path="discounts" element={<AdminDiscounts />} />
+            <Route path="discounts/new" element={<AdminDiscountForm />} />
+            <Route path="discounts/:id" element={<AdminDiscountForm />} />
+            <Route path="discounts/:id/edit" element={<AdminDiscountForm />} />
+            <Route path="shipping-charges" element={<AdminShippingCharges />} />
             </Route>
 
           {/* 404 */}
