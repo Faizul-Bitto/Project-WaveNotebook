@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield } from 'react-icons/fa';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
@@ -9,6 +11,7 @@ function Header() {
   const logoUrl = settings.logo_url;
   const siteName = settings.site_name || 'WaveNotebook';
   const navigate = useNavigate();
+  const headerRef = useRef(null);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -18,8 +21,20 @@ function Header() {
     }
   };
 
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (headerRef.current) {
+        setScrolled(headerRef.current.scrollY > 50);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="header">
+    <header className={`header ${scrolled ? 'scrolled' : ''}`} ref={headerRef}>
       {/* Top bar */}
       <div className="top-bar">
         <div className="container top-bar-inner">

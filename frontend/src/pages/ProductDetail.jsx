@@ -331,7 +331,7 @@ function ProductDetail() {
                 <span className="price">৳0</span>
               )}
               {discountInfo?.free_shipping && (
-                <span className="shipping-badge-detail">🚚 ফ্রি শিপিং</span>
+                <span className="shipping-badge-detail">🚚 Free Shipping</span>
               )}
             </div>
 
@@ -344,18 +344,18 @@ function ProductDetail() {
             {/* Quantity Bundle Offer Info Box */}
             {discountInfo?.bundle_slabs_info && discountInfo.bundle_slabs_info.length > 0 && (
               <div className="offer-info-box">
-                <h4><FaTag /> অফারের শর্ত</h4>
+                <h4><FaTag /> Offer Terms</h4>
                 <ul className="offer-slabs-list">
                   {discountInfo.bundle_slabs_info.map((bundle, bIdx) => (
                     <li key={bIdx} className="offer-slab-group">
                       <span className="offer-discount-name">{bundle.discount_name}</span>
                       {bundle.slabs.map((slab) => (
                         <span key={slab.min_quantity} className="offer-slab-item">
-                          {slab.min_quantity}টি কিনলে{' '}
+                          {slab.min_quantity} items for{' '}
                           {slab.value_type === 'percentage'
-                            ? `${parseInt(slab.value)}% ছাড়`
-                            : `৳${parseInt(slab.value)} ছাড়`}
-                          {bundle.free_shipping && <span className="offer-fs-inline"> + ফ্রি শিপিং</span>}
+                            ? `${parseInt(slab.value)}% OFF`
+                            : `৳${parseInt(slab.value)} OFF`}
+                          {bundle.free_shipping && <span className="offer-fs-inline"> + Free Shipping</span>}
                         </span>
                       ))}
                     </li>
@@ -367,7 +367,7 @@ function ProductDetail() {
             {/* Combo Bundle Section */}
             {discountInfo?.combo_products && discountInfo.combo_products.length > 0 && (
               <div className="combo-bundle-section">
-                <h4><FaGift /> এর সাথে এটাও নিন</h4>
+                <h4><FaGift /> Also Buy</h4>
                 <div className="combo-products-list">
                   {discountInfo.combo_products.map((cp) => (
                     <Link

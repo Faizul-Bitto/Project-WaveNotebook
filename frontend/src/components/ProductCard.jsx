@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaShoppingCart, FaCheckCircle } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
@@ -63,6 +63,17 @@ function ProductCard({ product }) {
   const hasDiscountRange = !!discountedRange &&
     parseFloat(discountedRange.min) !== parseFloat(discountedRange.max);
 
+  const formattedBadge = useMemo(() => {
+    if (!badge) return null;
+    // Convert BOGO-style badges like "3+1" / "4+1" into readable text
+    const bogoMatch = badge.match(/^(\d+)\s*\+\s*(\d+)\s*(free)?$/i);
+    if (bogoMatch) {
+      return `Buy ${bogoMatch[1]} Get ${bogoMatch[2]} Free`;
+    }
+    // Leave other badges (e.g. "5% off", "Free Shipping") as-is
+    return badge;
+  }, [badge]);
+
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -111,7 +122,7 @@ function ProductCard({ product }) {
           <img src={imageUrl} alt={product.name} className="product-image" loading="lazy" />
           {badge && (
             <span className={`product-badge badge-${badgeType === 'free_shipping' ? 'success' : 'danger'}`}>
-              {badge}
+              {formattedBadge}
             </span>
           )}
           {!isInStock && (
@@ -135,7 +146,7 @@ function ProductCard({ product }) {
               <span className="product-price">{displayPrice}</span>
             )}
             {isFreeShipping && !hasDiscount && (
-              <span className="shipping-badge">🚚 ফ্রি শিপিং</span>
+              <span className="shipping-badge">🚚 Free Shipping</span>
             )}
           </div>
         </div>

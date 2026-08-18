@@ -20,7 +20,7 @@ function Products() {
   const [priceMin, setPriceMin] = useState(searchParams.get('price_min') || '');
   const [priceMax, setPriceMax] = useState(searchParams.get('price_max') || '');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'default');
-  const [viewMode, setViewMode] = useState('grid-3');
+  const [viewMode, setViewMode] = useState('grid-4');
   const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const { addToast } = useToast();
 
@@ -167,7 +167,7 @@ function Products() {
 
   const gridClass = viewMode === 'grid-4' ? 'products-grid products-grid-4'
     : viewMode === 'grid-2' ? 'products-grid products-grid-2'
-    : 'products-grid';
+    : 'products-grid products-grid-3';
 
   const showClearFilters = priceMin || priceMax || searchQuery || sortBy !== 'default';
 
