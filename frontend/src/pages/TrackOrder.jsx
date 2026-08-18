@@ -171,31 +171,74 @@ function TrackOrder() {
                     <span>Address:</span>
                     <strong>{order.address}</strong>
                   </div>
-                  <div className="order-info-row">
-                    <span>Items:</span>
-                    <strong>{order.items.length}</strong>
-                  </div>
-                  <div className="order-info-row">
-                    <span>Total:</span>
-                    <strong>৳{parseFloat(order.total_price).toLocaleString()}</strong>
-                  </div>
-                </div>
-
-                <div className="order-card-items">
-                  {order.items.map((item) => (
-                    <div className="order-item" key={item.id}>
-                      <span>
-                        {item.product_name || `Product #${item.product_id || '(deleted)'}`}
-                        {item.product_code && <small className="order-item-code"> ({item.product_code})</small>}
-                      </span>
-                      {item.selected_attributes_display && (
-                        <span className="order-item-attributes">{item.selected_attributes_display}</span>
-                      )}
-                      <span>Qty: {item.quantity}</span>
-                      <span>৳{parseFloat(item.price_at_purchase).toLocaleString()}</span>
+                   <div className="order-info-row">
+                     <span>Items:</span>
+                     <strong>{order.items.length}</strong>
+                   </div>
+                    { order.simple_bogo !== true && (
+                    <div className="order-info-row">
+                      <span>Subtotal:</span>
+                      <strong>৳{order.subtotal_before_discount ? parseFloat(order.subtotal_before_discount).toLocaleString() : parseFloat(order.total_price).toLocaleString()}</strong>
                     </div>
-                  ))}
-                </div>
+                    )}
+                     { order.discount_breakdown && order.discount_breakdown.length > 0 && order.discount_breakdown
+                       .filter((entry) => parseFloat(entry.amount || 0) > 0 || entry.type === 'bogo')
+                       .map((entry, idx) => {
+                         const isBogoFree = entry.type === 'bogo' && parseFloat(entry.get_discount_percent || entry['get_discount_percent'] || 0) >= 100;
+                         return (
+                           <div className="order-info-row" key={idx}>
+                             <span>
+                               {entry.name || (entry.type === 'price_discount' ? 'Discount' : entry.type)}
+                             </span>
+                             <strong className="discount-amount">
+                               {isBogoFree ? 'FREE' : `-৳${parseFloat(entry.amount || 0).toLocaleString()}`}
+                             </strong>
+                           </div>
+                         );
+                       })}
+                    {order.free_shipping && (
+                      <div className="order-info-row">
+                        <span>Shipping:</span>
+                        <strong className="free-shipping-text">🚚 Free</strong>
+                      </div>
+                    )}
+                    { order.simple_bogo !== true && order.total_discount && parseFloat(order.total_discount) > 0 && (
+                      <div className="order-info-row">
+                        <span>Total Discount:</span>
+                        <strong className="discount-amount">-৳{parseFloat(order.total_discount).toLocaleString()}</strong>
+                      </div>
+                    )}
+                     { order.bogo_free_note && (
+                       <div className="order-info-row">
+                         <span>{order.bogo_free_note}</span>
+                       </div>
+                     )}
+                   <div className="order-info-row">
+                     <span>Total:</span>
+                     <strong>৳{parseFloat(order.total_price).toLocaleString()}</strong>
+                   </div>
+                 </div>
+
+                 <div className="order-card-items">
+                   {order.items.map((item) => (
+                     <div className="order-item" key={item.id}>
+                       <span>
+                         {item.product_name || `Product #${item.product_id || '(deleted)'}`}
+                         {item.product_code && <small className="order-item-code"> ({item.product_code})</small>}
+                       </span>
+                       {item.selected_attributes_display && (
+                         <span className="order-item-attributes">{item.selected_attributes_display}</span>
+                       )}
+                        <span>
+                          Qty: {item.quantity}
+                          {item.bonus_quantity > 0 && (item.bogo_get_discount_percent == null || item.bogo_get_discount_percent >= 100) && (
+                            <span className="order-item-bogo"> + {item.bonus_quantity} FREE (BOGO)</span>
+                          )}
+                        </span>
+                       <span>৳{parseFloat(item.price_at_purchase).toLocaleString()}</span>
+                     </div>
+                   ))}
+                 </div>
               </div>
             ))}
           </div>

@@ -31,6 +31,13 @@ from app.utils.order_snapshots import (
     parse_snapshot,
     serialize_order_item,
 )
+from app.services.discount_service import (
+    calculate_cart_discounts,
+    record_discount_usage,
+    get_bogo_bonus_quantity,
+    compute_simple_bogo,
+)
+
 
 router = APIRouter(
     prefix="/orders",
@@ -159,7 +166,10 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product '{product.name}' is out of stock.",
                 )
-            if available_stock < item.quantity:
+            # BOGO adds free/discounted bonus units that also consume stock
+            bonus_qty = get_bogo_bonus_quantity(db, product.id, item.quantity)
+            total_needed = item.quantity + bonus_qty
+            if available_stock < total_needed:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
@@ -211,11 +221,50 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 {
                     "product_id": item.product_id,
                     "quantity": item.quantity,
+                    "total_quantity": total_needed,
+                    "bonus_quantity": bonus_qty,
                     "unit_price": unit_price,
                     "price_at_purchase": line_total,
                     "selected_attributes": item.selected_attributes,
+                    "discount_amount": 0.0,
                 }
             )
+
+        # Calculate discounts using the shared discount service
+        cart_items_for_calc = [
+            {
+                "product_id": d["product_id"],
+                "quantity": d["quantity"],
+                "selected_attributes": d["selected_attributes"],
+                "unit_price": d["unit_price"],
+            }
+            for d in order_items_data
+        ]
+
+        discount_result = calculate_cart_discounts(db, cart_items_for_calc)
+        total_discount = discount_result["total_discount"]
+        winning_rule = discount_result.get("winning_rule")
+
+        # Map per-item discount amounts back to order_items_data
+        for i, calc_item in enumerate(discount_result["items"]):
+            order_items_data[i]["discount_amount"] = calc_item["discount_amount"]
+            order_items_data[i]["price_at_purchase"] = calc_item["discounted_subtotal"]
+            order_items_data[i]["bonus_quantity"] = calc_item["bonus_quantity"]
+            order_items_data[i]["total_quantity"] = calc_item["total_quantity"]
+
+        # Apply discount to total (BOGO is reflected in item totals, not a discount line)
+        total_price = round(discount_result["total_after_discount"], 2)
+
+        # Determine winning discount_id for usage tracking
+        winning_discount_id = None
+        if winning_rule and winning_rule.get("discount_id"):
+            winning_discount_id = winning_rule["discount_id"]
+        # Check if any BOGO rule contributed
+        if discount_result.get("bogo_details") and not winning_discount_id:
+            for bd in discount_result.get("bogo_details", []):
+                if bd.get("discount_id"):
+                    winning_discount_id = bd["discount_id"]
+                    break
 
         # Create order with user snapshot
         new_order = Order(
@@ -230,6 +279,19 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             address=order_data.address,
             status="pending",
             total_price=total_price,
+            total_discount=total_discount,
+            discount_snapshot=json.dumps({
+                "subtotal_before_discount": discount_result["subtotal_before_discount"],
+                "total_discount": total_discount,
+                "display_subtotal": discount_result.get("display_subtotal", discount_result["subtotal_before_discount"]),
+                "free_shipping": discount_result.get("free_shipping", False),
+                "discount_breakdown": discount_result.get("discount_breakdown", []),
+                "bogo_details": discount_result.get("bogo_details", []),
+                "bogo_total": discount_result.get("bogo_total", 0),
+                "winning_rule": winning_rule,
+                "simple_bogo": discount_result.get("simple_bogo", False),
+                "bogo_free_note": discount_result.get("bogo_free_note"),
+            }),
             user_snapshot=build_user_snapshot(
                 db, user.id, order_data.full_name, order_data.phone_number, order_data.email
             ),
@@ -245,8 +307,10 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 order_id=new_order.id,
                 product_id=product_id,
                 quantity=item_data["quantity"],
+                bonus_quantity=item_data["bonus_quantity"],
                 unit_price=item_data["unit_price"],
                 price_at_purchase=item_data["price_at_purchase"],
+                discount_amount=item_data["discount_amount"],
                 selected_attributes=item_data["selected_attributes"],
                 product_snapshot=build_product_snapshot(db, product_id),
                 variant_snapshot=build_variant_snapshot(
@@ -255,13 +319,13 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             )
             db.add(order_item)
 
-            # Atomically validate and decrement variant stock
+            # Atomically validate and decrement variant stock (includes BOGO bonus units)
             try:
                 validate_and_decrement_stock(
                     db,
                     item_data["product_id"],
                     item_data["selected_attributes"],
-                    item_data["quantity"],
+                    item_data["total_quantity"],
                 )
             except ValueError as e:
                 db.rollback()
@@ -269,6 +333,15 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=str(e),
                 )
+
+        # Record discount usage (tracks BOGO + price + spend-based separately)
+        record_discount_usage(
+            db,
+            winning_discount_id,
+            new_order.id,
+            total_discount,
+            discount_breakdown=discount_result.get("discount_breakdown", []) + discount_result.get("bogo_details", []),
+        )
 
         db.commit()
         db.refresh(new_order)
@@ -284,6 +357,7 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             f"User ID={user.id} | "
             f"Phone={user.phone_number} | "
             f"Total={total_price} | "
+            f"Discount={total_discount} | "
             f"Items={len(order_items_data)}"
         )
 
@@ -301,6 +375,13 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
                 "address": new_order.address,
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),
+                "total_discount": str(new_order.total_discount),
+                "subtotal_before_discount": str(round(discount_result["subtotal_before_discount"], 2)),
+                "free_shipping": discount_result.get("free_shipping", False),
+                "discount_breakdown": discount_result.get("discount_breakdown", []),
+                "winning_rule": winning_rule,
+                "simple_bogo": discount_result.get("simple_bogo", False),
+                "bogo_free_note": discount_result.get("bogo_free_note"),
                 "items": [
                     serialize_order_item(db, item) for item in order_items
                 ],
@@ -349,6 +430,12 @@ async def get_orders_by_phone(db: db_dependency, phone_number: str = Path(...)):
 
             items_data = [serialize_order_item(db, item) for item in order_items]
 
+            snapshot = parse_snapshot(order.discount_snapshot)
+            simple_bogo = snapshot.get("simple_bogo")
+            bogo_free_note = snapshot.get("bogo_free_note")
+            if simple_bogo is None:
+                simple_bogo, bogo_free_note = compute_simple_bogo(snapshot)
+
             result.append(
                 {
                     "id": order.id,
@@ -362,6 +449,12 @@ async def get_orders_by_phone(db: db_dependency, phone_number: str = Path(...)):
                     "address": order.address,
                     "status": order.status,
                     "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(snapshot.get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
+                    "free_shipping": snapshot.get("free_shipping", False),
+                    "discount_breakdown": snapshot.get("discount_breakdown", []),
+                    "simple_bogo": simple_bogo,
+                    "bogo_free_note": bogo_free_note,
                     "items": items_data,
                     "created_at": order.created_at.isoformat(),
                     "updated_at": order.updated_at.isoformat(),
@@ -406,6 +499,12 @@ async def get_order_by_number(db: db_dependency, order_number: str = Path(...)):
 
         items_data = [serialize_order_item(db, item) for item in order_items]
 
+        snapshot = parse_snapshot(order.discount_snapshot)
+        simple_bogo = snapshot.get("simple_bogo")
+        bogo_free_note = snapshot.get("bogo_free_note")
+        if simple_bogo is None:
+            simple_bogo, bogo_free_note = compute_simple_bogo(snapshot)
+
         logger.info(f"✅ Order Retrieved by Number | Order Number={order_number}")
 
         return {
@@ -421,7 +520,13 @@ async def get_order_by_number(db: db_dependency, order_number: str = Path(...)):
                 "note": order.note,
                 "address": order.address,
                 "status": order.status,
-                "total_price": str(order.total_price),
+                    "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(snapshot.get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
+                    "free_shipping": snapshot.get("free_shipping", False),
+                "discount_breakdown": snapshot.get("discount_breakdown", []),
+                "simple_bogo": simple_bogo,
+                "bogo_free_note": bogo_free_note,
                 "items": items_data,
                 "created_at": order.created_at.isoformat(),
                 "updated_at": order.updated_at.isoformat(),
@@ -457,6 +562,12 @@ async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
 
         items_data = [serialize_order_item(db, item) for item in order_items]
 
+        snapshot = parse_snapshot(order.discount_snapshot)
+        simple_bogo = snapshot.get("simple_bogo")
+        bogo_free_note = snapshot.get("bogo_free_note")
+        if simple_bogo is None:
+            simple_bogo, bogo_free_note = compute_simple_bogo(snapshot)
+
         logger.info(f"✅ Order Retrieved | ID={order.id}")
 
         return {
@@ -472,7 +583,13 @@ async def get_order_by_id(db: db_dependency, order_id: int = Path(gt=0)):
                 "note": order.note,
                 "address": order.address,
                 "status": order.status,
-                "total_price": str(order.total_price),
+                    "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(snapshot.get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
+                    "free_shipping": snapshot.get("free_shipping", False),
+                "discount_breakdown": snapshot.get("discount_breakdown", []),
+                "simple_bogo": simple_bogo,
+                "bogo_free_note": bogo_free_note,
                 "items": items_data,
                 "created_at": order.created_at.isoformat(),
                 "updated_at": order.updated_at.isoformat(),

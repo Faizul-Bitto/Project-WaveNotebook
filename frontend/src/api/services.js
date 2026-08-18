@@ -123,6 +123,34 @@ export const trackOrderByNumber = async (orderNumber) => {
 };
 
 // ==========================================
+// Discounts
+// ==========================================
+export const getOffers = async (params = {}) => {
+  const { data } = await api.get('/discounts/offers', { params });
+  return data;
+};
+
+export const getProductDiscounts = async (productId, unitPrice = null) => {
+  const params = {};
+  if (unitPrice != null && !isNaN(unitPrice)) params.unit_price = unitPrice;
+  const { data } = await api.get(`/discounts/product/${productId}`, { params });
+  return data;
+};
+
+export const calculateCart = async (cartItems) => {
+  const { data } = await api.post('/discounts/calculate-cart', { cart_items: cartItems });
+  return data;
+};
+
+// ==========================================
+// Shipping Charges
+// ==========================================
+export const getShippingCharges = async () => {
+  const { data } = await api.get('/shipping-charges');
+  return data;
+};
+
+// ==========================================
 // Auth
 // ==========================================
 export const adminLogin = async (phone_number, password) => {

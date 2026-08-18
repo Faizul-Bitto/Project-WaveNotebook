@@ -358,3 +358,87 @@ export const adminGetExpenseDropdowns = async () => {
   const { data } = await api.get('/admin/expenses/dropdown');
   return data;
 };
+
+// ==========================================
+// Admin - Discounts
+// ==========================================
+export const adminGetDiscounts = async (params = {}) => {
+  const { data } = await api.get('/admin/discounts', { params });
+  return data;
+};
+
+export const adminGetDiscount = async (id) => {
+  const { data } = await api.get(`/admin/discounts/${id}`);
+  return data;
+};
+
+export const adminCreateDiscount = async (discountData) => {
+  const { data } = await api.post('/admin/discounts', discountData);
+  return data;
+};
+
+export const adminUpdateDiscount = async (id, discountData) => {
+  const { data } = await api.put(`/admin/discounts/${id}`, discountData);
+  return data;
+};
+
+export const adminDeleteDiscount = async (id) => {
+  const { data } = await api.delete(`/admin/discounts/${id}`);
+  return data;
+};
+
+export const adminToggleDiscountStatus = async (id, status) => {
+  const { data } = await api.patch(`/admin/discounts/${id}/status`, { status });
+  return data;
+};
+
+export const adminGetDiscountUsage = async (id, params = {}) => {
+  const { data } = await api.get(`/admin/discounts/${id}/usage`, { params });
+  return data;
+};
+
+// ==========================================
+// Admin - Order Adjustments (manual discount)
+// ==========================================
+export const adminGetOrderAdjustments = async (orderId) => {
+  const { data } = await api.get(`/admin/orders/${orderId}/adjustments`);
+  return data;
+};
+
+export const adminCreateOrderAdjustment = async (orderId, adjustmentData) => {
+  const { data } = await api.post(`/admin/orders/${orderId}/adjustments`, adjustmentData);
+  return data;
+};
+
+export const adminDeleteOrderAdjustment = async (orderId, adjustmentId) => {
+  const { data } = await api.delete(`/admin/orders/${orderId}/adjustments/${adjustmentId}`);
+  return data;
+};
+
+export const adminCalculateOrderPreview = async (items) => {
+  const { data } = await api.post('/admin/orders/calculate', { items });
+  return data;
+};
+
+// ==========================================
+// Admin - Shipping Charges
+// ==========================================
+export const adminGetShippingCharges = async () => {
+  const { data } = await api.get('/admin/shipping-charges');
+  return data;
+};
+
+export const adminCreateShippingCharge = async (chargeData) => {
+  const { data } = await api.post('/admin/shipping-charges', chargeData);
+  return data;
+};
+
+export const adminUpdateShippingCharge = async (id, chargeData) => {
+  const { data } = await api.put(`/admin/shipping-charges/${id}`, chargeData);
+  return data;
+};
+
+export const adminDeleteShippingCharge = async (id) => {
+  const { data } = await api.delete(`/admin/shipping-charges/${id}`);
+  return data;
+};

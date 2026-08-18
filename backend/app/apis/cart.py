@@ -17,6 +17,7 @@ from app.models.attribute_option import AttributeOption
 from app.models.product_variant import ProductVariant
 from app.schemas.cart import CartItemCreate, CartItemUpdate
 from app.utils.variant_generator import find_matching_variant, compute_product_in_stock, get_variant_stock
+from app.services.discount_service import calculate_cart_discounts, get_bogo_bonus_quantity
 
 router = APIRouter(
     prefix="/cart",
@@ -57,6 +58,15 @@ async def add_to_cart(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Product '{product.name}' is out of stock.",
+            )
+
+        # BOGO adds free/discounted bonus units that also consume stock
+        bonus_qty = get_bogo_bonus_quantity(db, product.id, item.quantity)
+        total_needed = item.quantity + bonus_qty
+        if available_stock < total_needed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
             )
 
         # Validate that all product attributes have a selected option
@@ -102,7 +112,8 @@ async def add_to_cart(
 
         if existing:
             total_qty = existing.quantity + item.quantity
-            if total_qty > available_stock:
+            total_bonus = get_bogo_bonus_quantity(db, product.id, total_qty)
+            if total_qty + total_bonus > available_stock:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
@@ -305,6 +316,44 @@ async def get_cart(
                 }
             )
 
+        # Calculate discounts for the cart
+        cart_items_for_calc = [
+            {
+                "product_id": item["product_id"],
+                "quantity": item["quantity"],
+                "selected_attributes": item["selected_attributes"],
+                "unit_price": float(item["unit_price"]),
+            }
+            for item in items
+        ]
+
+        discount_result = calculate_cart_discounts(db, cart_items_for_calc)
+
+        # Merge per-item discount info
+        for i, item in enumerate(items):
+            calc_item = discount_result["items"][i]
+            item["discount_amount"] = str(calc_item["discount_amount"])
+            item["discounted_subtotal"] = str(calc_item["discounted_subtotal"])
+            item["bonus_quantity"] = calc_item.get("bonus_quantity", 0)
+            item["winning_rule"] = calc_item.get("winning_rule")
+            item["simple_bogo"] = calc_item.get("simple_bogo", False)
+            # Attach BOGO label info for display only when this specific item
+            # actually received a bonus. Otherwise every variant of the same
+            # product would incorrectly inherit the BOGO badge.
+            if calc_item.get("bonus_quantity", 0) > 0:
+                bogo_detail = next(
+                    (b for b in discount_result.get("bogo_details", [])
+                     if b["product_id"] == item["product_id"]),
+                    None,
+                )
+                if bogo_detail:
+                    item["bogo_bonus_quantity"] = bogo_detail["bonus_quantity"]
+                    item["bogo_get_discount_percent"] = bogo_detail["get_discount_percent"]
+
+        # display_subtotal: for simple 100% BOGO this is the actual charged amount,
+        # otherwise it's the same as subtotal_before_discount.
+        total_price = discount_result.get("display_subtotal", discount_result["subtotal_before_discount"])
+
         logger.info(
             f"🛒 Cart Retrieved | "
             f"Cart={cart_session_id[:8]}... | "
@@ -317,7 +366,17 @@ async def get_cart(
             "cart_session_id": cart_session_id,
             "total_items": len(items),
             "total_price": str(total_price),
+            "total_discount": str(discount_result["total_discount"]),
+            "total_after_discount": str(discount_result["total_after_discount"]),
+            "discount_breakdown": discount_result["discount_breakdown"],
+            "bogo_details": discount_result.get("bogo_details", []),
+            # Partial (<100%) BOGO offers awaiting customer consent.
+            "pending_bogo_offers": discount_result.get("pending_bogo_offers", []),
+            "free_shipping": discount_result["free_shipping"],
+            "winning_rule": discount_result.get("winning_rule"),
             "items": items,
+            "simple_bogo": discount_result.get("simple_bogo", False),
+            "bogo_free_note": discount_result.get("bogo_free_note"),
         }
 
     except Exception as e:
@@ -364,7 +423,9 @@ async def update_cart_item(
             selected_attrs = item_data.selected_attributes if item_data.selected_attributes is not None else cart_item.selected_attributes
 
             available_stock = get_variant_stock(db, cart_item.product_id, selected_attrs)
-            if item_data.quantity > available_stock:
+            # BOGO adds free/discounted bonus units that also consume stock
+            bonus_qty = get_bogo_bonus_quantity(db, cart_item.product_id, item_data.quantity)
+            if item_data.quantity + bonus_qty > available_stock:
                 product = db.query(Product).filter(Product.id == cart_item.product_id).first()
                 product_name = product.name if product else f"Product #{cart_item.product_id}"
                 raise HTTPException(

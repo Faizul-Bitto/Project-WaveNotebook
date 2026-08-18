@@ -14,7 +14,9 @@ from app.models.attribute import Attribute
 from app.models.attribute_option import AttributeOption
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.product_variant import ProductVariant
-from app.schemas.order import OrderCreate, OrderStatusUpdate
+from app.models.order_adjustment import OrderAdjustment
+from app.schemas.order import OrderCreate, OrderStatusUpdate, OrderPreviewRequest
+from app.schemas.order_adjustment import OrderAdjustmentCreate
 from app.utils.variant_generator import (
     find_matching_variant,
     resolve_attrs_display,
@@ -28,6 +30,12 @@ from app.utils.order_snapshots import (
     build_variant_snapshot,
     parse_snapshot,
     serialize_order_item,
+)
+from app.services.discount_service import (
+    calculate_cart_discounts,
+    record_discount_usage,
+    get_bogo_bonus_quantity,
+    compute_simple_bogo,
 )
 
 router = APIRouter(
@@ -116,6 +124,8 @@ async def get_all_orders(
                     "address": order.address,
                     "status": order.status,
                     "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(parse_snapshot(order.discount_snapshot).get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
                     "created_at": order.created_at.isoformat(),
                     "updated_at": order.updated_at.isoformat(),
                 }
@@ -182,7 +192,14 @@ async def get_order_by_id(
                 "note": order.note,
                 "address": order.address,
                 "status": order.status,
-                "total_price": str(order.total_price),
+                    "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(parse_snapshot(order.discount_snapshot).get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
+                    "free_shipping": parse_snapshot(order.discount_snapshot).get("free_shipping", False),
+                "discount_breakdown": parse_snapshot(order.discount_snapshot).get("discount_breakdown", []),
+                "simple_bogo": parse_snapshot(order.discount_snapshot).get("simple_bogo", False),
+                "bogo_free_note": parse_snapshot(order.discount_snapshot).get("bogo_free_note"),
+                "bogo_details": parse_snapshot(order.discount_snapshot).get("bogo_details", []),
                 "customer": {
                     "id": user.id if user else None,
                     "phone_number": user.phone_number if user else None,
@@ -204,7 +221,95 @@ async def get_order_by_id(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve order.",
+        detail="Failed to retrieve order.",
+    )
+
+
+@router.post("/calculate", status_code=status.HTTP_200_OK)
+async def calculate_order_preview(
+    db: db_dependency,
+    admin: admin_dependency,
+    payload: OrderPreviewRequest = None,
+):
+    """
+    Calculate discounts/BOGO for a set of items without creating an order.
+    Used by the admin order edit form to preview applicable discounts.
+    POST /admin/orders/calculate
+    """
+    try:
+        items = payload.items if payload and payload.items else []
+        if not items:
+            return {
+                "message": "No items to calculate.",
+                "subtotal_before_discount": 0.0,
+                "total_discount": 0.0,
+                "total_after_discount": 0.0,
+                "items": [],
+                "discount_breakdown": [],
+                "free_shipping": False,
+                "winning_rule": None,
+                "bogo_details": [],
+                "simple_bogo": False,
+                "bogo_free_note": None,
+            }
+
+        order_items_data = []
+        total_price = 0.0
+
+        for item in items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if not product:
+                continue
+
+            unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
+            line_total = unit_price * item.quantity
+            total_price += line_total
+
+            bonus_qty = get_bogo_bonus_quantity(db, item.product_id, item.quantity)
+            order_items_data.append(
+                {
+                    "product_id": item.product_id,
+                    "quantity": item.quantity,
+                    "selected_attributes": item.selected_attributes,
+                    "unit_price": unit_price,
+                }
+            )
+
+        cart_items_for_calc = [
+            {
+                "product_id": d["product_id"],
+                "quantity": d["quantity"],
+                "selected_attributes": d["selected_attributes"],
+                "unit_price": d["unit_price"],
+            }
+            for d in order_items_data
+        ]
+
+        discount_result = calculate_cart_discounts(db, cart_items_for_calc)
+        total_discount = discount_result["total_discount"]
+        total_after_discount = discount_result["total_after_discount"]
+
+        return {
+            "message": "Discount preview calculated successfully.",
+            "subtotal_before_discount": discount_result["subtotal_before_discount"],
+            "total_discount": total_discount,
+            "total_after_discount": total_after_discount,
+            "items": discount_result["items"],
+            "discount_breakdown": discount_result.get("discount_breakdown", []),
+            "free_shipping": discount_result.get("free_shipping", False),
+            "winning_rule": discount_result.get("winning_rule"),
+            "bogo_details": discount_result.get("bogo_details", []),
+            "simple_bogo": discount_result.get("simple_bogo", False),
+            "bogo_free_note": discount_result.get("bogo_free_note"),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Discount Preview Failed | Error={str(e)} | Admin={admin.phone_number}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to calculate discount preview.",
         )
 
 
@@ -268,16 +373,30 @@ async def update_order(
                         db,
                         old_item.product_id,
                         old_item.selected_attributes,
-                        old_item.quantity,
+                        old_item.quantity + (old_item.bonus_quantity or 0),
                     )
-                except Exception:
-                    pass
+                    logger.info(
+                        f"♻️ Stock Restored | Order={order_id} Product={old_item.product_id} "
+                        f"Qty={old_item.quantity} Bonus={old_item.bonus_quantity}"
+                    )
+                except Exception as e:
+                    logger.error(
+                        f"⚠️ Failed to restore stock for order item | "
+                        f"Order={order_id} Product={old_item.product_id} "
+                        f"Qty={old_item.quantity} Bonus={old_item.bonus_quantity} Error={str(e)}"
+                    )
+
+        # Persist restored stock before proceeding so subsequent
+        # validate_and_decrement_stock() raw SQL sees the updated values.
+        db.flush()
 
         # Delete old items
         db.query(OrderItem).filter(OrderItem.order_id == order_id).delete()
 
         # Create new items
         total_price = 0
+        created_items = []
+
         for item in order_data.items:
             if item.product_id is None:
                 # Product was deleted - keep original snapshot from existing order items
@@ -294,12 +413,16 @@ async def update_order(
                 unit_price = fallback["unit_price"]
                 line_total = unit_price * item.quantity
                 total_price += line_total
-                db.add(OrderItem(
+                oi = OrderItem(
                     order_id=order_id, product_id=None, quantity=item.quantity,
-                    unit_price=unit_price, price_at_purchase=line_total, selected_attributes=item.selected_attributes or fallback["selected_attributes"],
+                    unit_price=unit_price, price_at_purchase=line_total,
+                    discount_amount=0,
+                    selected_attributes=item.selected_attributes or fallback["selected_attributes"],
                     product_snapshot=fallback["product_snapshot"],
                     variant_snapshot=fallback["variant_snapshot"],
-                ))
+                )
+                db.add(oi)
+                created_items.append(oi)
                 continue
 
             product = db.query(Product).filter(Product.id == item.product_id).first()
@@ -311,25 +434,35 @@ async def update_order(
             available_stock = get_variant_stock(db, item.product_id, item.selected_attributes)
             if available_stock <= 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Product '{product.name}' is out of stock.")
-            if available_stock < item.quantity:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Only {available_stock} item(s) of '{product.name}' are available, but {item.quantity} requested.")
+            bonus_qty = get_bogo_bonus_quantity(db, item.product_id, item.quantity)
+            total_needed = item.quantity + bonus_qty
+            if available_stock < total_needed:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
+                )
 
             unit_price = calculate_unit_price(db, item.product_id, item.selected_attributes)
             line_total = unit_price * item.quantity
             total_price += line_total
-            db.add(OrderItem(
+            oi = OrderItem(
                 order_id=order_id, product_id=item.product_id, quantity=item.quantity,
-                unit_price=unit_price, price_at_purchase=line_total, selected_attributes=item.selected_attributes,
+                bonus_quantity=bonus_qty,
+                unit_price=unit_price, price_at_purchase=line_total,
+                discount_amount=0,
+                selected_attributes=item.selected_attributes,
                 product_snapshot=build_product_snapshot(db, item.product_id),
                 variant_snapshot=build_variant_snapshot(db, item.product_id, item.selected_attributes)
-            ))
+            )
+            db.add(oi)
+            created_items.append(oi)
 
             try:
                 validate_and_decrement_stock(
                     db,
                     item.product_id,
                     item.selected_attributes,
-                    item.quantity,
+                    total_needed,
                 )
             except ValueError as e:
                 db.rollback()
@@ -338,10 +471,108 @@ async def update_order(
                     detail=str(e),
                 )
 
-        order.total_price = total_price
+        # Calculate discounts using the shared discount service
+        cart_items_for_calc = []
+        for ci in created_items:
+            cart_items_for_calc.append({
+                "product_id": ci.product_id,
+                "quantity": ci.quantity,
+                "selected_attributes": ci.selected_attributes,
+                "unit_price": float(ci.unit_price),
+            })
+
+        discount_result = calculate_cart_discounts(db, cart_items_for_calc)
+        total_discount = discount_result["total_discount"]
+        winning_rule = discount_result.get("winning_rule")
+
+        # Map per-item discount amounts back to order items
+        for i, calc_item in enumerate(discount_result["items"]):
+            if i < len(created_items):
+                created_items[i].discount_amount = calc_item["discount_amount"]
+                created_items[i].price_at_purchase = calc_item["discounted_subtotal"]
+                created_items[i].bonus_quantity = calc_item.get("bonus_quantity", 0)
+
+        # Determine winning discount_id for usage tracking
+        winning_discount_id = None
+        if winning_rule and winning_rule.get("discount_id"):
+            winning_discount_id = winning_rule["discount_id"]
+        if discount_result.get("bogo_total", 0) > 0 and not winning_discount_id:
+            for bd in discount_result.get("bogo_details", []):
+                if bd.get("discount_id"):
+                    winning_discount_id = bd["discount_id"]
+                    break
+
+        # Apply discount to total using the discount service's final amount.
+        # Do NOT recompute from paid-only line totals and then subtract total_discount,
+        # because that double-counts BOGO discounts.
+        total_price = discount_result["total_after_discount"]
+        order.total_price = round(total_price, 2)
+        order.total_discount = total_discount
+        order.discount_snapshot = json.dumps({
+            "subtotal_before_discount": discount_result["subtotal_before_discount"],
+            "total_discount": total_discount,
+            "free_shipping": discount_result.get("free_shipping", False),
+            "discount_breakdown": discount_result.get("discount_breakdown", []),
+            "bogo_details": discount_result.get("bogo_details", []),
+            "bogo_total": discount_result.get("bogo_total", 0),
+            "winning_rule": winning_rule,
+            "simple_bogo": discount_result.get("simple_bogo", False),
+            "bogo_free_note": discount_result.get("bogo_free_note"),
+        })
+
+        # Record discount usage (tracks BOGO + price + spend-based separately)
+        record_discount_usage(
+            db,
+            winning_discount_id,
+            order_id,
+            total_discount,
+            discount_breakdown=discount_result.get("discount_breakdown", []) + discount_result.get("bogo_details", []),
+        )
+
         db.commit()
         db.refresh(order)
-        return {"message": "Order updated successfully.", "order": {"id": order.id, "order_number": order.order_number, "total_price": str(order.total_price)}}
+
+        order_items = (
+            db.query(OrderItem).filter(OrderItem.order_id == order.id).all()
+        )
+
+        logger.info(
+            f"✅ Order Updated by Admin | "
+            f"Order Number={order.order_number} | "
+            f"Total={total_price} | "
+            f"Discount={total_discount} | "
+            f"Admin={admin.phone_number}"
+        )
+
+        return {
+            "message": "Order updated successfully.",
+            "order": {
+                "id": order.id,
+                "order_number": order.order_number,
+                "full_name": order.full_name,
+                "phone_number": order.phone_number,
+                "email": order.email,
+                "district": order.district,
+                "thana": order.thana or "",
+                "note": order.note,
+                "address": order.address,
+                "status": order.status,
+                "total_price": str(order.total_price),
+                "total_discount": str(order.total_discount),
+                "subtotal_before_discount": str(round(discount_result["subtotal_before_discount"], 2)),
+                "free_shipping": discount_result.get("free_shipping", False),
+                "discount_breakdown": discount_result.get("discount_breakdown", []),
+                "bogo_details": discount_result.get("bogo_details", []),
+                "winning_rule": winning_rule,
+                "simple_bogo": discount_result.get("simple_bogo", False),
+                "bogo_free_note": discount_result.get("bogo_free_note"),
+                "items": [
+                    serialize_order_item(db, item) for item in order_items
+                ],
+                "created_at": order.created_at.isoformat(),
+                "updated_at": order.updated_at.isoformat(),
+            },
+        }
 
     except HTTPException:
         raise
@@ -388,6 +619,7 @@ async def update_order_status(
 
         # Manage variant stock based on status transitions
         # Increment stock when transitioning to "returned" or "cancelled"
+        # IMPORTANT: must restore quantity + bonus_quantity to fully return stock
         if new_status in ("returned", "cancelled") and old_status != new_status:
             order_items = db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
             for item in order_items:
@@ -395,7 +627,9 @@ async def update_order_status(
                     attrs = json.loads(item.selected_attributes) if item.selected_attributes else {}
                     variant = find_matching_variant(db, item.product_id, resolve_attrs_display(db, attrs))
                     if variant:
-                        variant.stock_quantity += item.quantity
+                        # Restore both paid and BOGO bonus units
+                        total_restore = item.quantity + (item.bonus_quantity or 0)
+                        variant.stock_quantity += total_restore
                         db.add(variant)
                 except (json.JSONDecodeError, TypeError, AttributeError):
                     continue
@@ -504,7 +738,10 @@ async def create_order_for_user(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Product '{product.name}' is out of stock.",
                 )
-            if available_stock < item.quantity:
+            # BOGO adds free/discounted bonus units that also consume stock
+            bonus_qty = get_bogo_bonus_quantity(db, item.product_id, item.quantity)
+            total_needed = item.quantity + bonus_qty
+            if available_stock < total_needed:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Only {available_stock} item(s) of '{product.name}' available in stock.",
@@ -518,11 +755,49 @@ async def create_order_for_user(
                 {
                     "product_id": item.product_id,
                     "quantity": item.quantity,
+                    "total_quantity": total_needed,
+                    "bonus_quantity": bonus_qty,
                     "unit_price": unit_price,
                     "price_at_purchase": line_total,
                     "selected_attributes": item.selected_attributes,
+                    "discount_amount": 0.0,
                 }
             )
+
+        # Calculate discounts using the shared discount service
+        cart_items_for_calc = [
+            {
+                "product_id": d["product_id"],
+                "quantity": d["quantity"],
+                "selected_attributes": d["selected_attributes"],
+                "unit_price": d["unit_price"],
+            }
+            for d in order_items_data
+        ]
+
+        discount_result = calculate_cart_discounts(db, cart_items_for_calc)
+        total_discount = discount_result["total_discount"]
+        winning_rule = discount_result.get("winning_rule")
+
+        # Map per-item discount amounts back to order_items_data
+        for i, calc_item in enumerate(discount_result["items"]):
+            order_items_data[i]["discount_amount"] = calc_item["discount_amount"]
+            order_items_data[i]["price_at_purchase"] = calc_item["discounted_subtotal"]
+            order_items_data[i]["bonus_quantity"] = calc_item["bonus_quantity"]
+            order_items_data[i]["total_quantity"] = calc_item["total_quantity"]
+
+        # Apply discount to total (BOGO is reflected in item totals, not a discount line)
+        total_price = round(discount_result["total_after_discount"], 2)
+
+        # Determine winning discount_id for usage tracking
+        winning_discount_id = None
+        if winning_rule and winning_rule.get("discount_id"):
+            winning_discount_id = winning_rule["discount_id"]
+        if discount_result.get("bogo_details") and not winning_discount_id:
+            for bd in discount_result.get("bogo_details", []):
+                if bd.get("discount_id"):
+                    winning_discount_id = bd["discount_id"]
+                    break
 
         # Create order with user snapshot
         new_order = Order(
@@ -537,6 +812,18 @@ async def create_order_for_user(
             address=order_data.address,
             status="pending",
             total_price=total_price,
+            total_discount=total_discount,
+            discount_snapshot=json.dumps({
+                "subtotal_before_discount": discount_result["subtotal_before_discount"],
+                "total_discount": total_discount,
+                "free_shipping": discount_result.get("free_shipping", False),
+                "discount_breakdown": discount_result.get("discount_breakdown", []),
+                "bogo_details": discount_result.get("bogo_details", []),
+                "bogo_total": discount_result.get("bogo_total", 0),
+                "winning_rule": winning_rule,
+                "simple_bogo": discount_result.get("simple_bogo", False),
+                "bogo_free_note": discount_result.get("bogo_free_note"),
+            }),
             user_snapshot=build_user_snapshot(
                 db, user.id, order_data.full_name, order_data.phone_number, order_data.email
             ),
@@ -552,8 +839,10 @@ async def create_order_for_user(
                 order_id=new_order.id,
                 product_id=product_id,
                 quantity=item_data["quantity"],
+                bonus_quantity=item_data["bonus_quantity"],
                 unit_price=item_data["unit_price"],
                 price_at_purchase=item_data["price_at_purchase"],
+                discount_amount=item_data["discount_amount"],
                 selected_attributes=item_data["selected_attributes"],
                 product_snapshot=build_product_snapshot(db, product_id),
                 variant_snapshot=build_variant_snapshot(
@@ -562,13 +851,13 @@ async def create_order_for_user(
             )
             db.add(order_item)
 
-            # Atomically validate and decrement variant stock
+            # Atomically validate and decrement variant stock (includes BOGO bonus units)
             try:
                 validate_and_decrement_stock(
                     db,
                     item_data["product_id"],
                     item_data["selected_attributes"],
-                    item_data["quantity"],
+                    item_data["total_quantity"],
                 )
             except ValueError as e:
                 db.rollback()
@@ -576,6 +865,15 @@ async def create_order_for_user(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=str(e),
                 )
+
+        # Record discount usage (tracks BOGO + A + spend-based separately)
+        record_discount_usage(
+            db,
+            winning_discount_id,
+            new_order.id,
+            total_discount,
+            discount_breakdown=discount_result.get("discount_breakdown", []) + discount_result.get("bogo_details", []),
+        )
 
         db.commit()
         db.refresh(new_order)
@@ -591,6 +889,7 @@ async def create_order_for_user(
             f"User ID={user.id} | "
             f"Phone={user.phone_number} | "
             f"Total={total_price} | "
+            f"Discount={total_discount} | "
             f"Admin={admin.phone_number}"
         )
 
@@ -608,7 +907,14 @@ async def create_order_for_user(
                 "address": new_order.address,
                 "status": new_order.status,
                 "total_price": str(new_order.total_price),
-                 "items": [
+                "total_discount": str(new_order.total_discount),
+                "subtotal_before_discount": str(round(discount_result["subtotal_before_discount"], 2)),
+                "free_shipping": discount_result.get("free_shipping", False),
+                "discount_breakdown": discount_result.get("discount_breakdown", []),
+                "winning_rule": winning_rule,
+                "simple_bogo": discount_result.get("simple_bogo", False),
+                "bogo_free_note": discount_result.get("bogo_free_note"),
+                "items": [
                     serialize_order_item(db, item) for item in order_items
                 ],
                 "created_at": new_order.created_at.isoformat(),
@@ -705,6 +1011,298 @@ async def search_orders(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to search orders.",
+        )
+
+
+@router.get("/{order_id}/adjustments", status_code=status.HTTP_200_OK)
+async def get_order_adjustments(
+    db: db_dependency,
+    admin: admin_dependency,
+    order_id: int = Path(gt=0),
+):
+    """
+    Get all manual adjustments for an order.
+    GET /admin/orders/{order_id}/adjustments
+    """
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+        adjustments = (
+            db.query(OrderAdjustment)
+            .filter(OrderAdjustment.order_id == order_id)
+            .order_by(OrderAdjustment.created_at.desc())
+            .all()
+        )
+
+        result = []
+        for adj in adjustments:
+            admin_user = None
+            if adj.admin_user_id:
+                admin_user = db.query(User).filter(User.id == adj.admin_user_id).first()
+
+            result.append({
+                "id": adj.id,
+                "order_id": adj.order_id,
+                "admin_user_id": adj.admin_user_id,
+                "admin_name": admin_user.full_name if admin_user else None,
+                "admin_phone": admin_user.phone_number if admin_user else None,
+                "adjustment_type": adj.adjustment_type,
+                "value_type": adj.value_type or "flat",
+                "amount": str(adj.amount),
+                "reason": adj.reason,
+                "before_total": str(adj.before_total) if adj.before_total is not None else None,
+                "after_total": str(adj.after_total) if adj.after_total is not None else None,
+                "created_at": adj.created_at.isoformat(),
+            })
+
+        logger.info(
+            f"📋 Order Adjustments Retrieved | "
+            f"Order={order_id} | "
+            f"Count={len(result)} | "
+            f"Admin={admin.phone_number}"
+        )
+
+        return {
+            "message": "Order adjustments retrieved successfully.",
+            "order_id": order_id,
+            "order_number": order.order_number,
+            "current_total": str(order.total_price),
+            "adjustments": result,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"❌ Error retrieving order adjustments | "
+            f"Error={str(e)} | "
+            f"Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve order adjustments.",
+        )
+
+
+@router.post("/{order_id}/adjustments", status_code=status.HTTP_201_CREATED)
+async def create_order_adjustment(
+    db: db_dependency,
+    admin: admin_dependency,
+    order_id: int = Path(gt=0),
+    adjustment_data: OrderAdjustmentCreate = None,
+):
+    """
+    Manually apply a discount / charge to an existing order.
+    POST /admin/orders/{order_id}/adjustments
+
+    - `manual_discount`: reduces order total by amount (BDT or % of current total)
+    - `manual_charge`: increases order total by amount (BDT or % of current total)
+    - `rounding`: rounds the total to the nearest integer
+
+    value_type:
+      - 'flat':  `value` is the fixed BDT amount to subtract/add
+      - 'percentage': `value` is a % applied to the CURRENT order total (after automated discounts)
+    """
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+        adjustment_type = adjustment_data.adjustment_type or "manual_discount"
+        value_type = adjustment_data.value_type or "flat"
+        value = float(adjustment_data.value)
+        reason = adjustment_data.reason
+
+        # Reason is REQUIRED for all manual adjustments (accountability)
+        if not reason or not reason.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reason/Note is required for manual order adjustments.",
+            )
+
+        current_total = float(order.total_price)
+
+        # Convert percentage value to the actual amount based on current total
+        if value_type == "percentage":
+            if adjustment_type in ("manual_discount", "manual_charge"):
+                if value < 0 or value > 100:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Percentage value must be between 0 and 100.",
+                    )
+                amount = current_total * (value / 100.0)
+            else:
+                amount = value
+        else:
+            amount = value
+
+        if adjustment_type == "manual_discount":
+            new_total = current_total - amount
+        elif adjustment_type == "manual_charge":
+            new_total = current_total + amount
+        elif adjustment_type == "rounding":
+            # Rounding: amount is difference to round to nearest integer
+            new_total = round(current_total)
+            amount = abs(new_total - current_total)
+            if new_total < current_total:
+                adjustment_type = "rounding_down"
+            else:
+                adjustment_type = "rounding_up"
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid adjustment_type. Must be 'manual_discount', 'manual_charge', or 'rounding'.",
+            )
+        # Create adjustment entry (audit log)
+        adjustment = OrderAdjustment(
+            order_id=order_id,
+            admin_user_id=admin.id,
+            adjustment_type=adjustment_type,
+            value_type=value_type,
+            amount=round(amount, 2),
+            reason=reason,
+            before_total=round(current_total, 2),
+            after_total=round(new_total, 2),
+        )
+        db.add(adjustment)
+
+        # Update the order total
+        order.total_price = round(new_total, 2)
+
+        db.commit()
+        db.refresh(adjustment)
+        db.refresh(order)
+
+        logger.info(
+            f"✅ Order Adjustment Applied | "
+            f"Order={order_id} | "
+            f"Type={adjustment_type} | "
+            f"Amount=৳{amount:.2f} | "
+            f"Total: {current_total:.2f} -> {new_total:.2f} | "
+            f"Admin={admin.phone_number} | "
+            f"Reason={reason}"
+        )
+
+        return {
+            "message": "Order adjustment applied successfully.",
+            "adjustment": {
+                "id": adjustment.id,
+                "order_id": adjustment.order_id,
+                "admin_user_id": adjustment.admin_user_id,
+                "adjustment_type": adjustment.adjustment_type,
+                "value_type": value_type,
+                "value": str(value),
+                "amount": str(round(amount, 2)),
+                "reason": adjustment.reason,
+                "before_total": str(adjustment.before_total),
+                "after_total": str(adjustment.after_total),
+                "created_at": adjustment.created_at.isoformat(),
+            },
+            "order": {
+                "id": order.id,
+                "order_number": order.order_number,
+                "total_price": str(order.total_price),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            f"❌ Order Adjustment Failed | "
+            f"Error={str(e)} | "
+            f"Order={order_id} | "
+            f"Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to apply order adjustment.",
+        )
+
+
+@router.delete("/{order_id}/adjustments/{adjustment_id}", status_code=status.HTTP_200_OK)
+async def delete_order_adjustment(
+    db: db_dependency,
+    admin: admin_dependency,
+    order_id: int = Path(gt=0),
+    adjustment_id: int = Path(gt=0),
+):
+    """
+    Remove a manual adjustment (reverses the effect on the order total).
+    DELETE /admin/orders/{order_id}/adjustments/{adjustment_id}
+    """
+    try:
+        adjustment = (
+            db.query(OrderAdjustment)
+            .filter(OrderAdjustment.id == adjustment_id, OrderAdjustment.order_id == order_id)
+            .first()
+        )
+        if not adjustment:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Adjustment not found.")
+
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+
+        # Reverse the adjustment
+        current_total = float(order.total_price)
+        adjustment_amount = float(adjustment.amount)
+        adjustment_type = adjustment.adjustment_type
+
+        if adjustment_type in ("manual_discount", "rounding_down"):
+            # Discount was applied, so reversing it increases the total back
+            new_total = current_total + adjustment_amount
+        elif adjustment_type in ("manual_charge", "rounding_up"):
+            # Charge was applied, so reversing it decreases the total back
+            new_total = current_total - adjustment_amount
+        else:
+            new_total = current_total
+
+        if new_total < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete adjustment: order would become negative.",
+            )
+
+        order.total_price = round(new_total, 2)
+
+        db.delete(adjustment)
+        db.commit()
+        db.refresh(order)
+
+        logger.info(
+            f"✅ Adjustment Deleted | "
+            f"Order={order_id} | "
+            f"Adjustment={adjustment_id} | "
+            f"New Total={new_total:.2f} | "
+            f"Admin={admin.phone_number}"
+        )
+
+        return {
+            "message": "Order adjustment deleted successfully.",
+            "order": {
+                "id": order.id,
+                "order_number": order.order_number,
+                "total_price": str(order.total_price),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            f"❌ Adjustment Delete Failed | "
+            f"Error={str(e)} | "
+            f"Order={order_id} | "
+            f"Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete adjustment.",
         )
 
 

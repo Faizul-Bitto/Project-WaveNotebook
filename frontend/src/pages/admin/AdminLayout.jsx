@@ -15,6 +15,7 @@ import {
   FaReceipt,
   FaChevronDown,
   FaChevronRight,
+  FaTruck,
 } from 'react-icons/fa';
 
 function AdminLayout() {
@@ -45,6 +46,8 @@ function AdminLayout() {
     { path: '/admin/attributes', label: 'Attributes', icon: <FaCubes /> },
     { path: '/admin/products', label: 'Products', icon: <FaBox /> },
     { path: '/admin/orders', label: 'Orders', icon: <FaShoppingBag /> },
+    { path: '/admin/discounts', label: 'Discounts', icon: <FaTags /> },
+    { path: '/admin/shipping-charges', label: 'Shipping Charges', icon: <FaTruck /> },
     {
       label: 'Expenses',
       icon: <FaReceipt />,

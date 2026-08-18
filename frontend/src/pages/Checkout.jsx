@@ -7,8 +7,22 @@ import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
 import { useToast } from '../context/ToastContext';
 
+// Build a BOGO label for an item that has free/discounted bonus units.
+// For 100% free BOGO: bonus items are added on top (show "+ N FREE").
+// For partial (<100%) BOGO: discounted items are within the purchased
+// quantity — no extra badge shown; the discount appears in the summary.
+function getBogoInfo ( item ) {
+  const bonus = item.bonus_quantity || item.bogo_bonus_quantity || 0;
+  if ( !bonus ) return null;
+  const pct = item.bogo_get_discount_percent;
+  const isFullFree = pct != null && pct >= 100;
+  if ( !isFullFree ) return null;
+  const label = `${ bonus } FREE`;
+  return { bonus, label, isFullFree };
+}
+
 function Checkout () {
-  const { cart, clearAll } = useCart();
+  const { cart, clearAll, totalDiscount, totalAfterDiscount, discountBreakdown, freeShipping, simpleBogo, bogoFreeNote, getShippingChargeForDistrict, shippingCharges } = useCart();
   const { directItem } = useDirectBuy();
   const { addToast } = useToast();
   const [ districts, setDistricts ] = useState( [] );
@@ -23,6 +37,8 @@ function Checkout () {
     note: '',
     address: '',
   } );
+
+  const shippingCharge = !freeShipping ? getShippingChargeForDistrict( formData.district ) : null;
 
   useEffect( () => {
     const loadDistricts = async () => {
@@ -142,13 +158,15 @@ function Checkout () {
     const successTotal = orderSuccess.total_price
       ? parseFloat( orderSuccess.total_price )
       : 0;
+    const successSimpleBogo = orderSuccess.simple_bogo === true;
+    const successBogoFreeNote = orderSuccess.bogo_free_note || null;
 
     return (
       <div className="container order-success">
         <FaCheckCircle className="success-icon" />
         <h1>Order Placed Successfully!</h1>
 
-        {/* Highlighted message for the customer */}
+        {/* Highlighted message for the customer */ }
         <div className="order-notice-box">
           <p className="order-notice-text">
             <strong>Dear Customer,</strong>
@@ -187,11 +205,58 @@ function Checkout () {
         <div className="order-summary-box">
           <h3>Order Summary</h3>
           <p><strong>Name:</strong> { orderSuccess.full_name }</p>
-           <p><strong>Phone:</strong> { orderSuccess.phone_number }</p>
-           { orderSuccess.email && <p><strong>Email:</strong> { orderSuccess.email }</p> }
-           <p><strong>District:</strong> { orderSuccess.district }</p>
+          <p><strong>Phone:</strong> { orderSuccess.phone_number }</p>
+          { orderSuccess.email && <p><strong>Email:</strong> { orderSuccess.email }</p> }
+          <p><strong>District:</strong> { orderSuccess.district }</p>
           <p><strong>Thana:</strong> { orderSuccess.thana }</p>
           <p><strong>Address:</strong> { orderSuccess.address }</p>
+
+          { orderSuccess.discount_breakdown && orderSuccess.discount_breakdown.length > 0 && orderSuccess.discount_breakdown
+            .filter( ( entry ) => parseFloat( entry.amount || 0 ) > 0 || entry.type === 'bogo' )
+            .map( ( entry, idx ) => {
+              const isBogoFree = entry.type === 'bogo' && parseFloat(entry.get_discount_percent || entry['get_discount_percent'] || 0) >= 100;
+              return (
+                <div className="success-discount-row" key={ idx }>
+                  <span>
+                    { entry.name || ( entry.type === 'price_discount' ? 'Discount' : entry.type ) }
+                  </span>
+                  <span className="discount-amount">
+                    {isBogoFree ? 'FREE' : `-৳${parseFloat(entry.amount || 0).toLocaleString()}`}
+                  </span>
+                </div>
+              );
+            } ) }
+
+          { orderSuccess.free_shipping && (
+            <div className="success-discount-row">
+              <span><span className="fs-badge">🚚</span> Free Shipping</span>
+              <span className="free-shipping-text">FREE</span>
+            </div>
+          ) }
+
+          { successSimpleBogo !== true && orderSuccess.total_discount && parseFloat( orderSuccess.total_discount ) > 0 && (
+            <p>
+              <strong>Total Discount:</strong>{ ' ' }
+              <span className="discount-amount">-৳{ parseFloat( orderSuccess.total_discount ).toLocaleString() }</span>
+            </p>
+          ) }
+
+          { successBogoFreeNote && (
+            <p className="success-bogo-note">
+              <strong>
+                { successBogoFreeNote }
+                { ' ' }— so you got total{ ' ' }
+                { successItems.reduce( ( sum, it ) => {
+                  const bonus = it.bonus_quantity || it.bogo_bonus_quantity || 0;
+                  const pct = it.bogo_get_discount_percent;
+                  const isFullFree = bonus > 0 && ( pct == null || pct >= 100 );
+                  return sum + ( it.quantity || 0 ) + ( isFullFree ? bonus : 0 );
+                }, 0 ) }{ ' ' }
+                items in ৳{ successTotal.toLocaleString() }
+              </strong>
+            </p>
+          ) }
+
           <p><strong>Total:</strong> ৳{ successTotal.toLocaleString() }</p>
           <p><strong>Payment:</strong> Cash on Delivery</p>
 
@@ -203,6 +268,9 @@ function Checkout () {
                   const itemSubtotal = item.price_at_purchase !== undefined
                     ? parseFloat( item.price_at_purchase )
                     : ( parseFloat( item.unit_price || 0 ) * item.quantity );
+                  const bonusQty = item.bonus_quantity || item.bogo_bonus_quantity || 0;
+                  const bogoPct = item.bogo_get_discount_percent;
+                  const isFullFreeBogo = bonusQty > 0 && ( bogoPct == null || bogoPct >= 100 );
                   return (
                     <li
                       key={ item.id || idx }
@@ -221,7 +289,13 @@ function Checkout () {
                           </span>
                         ) }
                         <span style={ { display: 'block', fontSize: '12px', color: 'var(--gray-600)' } }>
-                          Qty: { item.quantity } × ৳{ parseFloat( item.unit_price || 0 ).toLocaleString() }
+                           Qty: { item.quantity }
+                           { isFullFreeBogo && (
+                             <span style={ { color: 'var(--primary)', fontWeight: 600 } }>
+                               { ' ' }+ { bonusQty } FREE
+                             </span>
+                           ) }
+                          { ' ' }× ৳{ parseFloat( item.unit_price || 0 ).toLocaleString() }
                         </span>
                       </span>
                       <span>৳{ itemSubtotal.toLocaleString() }</span>
@@ -229,6 +303,23 @@ function Checkout () {
                   );
                 } ) }
               </ul>
+            </div>
+          ) }
+
+          { !orderSuccess.free_shipping && (
+            <div className="checkout-shipment">
+              <h3>Shipment</h3>
+              <div className="shipment-zones">
+                { shippingCharges.map( ( charge ) => (
+                  <div className="shipment-zone-row" key={ charge.id }>
+                    <span>{ charge.zone_name }</span>
+                    <span>৳{ charge.amount }</span>
+                  </div>
+                ) ) }
+              </div>
+              <div className="shipment-delivery-time">
+                Delivers in: 3-7 Working Days
+              </div>
             </div>
           ) }
         </div>
@@ -368,31 +459,89 @@ function Checkout () {
             </button>
           </form>
 
-          {/* Order Summary */ }
-          <div className="checkout-summary">
-            <h2>Order Summary</h2>
-            { items.map( ( item ) => (
-              <div className="checkout-item" key={ item.id }>
-                <div className="checkout-item-info">
-                  <span className="checkout-item-name">{ item.product_name }</span>
-                  { item.selected_attributes_display && (
-                    <span className="checkout-item-qty">{ item.selected_attributes_display }</span>
-                  ) }
-                  <span className="checkout-item-qty">Qty: { item.quantity }</span>
+          <div className="checkout-sidebar">
+            {/* Order Summary */ }
+            <div className="checkout-summary">
+              <h2>Order Summary</h2>
+              { items.map( ( item ) => (
+                <div className="checkout-item" key={ item.id }>
+                  <div className="checkout-item-info">
+                    <span className="checkout-item-name">{ item.product_name }</span>
+                    { item.selected_attributes_display && (
+                      <span className="checkout-item-qty">{ item.selected_attributes_display }</span>
+                    ) }
+                    <span className="checkout-item-qty">
+                      Qty: { item.quantity }
+                      { getBogoInfo( item ) && (
+                        <span className="checkout-bogo-badge"> + { getBogoInfo( item ).label } (BOGO)</span>
+                      ) }
+                    </span>
+                  </div>
+                  <span className="checkout-item-price">
+                    ৳{ parseFloat( item.discounted_subtotal || item.subtotal ).toLocaleString() }
+                  </span>
                 </div>
-                <span className="checkout-item-price">
-                  ৳{ parseFloat( item.subtotal ).toLocaleString() }
-                </span>
+              ) ) }
+
+              { simpleBogo && bogoFreeNote && (
+                <div className="checkout-summary-row checkout-bogo-note">
+                  <span>{ bogoFreeNote }</span>
+                </div>
+              ) }
+
+              { !simpleBogo && totalDiscount > 0 && discountBreakdown && discountBreakdown.length > 0 && discountBreakdown
+                .filter( ( entry ) => parseFloat( entry.amount || 0 ) > 0 )
+                .map( ( entry, idx ) => (
+                  <div className="checkout-summary-row checkout-discount-row" key={ idx }>
+                    <span>
+                      { entry.name || ( entry.type === 'price_discount' ? 'Discount' : entry.type ) }
+                    </span>
+                    <span className="discount-amount">
+                      -৳{ parseFloat( entry.amount || 0 ).toLocaleString() }
+                    </span>
+                  </div>
+                ) ) }
+
+              { freeShipping && (
+                <div className="checkout-summary-row checkout-free-shipping">
+                  <span><span className="fs-badge">🚚</span> Free Shipping</span>
+                  <span className="free-shipping-text">FREE</span>
+                </div>
+              ) }
+
+              { !simpleBogo && totalDiscount > 0 && (
+                <div className="checkout-summary-row checkout-total-discount">
+                  <span>Total Discount</span>
+                  <span className="discount-amount">-৳{ totalDiscount.toLocaleString() }</span>
+                </div>
+              ) }
+
+              <div className="checkout-total">
+                <span>Total</span>
+                <span>৳{ totalAfterDiscount.toLocaleString() }</span>
               </div>
-            ) ) }
-            <div className="checkout-total">
-              <span>Total</span>
-              <span>৳{ totalPrice.toLocaleString() }</span>
             </div>
+
+            { !freeShipping && (
+              <div className="checkout-shipment">
+                <h2>Shipment</h2>
+                <div className="shipment-zones">
+                  { shippingCharges.map( ( charge ) => (
+                    <div className="shipment-zone-row" key={ charge.id }>
+                      <span>{ charge.zone_name }</span>
+                      <span>৳{ charge.amount }</span>
+                    </div>
+                  ) ) }
+                </div>
+                <div className="shipment-delivery-time">
+                  Delivers in: 3-7 Working Days
+                </div>
+              </div>
+            ) }
           </div>
         </div>
       </div>
-    </div>  );
+    </div> );
 }
 
 export default Checkout;

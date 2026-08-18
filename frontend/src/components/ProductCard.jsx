@@ -1,13 +1,15 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { FaShoppingCart, FaCheckCircle } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { useState, useRef } from 'react';
+import { getProductDiscounts } from '../api/services';
 
 function ProductCard({ product }) {
   const { addItem } = useCart();
   const { addToast } = useToast();
   const [added, setAdded] = useState(false);
+  const [discountInfo, setDiscountInfo] = useState(null);
   const cardRef = useRef(null);
 
   const validFiles = (product.files || []).filter((f) => f.file_url);
@@ -15,6 +17,21 @@ function ProductCard({ product }) {
 
   const priceMin = product.price_range ? parseFloat(product.price_range.min) : 0;
   const priceMax = product.price_range ? parseFloat(product.price_range.max) : 0;
+
+  useEffect(() => {
+    const fetchDiscountInfo = async () => {
+      try {
+        const unitPrice = priceMin || priceMax || 0;
+        const data = await getProductDiscounts(product.id, unitPrice);
+        if (data?.discount_info) {
+          setDiscountInfo(data.discount_info);
+        }
+      } catch (err) {
+        // Silently ignore - product just won't have discount info
+      }
+    };
+    fetchDiscountInfo();
+  }, [product.id, priceMin, priceMax]);
 
   const displayPrice = priceMax > 0
     ? (priceMin === priceMax
@@ -34,6 +51,17 @@ function ProductCard({ product }) {
         }
       })()
     : null;
+
+  const badge = discountInfo?.badge;
+  const badgeType = discountInfo?.badge_type;
+  const hasDiscount = badge && badgeType !== 'free_shipping';
+  const isFreeShipping = discountInfo?.free_shipping;
+  const discountedPrice = discountInfo?.discounted_price;
+  const originalPrice = discountInfo?.original_price;
+  const discountedRange = discountInfo?.discounted_price_range;
+  const originalRange = discountInfo?.original_price_range;
+  const hasDiscountRange = !!discountedRange &&
+    parseFloat(discountedRange.min) !== parseFloat(discountedRange.max);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -81,6 +109,11 @@ function ProductCard({ product }) {
       <Link to={`/product/${product.slug}`} className="product-card-link">
         <div className="product-image-wrap">
           <img src={imageUrl} alt={product.name} className="product-image" loading="lazy" />
+          {badge && (
+            <span className={`product-badge badge-${badgeType === 'free_shipping' ? 'success' : 'danger'}`}>
+              {badge}
+            </span>
+          )}
           {!isInStock && (
             <span className="product-out-of-stock">Out of Stock</span>
           )}
@@ -88,7 +121,22 @@ function ProductCard({ product }) {
         <div className="product-info">
           <h3 className="product-name">{product.name}</h3>
           <div className="product-price-row">
-            <span className="product-price">{displayPrice}</span>
+            {hasDiscount && hasDiscountRange ? (
+              <span className="product-price-group">
+                <span className="product-price-original">৳{parseFloat(originalRange.min).toLocaleString()} - ৳{parseFloat(originalRange.max).toLocaleString()}</span>
+                <span className="product-price-discounted">৳{parseFloat(discountedRange.min).toLocaleString()} - ৳{parseFloat(discountedRange.max).toLocaleString()}</span>
+              </span>
+            ) : hasDiscount && discountedPrice ? (
+              <span className="product-price-group">
+                <span className="product-price-original">৳{parseFloat(originalPrice || priceMax).toLocaleString()}</span>
+                <span className="product-price-discounted">৳{parseFloat(discountedPrice).toLocaleString()}</span>
+              </span>
+            ) : (
+              <span className="product-price">{displayPrice}</span>
+            )}
+            {isFreeShipping && !hasDiscount && (
+              <span className="shipping-badge">🚚 ফ্রি শিপিং</span>
+            )}
           </div>
         </div>
       </Link>

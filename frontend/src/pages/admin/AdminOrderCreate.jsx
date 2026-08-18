@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FaArrowLeft, FaPlus, FaSave, FaTrash } from 'react-icons/fa';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { adminCreateOrder, adminGetOrder, adminGetProduct, adminGetProducts, adminUpdateOrder } from '../../api/adminServices';
+import { adminCreateOrder, adminGetOrder, adminGetProduct, adminGetProducts, adminUpdateOrder, adminCalculateOrderPreview } from '../../api/adminServices';
 import { findVariant, getDistricts } from '../../api/services';
 import PhoneInput from '../../components/PhoneInput';
 import { useToast } from '../../context/ToastContext';
@@ -19,6 +19,8 @@ function AdminOrderCreate () {
   const [ selectedProductId, setSelectedProductId ] = useState( '' );
   const [ saving, setSaving ] = useState( false );
   const [ productCache, setProductCache ] = useState( {} );
+  const [ preview, setPreview ] = useState( null );
+  const [ previewLoading, setPreviewLoading ] = useState( false );
 
   // Load products and districts
   useEffect( () => {
@@ -36,6 +38,33 @@ function AdminOrderCreate () {
     };
     loadData();
   }, [] );
+
+  // Preview discounts when items change
+  useEffect( () => {
+    if ( items.length === 0 ) {
+      setPreview( null );
+      return;
+    }
+    const timer = setTimeout( async () => {
+      setPreviewLoading( true );
+      try {
+        const payloadItems = items.map( ( it ) => ( {
+          product_id: it.product_id,
+          quantity: it.quantity,
+          selected_attributes: Object.keys( it.selected_options || {} ).length > 0
+            ? JSON.stringify( it.selected_options )
+            : null,
+        } ) );
+        const data = await adminCalculateOrderPreview( payloadItems );
+        setPreview( data );
+      } catch {
+        // silently ignore preview errors
+      } finally {
+        setPreviewLoading( false );
+      }
+    }, 300 );
+    return () => clearTimeout( timer );
+  }, [ items ] );
 
   // Load full product detail (with attributes/options) when needed
   const loadProductDetail = async ( pid ) => {
@@ -131,6 +160,8 @@ function AdminOrderCreate () {
             product_id: item.product_id,
             product_name: item.product_name || `Product #${ item.product_id }`,
             quantity: item.quantity,
+            bonus_quantity: item.bonus_quantity || 0,
+            price_at_purchase: item.price_at_purchase !== undefined ? parseFloat( item.price_at_purchase ) : undefined,
             selected_options,
             attributes: [],
             unit_price: item.unit_price !== undefined ? parseFloat( item.unit_price ) : undefined,
@@ -273,16 +304,45 @@ function AdminOrderCreate () {
   };
 
   const calculateItemTotal = ( item ) => {
-    let unit;
-    if ( item.unit_price !== undefined ) {
-      unit = parseFloat( item.unit_price );
-    } else {
-      unit = 0;
+    if ( item.price_at_purchase !== undefined && item.price_at_purchase !== null ) {
+      return parseFloat( item.price_at_purchase );
     }
+    if ( preview && preview.items ) {
+      const previewItem = preview.items.find( ( pi ) => {
+        return pi.product_id === item.product_id && pi.quantity === item.quantity;
+      } );
+      if ( previewItem && previewItem.discounted_subtotal ) {
+        return parseFloat( previewItem.discounted_subtotal );
+      }
+    }
+    const unit = item.unit_price !== undefined ? parseFloat( item.unit_price ) : 0;
     return unit * item.quantity;
   };
 
+  const getItemPreview = ( item ) => {
+    if ( !preview || !preview.items ) return null;
+    return preview.items.find( ( pi ) => {
+      try {
+        if ( item.selected_attributes ) {
+          JSON.parse( item.selected_attributes );
+          let previewAttrs = {};
+          try {
+            if ( pi.selected_attributes ) {
+              previewAttrs = JSON.parse( pi.selected_attributes );
+            }
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+      return pi.product_id === item.product_id && pi.quantity === item.quantity;
+    } ) || null;
+  };
+
   const totalPrice = items.reduce( ( sum, it ) => sum + calculateItemTotal( it ), 0 );
+  const previewTotal = preview && preview.total_after_discount != null ? parseFloat( preview.total_after_discount ) : totalPrice;
 
   if ( loading ) return <div className="loading">Loading order...</div>;
 
@@ -357,7 +417,20 @@ function AdminOrderCreate () {
                     <strong>{ item.product_name }</strong>
                     <div className="qty-row">
                       <button type="button" onClick={ () => handleQuantityChange( index, item.quantity - 1 ) } disabled={ item.quantity <= 1 }>-</button>
-                      <span>{ item.quantity }</span>
+                      <span>
+                        { ( () => {
+                          const pv = getItemPreview( item );
+                          if ( pv && pv.bonus_quantity ) {
+                            const pct = pv.bogo_info && pv.bogo_info.get_discount_percent != null ? parseFloat( pv.bogo_info.get_discount_percent ) : null;
+                            const isFullFree = pct != null && pct >= 100;
+                            if ( isFullFree ) {
+                              return `${item.quantity} + ${pv.bonus_quantity} FREE`;
+                            }
+                            return `${item.quantity}`;
+                          }
+                          return item.quantity;
+                        } )() }
+                      </span>
                       <button
                         type="button"
                         onClick={ () => handleQuantityChange( index, item.quantity + 1 ) }
@@ -395,20 +468,37 @@ function AdminOrderCreate () {
                        ) }
                      </div>
                    ) }
-                   { item.stock_quantity !== undefined && item.stock_quantity !== null && (
-                     <div className="item-stock-info">
-                       { item.stock_quantity > 0
-                         ? `Stock: ${ item.stock_quantity } available`
-                         : 'Out of stock' }
-                     </div>
-                   ) }
-                  <div className="item-builder-total">
-                    { item.unit_price !== undefined ? (
-                      <>৳{ parseFloat( item.unit_price ).toLocaleString() } × { item.quantity } = ৳{ ( parseFloat( item.unit_price ) * item.quantity ).toLocaleString() }</>
-                    ) : (
-                      <span className="price-placeholder">৳0.00</span>
+                    { item.stock_quantity !== undefined && item.stock_quantity !== null && (
+                      <div className="item-stock-info">
+                        { item.stock_quantity > 0
+                          ? `Stock: ${ item.stock_quantity } available`
+                          : 'Out of stock' }
+                      </div>
                     ) }
-                  </div>
+                    { ( () => {
+                      const pv = getItemPreview( item );
+                      if ( !pv || !pv.bonus_quantity ) return null;
+                      const pct = pv.bogo_info && pv.bogo_info.get_discount_percent != null ? parseFloat( pv.bogo_info.get_discount_percent ) : null;
+                      const isFullFree = pct != null && pct >= 100;
+                      if ( !isFullFree ) return null;
+                      const label = `+ ${pv.bonus_quantity} FREE`;
+                      return <div className="admin-bogo-badge"> {label} (BOGO)</div>;
+                    } )() }
+                    <div className="item-builder-total">
+                      { ( () => {
+                        const pv = getItemPreview( item );
+                        if ( pv && pv.discounted_subtotal ) {
+                          return <>৳{ parseFloat( pv.discounted_subtotal ).toLocaleString() }</>;
+                        }
+                        if ( item.price_at_purchase !== undefined && item.price_at_purchase !== null ) {
+                          return <>৳{ parseFloat( item.price_at_purchase ).toLocaleString() }</>;
+                        }
+                        if ( item.unit_price !== undefined ) {
+                          return <>৳{ parseFloat( item.unit_price ).toLocaleString() } × { item.quantity } = ৳{ ( parseFloat( item.unit_price ) * item.quantity ).toLocaleString() }</>;
+                        }
+                        return <span className="price-placeholder">৳0.00</span>;
+                      } )() }
+                    </div>
                 </div>
               ) ) }
             </div>
@@ -417,10 +507,40 @@ function AdminOrderCreate () {
           ) }
         </div>
 
-        {/* Summary & Submit */ }
+         {/* Summary & Submit */ }
         <div className="order-detail-card">
           <h3>Order Total</h3>
-          <p className="total-price">৳{ totalPrice.toLocaleString() }</p>
+          { preview && preview.bogo_free_note && (
+            <div className="success-discount-row" style={{ marginBottom: '8px' }}>
+              <span>{preview.bogo_free_note}</span>
+            </div>
+          )}
+          { preview && preview.discount_breakdown && preview.discount_breakdown.length > 0 && (
+            <div className="discount-breakdown-detail">
+              <h4>Discount Applied</h4>
+              {preview.discount_breakdown.filter((entry) => parseFloat(entry.amount || 0) > 0 || entry.type === 'bogo').map((entry, idx) => {
+                const isBogoFree = entry.type === 'bogo' && parseFloat(entry.get_discount_percent || entry['get_discount_percent'] || 0) >= 100;
+                return (
+                  <div className="discount-summary-row" key={idx}>
+                    <span className="discount-label">
+                      {entry.name || (entry.type === 'price_discount' ? 'Discount' : entry.type)}
+                    </span>
+                    <span className="discount-value">
+                      {isBogoFree ? 'FREE' : `-৳${parseFloat(entry.amount || 0).toLocaleString()}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          { preview && preview.free_shipping && (
+            <div className="discount-summary-row">
+              <span className="discount-label">Shipping</span>
+              <span className="discount-value">🚚 Free Shipping</span>
+            </div>
+          )}
+          <p className="total-price">৳{ previewTotal.toLocaleString() }</p>
+          { previewLoading && <p className="text-muted">Calculating discounts...</p> }
           <button type="submit" className="btn btn-primary btn-lg" disabled={ saving }>
             <FaSave /> { saving ? 'Saving...' : isEditing ? 'Update Order' : 'Create Order' }
           </button>

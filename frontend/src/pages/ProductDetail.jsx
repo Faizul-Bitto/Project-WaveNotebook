@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaShoppingCart, FaBolt, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo } from 'react-icons/fa';
-import { getProductBySlug, findVariant, getDefaultVariant } from '../api/services';
+import { FaShoppingCart, FaBolt, FaCheckCircle, FaTruck, FaShieldAlt, FaUndo, FaTag, FaGift } from 'react-icons/fa';
+import { getProductBySlug, findVariant, getDefaultVariant, getProductDiscounts } from '../api/services';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
 import { useToast } from '../context/ToastContext';
@@ -21,6 +21,7 @@ function ProductDetail() {
   const [currentVariant, setCurrentVariant] = useState(null);
   const [variantLoading, setVariantLoading] = useState(false);
   const [variantError, setVariantError] = useState(null);
+  const [discountInfo, setDiscountInfo] = useState(null);
   const pageRef = useRef(null);
 
   useEffect(() => {
@@ -28,12 +29,13 @@ function ProductDetail() {
       try {
         setLoading(true);
         const data = await getProductBySlug(slug);
-        setProduct(data.product);
-        setSelectedOptions({});
-        setCurrentVariant(null);
-        setVariantError(null);
+         setProduct(data.product);
+         setSelectedOptions({});
+         setCurrentVariant(null);
+         setVariantError(null);
+         setDiscountInfo(null);
 
-        // Auto-load default variant (preferably in-stock)
+         // Auto-load default variant (preferably in-stock)
         try {
           const variantData = await getDefaultVariant(data.product.id);
           if (variantData.variant) {
@@ -143,6 +145,23 @@ function ProductDetail() {
     };
   }, [product, selectedOptions]);
 
+  // Refetch discount info whenever the product or selected variant changes
+  useEffect(() => {
+    if (!product) return;
+    const unitPrice = currentVariant?.price
+      ? parseFloat(currentVariant.price)
+      : (product.price_range ? parseFloat(product.price_range.min) : 0);
+    let cancelled = false;
+    getProductDiscounts(product.id, unitPrice)
+      .then((discData) => {
+        if (!cancelled && discData?.discount_info) {
+          setDiscountInfo(discData.discount_info);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [product, currentVariant]);
+
   const handleOptionSelect = (attributeId, optionId) => {
     setSelectedOptions((prev) => ({
       ...prev,
@@ -249,6 +268,14 @@ function ProductDetail() {
     ? parseFloat(currentVariant.price)
     : null;
   const priceRange = product.price_range;
+  const rangeMin = priceRange ? parseFloat(priceRange.min) : null;
+  const rangeMax = priceRange ? parseFloat(priceRange.max) : null;
+  const showRange = !displayPrice && rangeMin != null && rangeMax != null && rangeMin !== rangeMax;
+  const discountRange = discountInfo?.discounted_price_range;
+  const originalRange = discountInfo?.original_price_range;
+  const hasDiscountRange = !!showRange && !!discountRange &&
+    parseFloat(discountRange.min) !== parseFloat(discountRange.max);
+  const fmt = (v) => Number(v).toLocaleString();
 
   return (
     <div className="product-detail-page" ref={pageRef}>
@@ -286,23 +313,74 @@ function ProductDetail() {
             <p className="product-code">Product Code: {product.product_code}</p>
 
             <div className="product-price-detail">
-              {displayPrice ? (
+              {hasDiscountRange ? (
                 <>
-                  <span className="price">৳{displayPrice.toLocaleString()}</span>
-                  {quantity > 1 && (
-                    <span className="unit-price">(৳{(displayPrice * quantity).toLocaleString()} total)</span>
-                  )}
+                  <span className="price-discounted">৳{fmt(discountRange.min)} - ৳{fmt(discountRange.max)}</span>
+                  <span className="price-original">৳{fmt(originalRange?.min)} - ৳{fmt(originalRange?.max)}</span>
                 </>
-              ) : priceRange ? (
-                <span className="price-range">
-                  {parseFloat(priceRange.min) === parseFloat(priceRange.max)
-                    ? `৳${parseFloat(priceRange.min).toLocaleString()}`
-                    : `Starting from ৳${parseFloat(priceRange.min).toLocaleString()} - ৳${parseFloat(priceRange.max).toLocaleString()}`}
-                </span>
+              ) : discountInfo?.discounted_price ? (
+                <>
+                  <span className="price-discounted">৳{fmt(discountInfo.discounted_price)}</span>
+                  <span className="price-original">৳{fmt(discountInfo.original_price || displayPrice)}</span>
+                </>
+              ) : displayPrice ? (
+                <span className="price">৳{fmt(displayPrice)}</span>
+              ) : showRange ? (
+                <span className="price">৳{fmt(rangeMin)} - ৳{fmt(rangeMax)}</span>
               ) : (
                 <span className="price">৳0</span>
               )}
+              {discountInfo?.free_shipping && (
+                <span className="shipping-badge-detail">🚚 ফ্রি শিপিং</span>
+              )}
             </div>
+
+            {discountInfo?.badge && (
+              <span className={`product-badge badge-${discountInfo.badge_type === 'free_shipping' ? 'success' : 'danger'}`}>
+                {discountInfo.badge}
+              </span>
+            )}
+
+            {/* Quantity Bundle Offer Info Box */}
+            {discountInfo?.bundle_slabs_info && discountInfo.bundle_slabs_info.length > 0 && (
+              <div className="offer-info-box">
+                <h4><FaTag /> অফারের শর্ত</h4>
+                <ul className="offer-slabs-list">
+                  {discountInfo.bundle_slabs_info.map((bundle, bIdx) => (
+                    <li key={bIdx} className="offer-slab-group">
+                      <span className="offer-discount-name">{bundle.discount_name}</span>
+                      {bundle.slabs.map((slab) => (
+                        <span key={slab.min_quantity} className="offer-slab-item">
+                          {slab.min_quantity}টি কিনলে{' '}
+                          {slab.value_type === 'percentage'
+                            ? `${parseInt(slab.value)}% ছাড়`
+                            : `৳${parseInt(slab.value)} ছাড়`}
+                          {bundle.free_shipping && <span className="offer-fs-inline"> + ফ্রি শিপিং</span>}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Combo Bundle Section */}
+            {discountInfo?.combo_products && discountInfo.combo_products.length > 0 && (
+              <div className="combo-bundle-section">
+                <h4><FaGift /> এর সাথে এটাও নিন</h4>
+                <div className="combo-products-list">
+                  {discountInfo.combo_products.map((cp) => (
+                    <Link
+                      key={cp.id}
+                      to={`/product/${cp.slug}`}
+                      className="combo-product-link"
+                    >
+                      {cp.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {allSelected && currentVariant ? (
               variantInStock ? (

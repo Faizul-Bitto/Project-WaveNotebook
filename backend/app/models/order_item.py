@@ -51,6 +51,21 @@ class OrderItem(Base):
         nullable=False,
     )
 
+    discount_amount = Column(
+        Numeric(10, 2),
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    # BOGO bonus units added for free/discounted (physical units shipped & stock-adjusted)
+    bonus_quantity = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
     selected_attributes = Column(
         Text,
         nullable=True,

@@ -1,14 +1,41 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaTrash, FaShoppingCart, FaArrowLeft, FaSync } from 'react-icons/fa';
+import { FaTrash, FaShoppingCart, FaArrowLeft, FaSync, FaGift } from 'react-icons/fa';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import Modal from '../components/Modal';
 
 function Cart() {
-  const { cart, loading, fetchCart, updateItem, removeItem, clearAll } = useCart();
+  const { cart, loading, fetchCart, updateItem, removeItem, clearAll, totalDiscount, totalAfterDiscount, discountBreakdown, freeShipping, winningRule, pendingBogoOffers, simpleBogo, bogoFreeNote } = useCart();
   const { addToast } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
+  const [bogoUpdating, setBogoUpdating] = useState(false);
+
+  // Handle customer accepting a partial (<100%) BOGO offer.
+  // We map the pending offer's product_id to the matching cart item and
+  // increase its quantity to buy_quantity + get_quantity (= current + extra units).
+  const handleAcceptBogo = async (offer) => {
+    const match = (cart?.items || []).find((it) => it.product_id === offer.product_id);
+    if (!match) return;
+
+    const newQty = match.quantity + (offer.extra_units || offer.get_quantity || 1);
+    if (newQty > (match.available_stock || 0)) {
+      addToast(`Only ${match.available_stock} item(s) available in stock.`, 'error');
+      return;
+    }
+
+    setBogoUpdating(true);
+    try {
+      const result = await updateItem(match.id, newQty);
+      if (result.success) {
+        addToast(`BOGO applied — ${offer.extra_units} more added at ${offer.get_discount_percent}% off!`, 'success');
+      } else {
+        addToast(result.error || 'Failed to apply BOGO offer.', 'error');
+      }
+    } finally {
+      setBogoUpdating(false);
+    }
+  };
 
   const handleQuantityChange = async (itemId, newQuantity, availableStock) => {
     if (newQuantity < 1) return;
@@ -40,6 +67,20 @@ function Cart() {
     } else {
       addToast(result.error || 'Failed to clear cart.', 'error');
     }
+  };
+
+  // Build a BOGO label for an item that has free/discounted bonus units.
+  // For 100% free BOGO: bonus items are added on top (show "+ N FREE").
+  // For partial (<100%) BOGO: discounted items are within the purchased
+  // quantity — no extra badge shown; the discount appears in the summary.
+  const getBogoInfo = (item) => {
+    const bonus = item.bonus_quantity || item.bogo_bonus_quantity || 0;
+    if (!bonus) return null;
+    const pct = item.bogo_get_discount_percent;
+    const isFullFree = pct != null && pct >= 100;
+    if (!isFullFree) return null; // Partial BOGO: discount shown in summary, not as extra badge
+    const label = `${bonus} FREE`;
+    return { bonus, label, isFullFree };
   };
 
   if (loading) {
@@ -77,6 +118,32 @@ function Cart() {
         <div className="cart-layout">
           {/* Cart Items */}
           <div className="cart-items">
+            {/* Pending BOGO opt-in offers (partial <100% BOGO awaiting consent) */}
+            {pendingBogoOffers && pendingBogoOffers.length > 0 && (
+              <div className="cart-bogo-offers-section">
+                {pendingBogoOffers.map((offer, idx) => (
+                  <div className="bogo-offer-box" key={idx}>
+                    <div className="bogo-offer-icon"><FaGift /></div>
+                    <div className="bogo-offer-content">
+                      <span className="bogo-offer-title">
+                        🎁 Get one more for just ৳{parseFloat(offer.extra_unit_price || 0).toLocaleString()} ({parseInt(offer.get_discount_percent)}% off)!
+                      </span>
+                      <span className="bogo-offer-desc">
+                        BOGO Offer: Buy {offer.buy_quantity} get {offer.get_quantity} at {parseInt(offer.get_discount_percent)}% off
+                      </span>
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAcceptBogo(offer)}
+                      disabled={bogoUpdating}
+                    >
+                      {bogoUpdating ? 'Adding...' : `Add for ৳${parseFloat(offer.extra_total || 0).toLocaleString()}`}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {items.map((item) => (
               <div className="cart-item" key={item.id}>
                 <Link to={`/product/${item.slug}`} className="cart-item-image">
@@ -105,37 +172,45 @@ function Cart() {
                     )}
                  </div>
 
-                 <div className="cart-item-qty-wrapper">
-                   <div className="cart-item-quantity">
-                     <button
-                       onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.available_stock)}
-                       aria-label="Decrease quantity"
-                       disabled={item.quantity <= 1}
-                     >
-                       -
-                     </button>
-                     <span>{item.quantity}</span>
-                     <button
-                       onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.available_stock)}
-                       aria-label="Increase quantity"
-                       disabled={item.quantity >= (item.available_stock || 0)}
-                       title={item.available_stock ? `Only ${item.available_stock} in stock` : 'Out of stock'}
-                     >
-                       +
-                     </button>
-                   </div>
-                   {item.available_stock !== undefined && item.available_stock !== null && item.quantity >= (item.available_stock || 0) && (
-                     <span className="cart-qty-limit">
-                       {item.available_stock > 0
-                         ? `Only ${item.available_stock} in stock - max quantity reached`
-                         : 'Out of stock'}
-                     </span>
-                   )}
-                 </div>
+                  <div className="cart-item-qty-wrapper">
+                    <div className="cart-item-quantity">
+                      <button
+                        onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.available_stock)}
+                        aria-label="Decrease quantity"
+                        disabled={item.quantity <= 1}
+                      >
+                        -
+                      </button>
+                      <span>{item.quantity}</span>
+                      <button
+                        onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.available_stock)}
+                        aria-label="Increase quantity"
+                        disabled={item.quantity >= (item.available_stock || 0)}
+                        title={item.available_stock ? `Only ${item.available_stock} in stock` : 'Out of stock'}
+                      >
+                        +
+                      </button>
+                    </div>
+                    {getBogoInfo(item) && (
+                      <span className="cart-bogo-badge" title="Extra units added free via BOGO">
+                        + {getBogoInfo(item).label} (BOGO)
+                      </span>
+                    )}
+                    {item.available_stock !== undefined && item.available_stock !== null && item.quantity >= (item.available_stock || 0) && (
+                      <span className="cart-qty-limit">
+                        {item.available_stock > 0
+                          ? `Only ${item.available_stock} in stock - max quantity reached`
+                          : 'Out of stock'}
+                      </span>
+                    )}
+                  </div>
 
-                 <div className="cart-item-subtotal">
-                   <span>৳{parseFloat(item.subtotal).toLocaleString()}</span>
-                 </div>
+                  <div className="cart-item-subtotal">
+                    <span>৳{parseFloat(item.discounted_subtotal || item.subtotal).toLocaleString()}</span>
+                    {getBogoInfo(item) && (
+                      <span className="cart-bogo-note">includes {getBogoInfo(item).bonus} free</span>
+                    )}
+                  </div>
 
                  <button
                    className="cart-item-remove"
@@ -155,13 +230,59 @@ function Cart() {
               <span>Items ({cart?.total_items || 0})</span>
               <span>৳{parseFloat(cart?.total_price || '0').toLocaleString()}</span>
             </div>
-            <div className="summary-row">
+
+            {simpleBogo && bogoFreeNote && (
+              <div className="summary-row summary-row-bogo-note">
+                <span>{bogoFreeNote}</span>
+              </div>
+            )}
+
+            {!simpleBogo && bogoFreeNote && (
+              <div className="summary-row summary-row-bogo-note">
+                <span>{bogoFreeNote}</span>
+              </div>
+            )}
+
+            {discountBreakdown && discountBreakdown.length > 0 && (
+              <>
+                {discountBreakdown.map((entry, idx) => {
+                  const isBogoFree = entry.type === 'bogo' && parseFloat(entry.get_discount_percent || entry['get_discount_percent'] || 0) >= 100;
+                  return (
+                    <div className="summary-row summary-row-discount" key={idx}>
+                      <span>
+                        {entry.name || (entry.type === 'price_discount' ? 'Discount' : entry.type)}
+                      </span>
+                      <span className="discount-amount">
+                        {isBogoFree ? 'FREE' : `-৳${parseFloat(entry.amount || 0).toLocaleString()}`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
+            {freeShipping && (
+              <div className="summary-row summary-row-free-shipping">
+                <span><span className="fs-badge">🚚</span> Free Shipping</span>
+                <span className="free-shipping-text">FREE</span>
+              </div>
+            )}
+
+            {simpleBogo !== true && totalDiscount > 0 && (
+              <div className="summary-row summary-row-total-discount">
+                <span>Total Discount</span>
+                <span className="discount-amount">-৳{totalDiscount.toLocaleString()}</span>
+              </div>
+            )}
+
+            <div className="summary-row summary-row-shipping">
               <span>Delivery</span>
               <span>Calculated at checkout</span>
             </div>
+
             <div className="summary-total">
               <span>Total</span>
-              <span>৳{parseFloat(cart?.total_price || '0').toLocaleString()}</span>
+              <span>৳{totalAfterDiscount.toLocaleString()}</span>
             </div>
 
             {items.some(i => !i.available_stock || i.available_stock === 0 || i.quantity > (i.available_stock || 0)) && (

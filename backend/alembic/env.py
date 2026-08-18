@@ -44,6 +44,12 @@ from app.models.expense import Expense  # noqa: E402, F401
 from app.models.expense_type import ExpenseType  # noqa: E402, F401
 from app.models.payment_by import PaymentBy  # noqa: E402, F401
 from app.models.payment_method import PaymentMethod  # noqa: E402, F401
+from app.models.discount import Discount  # noqa: E402, F401
+from app.models.discount_scope import DiscountScope  # noqa: E402, F401
+from app.models.bundle_rule import BundleRule  # noqa: E402, F401
+from app.models.bundle_slab import BundleSlab  # noqa: E402, F401
+from app.models.bogo_rule import BogoRule  # noqa: E402, F401
+from app.models.discount_usage import DiscountUsage  # noqa: E402, F401
 
 from app.core.database import Base
 

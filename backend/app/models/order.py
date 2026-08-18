@@ -82,6 +82,16 @@ class Order(Base):
         nullable=False,
     )
 
+    total_discount = Column(
+        Numeric(10, 2),
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    # JSON snapshot of discount breakdown at time of order (survives rule changes)
+    discount_snapshot = Column(Text, nullable=False, server_default="{}")
+
     created_at = Column(
         DateTime,
         server_default=func.now(),

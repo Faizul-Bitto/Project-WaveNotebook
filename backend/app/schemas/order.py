@@ -11,6 +11,16 @@ class OrderItemCreate(BaseModel):
     selected_attributes: Optional[str] = None  # JSON string of selected attribute options
 
 
+class OrderItemPreview(BaseModel):
+    product_id: int
+    quantity: int = 1
+    selected_attributes: Optional[str] = None
+
+
+class OrderPreviewRequest(BaseModel):
+    items: List[OrderItemPreview]
+
+
 class OrderCreate(BaseModel):
     full_name: str
     phone_number: str

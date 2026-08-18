@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { getCart, addToCart, updateCartItem, deleteCartItem, clearCart } from '../api/services';
+import { getCart, addToCart, updateCartItem, deleteCartItem, clearCart, getShippingCharges } from '../api/services';
 
 const CartContext = createContext();
 
@@ -14,6 +14,7 @@ export function CartProvider({ children }) {
   });
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [shippingCharges, setShippingCharges] = useState([]);
 
   const fetchCart = useCallback(async () => {
     try {
@@ -32,10 +33,19 @@ export function CartProvider({ children }) {
     let mounted = true;
     const load = async () => {
       try {
-        const data = await getCart(cartSessionId);
-        if (mounted) setCart(data);
+        const [cartData, shippingData] = await Promise.all([
+          getCart(cartSessionId),
+          getShippingCharges(),
+        ]);
+        if (mounted) {
+          setCart(cartData);
+          setShippingCharges(shippingData.shipping_charges || []);
+        }
       } catch {
-        if (mounted) setCart({ items: [], total_items: 0, total_price: '0' });
+        if (mounted) {
+          setCart({ items: [], total_items: 0, total_price: '0' });
+          setShippingCharges([]);
+        }
       }
     };
     load();
@@ -90,6 +100,25 @@ export function CartProvider({ children }) {
 
   const cartCount = cart?.total_items || 0;
   const cartTotal = parseFloat(cart?.total_price || '0');
+  const totalDiscount = cart?.total_discount ? parseFloat(cart.total_discount) : 0;
+  const totalAfterDiscount = cart?.total_after_discount ? parseFloat(cart.total_after_discount) : cartTotal;
+  const discountBreakdown = cart?.discount_breakdown || [];
+  const freeShipping = cart?.free_shipping || false;
+  const winningRule = cart?.winning_rule || null;
+  // Partial (<100%) BOGO offers awaiting customer consent (opt-in).
+  const pendingBogoOffers = cart?.pending_bogo_offers || [];
+  const simpleBogo = cart?.simple_bogo || false;
+  const bogoFreeNote = cart?.bogo_free_note || null;
+
+  const getShippingChargeForDistrict = useCallback((districtName = '') => {
+    if (!shippingCharges.length) return null;
+    const normalized = (districtName || '').trim().toLowerCase();
+    const matched = shippingCharges.find((charge) => {
+      const zone = (charge.zone_name || '').trim().toLowerCase();
+      return normalized.includes(zone) || zone.includes(normalized);
+    });
+    return matched || null;
+  }, [shippingCharges]);
 
   return (
     <CartContext.Provider
@@ -98,6 +127,16 @@ export function CartProvider({ children }) {
         cartSessionId,
         cartCount,
         cartTotal,
+        totalDiscount,
+        totalAfterDiscount,
+        discountBreakdown,
+        freeShipping,
+        winningRule,
+        pendingBogoOffers,
+        simpleBogo,
+        bogoFreeNote,
+        shippingCharges,
+        getShippingChargeForDistrict,
         loading,
         fetchCart,
         addItem,

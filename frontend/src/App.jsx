@@ -34,6 +34,10 @@ import AdminExpenses from './pages/admin/ExpenseDashboard';
 import AdminExpenseTypes from './pages/admin/ExpenseTypeManagement';
 import AdminPaymentBy from './pages/admin/PaymentByManagement';
 import AdminPaymentMethods from './pages/admin/PaymentMethodManagement';
+import AdminDiscounts from './pages/admin/AdminDiscounts';
+import AdminDiscountForm from './pages/admin/AdminDiscountForm';
+import AdminShippingCharges from './pages/admin/AdminShippingCharges';
+import Offers from './pages/Offers';
 
 // Protected route component
 function ProtectedRoute({ children }) {
@@ -123,6 +127,14 @@ function App() {
             }
           />
           <Route
+            path="/offers"
+            element={
+              <StoreLayout>
+                <Offers />
+              </StoreLayout>
+            }
+          />
+          <Route
             path="/privacy-policy"
             element={
               <StoreLayout>
@@ -176,8 +188,12 @@ function App() {
             <Route path="expenses" element={<AdminExpenses />} />
             <Route path="expenses/types" element={<AdminExpenseTypes />} />
             <Route path="expenses/payment-by" element={<AdminPaymentBy />} />
-            <Route path="expenses/payment-methods" element={<AdminPaymentMethods />} />
-          </Route>
+             <Route path="expenses/payment-methods" element={<AdminPaymentMethods />} />
+              <Route path="discounts" element={<AdminDiscounts />} />
+              <Route path="discounts/new" element={<AdminDiscountForm />} />
+              <Route path="discounts/:id/edit" element={<AdminDiscountForm />} />
+              <Route path="shipping-charges" element={<AdminShippingCharges />} />
+            </Route>
 
           {/* 404 */}
           <Route
