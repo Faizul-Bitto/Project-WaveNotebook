@@ -1759,30 +1759,62 @@ textarea {
   white-space: nowrap;
 }
 
-.product-description {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-}
+ .product-description {
+   background: var(--white);
+   border: 1px solid var(--gray-200);
+   border-radius: var(--radius-lg);
+   padding: 32px;
+   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+ }
 
-.product-description h2 {
-  font-size: 20px;
-  color: var(--gray-900);
-  margin-bottom: 16px;
-}
+ .product-tabs {
+   display: flex;
+   gap: 2px;
+   margin-bottom: 20px;
+   border-bottom: 2px solid var(--gray-200);
+ }
 
-.product-description h3 {
-  font-size: 16px;
-  color: var(--gray-800);
-  margin: 20px 0 8px;
-}
+ .tab-btn {
+   flex: 1;
+   padding: 14px 20px;
+   background: transparent;
+   border: none;
+   border-bottom: 3px solid transparent;
+   font-size: 16px;
+   font-weight: 600;
+   color: var(--gray-600);
+   cursor: pointer;
+   transition: all 0.2s ease;
+   text-align: center;
+ }
 
-.product-description p {
-  color: var(--gray-600);
-  line-height: 1.7;
-}
+ .tab-btn:hover {
+   color: var(--primary-dark);
+   background-color: var(--gray-50);
+ }
+
+ .tab-btn.active {
+   color: var(--primary);
+   border-bottom-color: var(--primary);
+ }
+
+ .tab-content {
+   min-height: 120px;
+ }
+
+ .tab-pane {
+   animation: fadeIn 0.3s ease;
+ }
+
+ @keyframes fadeIn {
+   from { opacity: 0; }
+   to { opacity: 1; }
+ }
+
+ .product-description p {
+   color: var(--gray-600);
+   line-height: 1.7;
+ }
 
 /* ==========================================
    Actions Column Alignment

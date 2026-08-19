@@ -22,6 +22,7 @@ function ProductDetail() {
   const [variantLoading, setVariantLoading] = useState(false);
   const [variantError, setVariantError] = useState(null);
   const [discountInfo, setDiscountInfo] = useState(null);
+  const [activeTab, setActiveTab] = useState('description');
   const pageRef = useRef(null);
 
   useEffect(() => {
@@ -490,16 +491,39 @@ function ProductDetail() {
           </div>
         </div>
 
-        {/* Description */}
+        {/* Description / Additional Information Tabs */}
         <div className="product-description">
-          <h2>Product Description</h2>
-          <p>{product.description || 'No description available.'}</p>
-          {product.specifications && (
-            <>
-              <h3>Specifications</h3>
-              <p>{product.specifications}</p>
-            </>
-          )}
+          <div className="product-tabs">
+            <button
+              className={`tab-btn ${activeTab === 'description' ? 'active' : ''}`}
+              onClick={() => setActiveTab('description')}
+            >
+              Description
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'specification' ? 'active' : ''}`}
+              onClick={() => setActiveTab('specification')}
+            >
+              Additional Information
+            </button>
+          </div>
+
+          <div className="tab-content">
+            {activeTab === 'description' && (
+              <div className="tab-pane">
+                <p>{product.description || 'No description available.'}</p>
+              </div>
+            )}
+            {activeTab === 'specification' && (
+              <div className="tab-pane">
+                {product.specifications ? (
+                  <p>{product.specifications}</p>
+                ) : (
+                  <p>No specifications available.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
