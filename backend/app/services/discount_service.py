@@ -950,14 +950,18 @@ def calculate_cart_discounts(db: Session, cart_items: list[dict]) -> dict:
     # ----------------------------------------------------------
     bogo_details = []
     bogo_savings_total = 0.0
+    bogo_100_savings = 0.0  # savings from 100% free BOGO items only
+    has_any_full_free_bogo = False
 
     for it in items_breakdown:
         if it["bonus_quantity"] > 0 and it.get("bogo_info"):
             info = it["bogo_info"]
             pct = float(info["get_discount_percent"])
-            bogo_savings_total += (
-                it["bonus_quantity"] * it["unit_price"] * (pct / 100.0)
-            )
+            savings = it["bonus_quantity"] * it["unit_price"] * (pct / 100.0)
+            bogo_savings_total += savings
+            if pct >= 100.0:
+                has_any_full_free_bogo = True
+                bogo_100_savings += savings
             bogo_details.append(
                 {
                     "product_id": it["product_id"],
@@ -1097,19 +1101,23 @@ def calculate_cart_discounts(db: Session, cart_items: list[dict]) -> dict:
     ) and not any(it.get("discount_amount", 0) > 0 for it in items_breakdown)
 
     # `total_discount` is the aggregate discount shown as "Total Discount" in summaries.
-    # For partial BOGO: include BOGO savings so the discount is visible to the user.
-    # For 100% free BOGO (simple_bogo): excluded from Total Discount display (the
-    # frontend shows bogoFreeNote instead), so including it here is harmless.
-    total_discount = explicit_discount + bogo_savings_total
+    # For 100% free BOGO: the free items are shown as a separate "FREE" line in the
+    # discount breakdown, so their value is excluded from Total Discount to avoid
+    # double-counting. For partial (<100%) BOGO: BOGO savings are included because
+    # the discount is applied within the purchased quantity (no extra free items).
+    if has_any_full_free_bogo:
+        total_discount = explicit_discount + (bogo_savings_total - bogo_100_savings)
+    else:
+        total_discount = explicit_discount + bogo_savings_total
 
     # `display_subtotal` is what the cart/order summary shows as "Items" total.
-    # For simple 100% BOGO: equals the final payable amount (free items already
-    # removed, e.g. "3 + 1 FREE @ ৳6,000").
+    # For 100% free BOGO: free bonus items are excluded from the subtotal so the
+    # customer sees what they actually pay for (e.g. "6 + 2 FREE @ ৳600").
     # For partial BOGO or other discounts: shows the subtotal BEFORE discounts
     # so the saved amount is visible as a separate line (e.g. Items ৳8,000,
     # BOGO Applied -৳1,000, Total ৳7,000).
-    if simple_bogo:
-        display_subtotal = subtotal_before - bogo_savings_total
+    if has_any_full_free_bogo:
+        display_subtotal = subtotal_before - bogo_100_savings
     else:
         display_subtotal = subtotal_before
 

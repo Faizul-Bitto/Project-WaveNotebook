@@ -1613,7 +1613,9 @@ textarea {
 
 .add-to-cart-detail {
   width: 100%;
+  max-width: 280px;
   margin-bottom: 24px;
+  display: block;
 }
 
 .add-to-cart-detail:disabled,
@@ -1627,19 +1629,40 @@ textarea {
 }
 
 .trust-badges {
-  display: flex;
-  gap: 24px;
-  padding-top: 20px;
-  border-top: 1px solid var(--gray-200);
-}
+   display: flex;
+   gap: 24px;
+   padding-top: 20px;
+   border-top: 1px solid var(--gray-200);
+ }
 
-.trust-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--gray-600);
-}
+ .viewer-count {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   margin-bottom: 16px;
+   font-size: 13px;
+   font-weight: 500;
+   color: var(--gray-600);
+ }
+
+ .viewer-count-icon {
+   color: var(--primary);
+   font-size: 15px;
+   animation: pulse 2s ease-in-out infinite;
+ }
+
+ @keyframes pulse {
+   0%, 100% { transform: scale(1); }
+   50% { transform: scale(1.15); }
+ }
+
+ .trust-item {
+   display: flex;
+   align-items: center;
+   gap: 8px;
+   font-size: 13px;
+   color: var(--gray-600);
+ }
 
 .trust-item svg {
   color: var(--success);

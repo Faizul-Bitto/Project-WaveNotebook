@@ -31,6 +31,16 @@ export const getDefaultVariant = async (productId) => {
   return data;
 };
 
+export const registerProductView = async (productId, sessionId) => {
+  const { data } = await api.post(`/products/${productId}/view`, { session_id: sessionId });
+  return data;
+};
+
+export const getProductViewCount = async (productId) => {
+  const { data } = await api.get(`/products/${productId}/view-count`);
+  return data;
+};
+
 // ==========================================
 // Categories
 // ==========================================

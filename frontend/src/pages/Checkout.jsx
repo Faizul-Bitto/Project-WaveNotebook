@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FaCheckCircle, FaCopy, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { createOrder, getDistricts } from '../api/services';
+import { createOrder, getDistricts, calculateCart } from '../api/services';
 import PhoneInput from '../components/PhoneInput';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
@@ -37,8 +37,18 @@ function Checkout () {
     note: '',
     address: '',
   } );
+  const [ directCalc, setDirectCalc ] = useState( null );
 
-  const shippingCharge = !freeShipping ? getShippingChargeForDistrict( formData.district ) : null;
+  // Compute effective unit price for a direct item (selected variant price)
+  const computeDirectUnitPrice = () => {
+    if ( !directItem ) return 0;
+    let price = directItem.variant?.price
+      ? parseFloat( directItem.variant.price )
+      : ( directItem.product.price_range ? parseFloat( directItem.product.price_range.min ) : 0 );
+    return price;
+  };
+
+  const directUnitPrice = computeDirectUnitPrice();
 
   useEffect( () => {
     const loadDistricts = async () => {
@@ -51,6 +61,31 @@ function Checkout () {
     };
     loadDistricts();
   }, [] );
+
+  // When buying directly, calculate discounts just like the cart flow so
+  // the order summary shows BOGO badges, price discounts, free shipping, etc.
+  useEffect( () => {
+    if ( !directItem ) {
+      setDirectCalc( null );
+      return;
+    }
+
+    const calcDirect = async () => {
+      try {
+        const resp = await calculateCart( [ {
+          product_id: directItem.product.id,
+          quantity: directItem.quantity,
+          selected_attributes: directItem.attrsString,
+          unit_price: directUnitPrice,
+        } ] );
+        setDirectCalc( resp.calculation );
+      } catch ( err ) {
+        setDirectCalc( null );
+      }
+    };
+
+    calcDirect();
+  }, [ directItem, directUnitPrice ] );
 
   const handleChange = ( e ) => {
     setFormData( {
@@ -123,34 +158,76 @@ function Checkout () {
     }
   };
 
-  // Compute effective unit price for a direct item (selected variant price)
-  const computeDirectUnitPrice = () => {
-    if ( !directItem ) return 0;
-    let price = directItem.variant?.price
-      ? parseFloat( directItem.variant.price )
-      : ( directItem.product.price_range ? parseFloat( directItem.product.price_range.min ) : 0 );
-    return price;
-  };
+  // Build a selected-attributes display string for the direct buy item.
+  const directAttrsDisplay = directItem?.product.attributes
+    ?.filter( ( attr ) => directItem?.selectedOptions?.[ attr.id ] )
+    .map( ( attr ) => {
+      const opt = ( attr.options || [] ).find( ( o ) => o.id === directItem.selectedOptions[ attr.id ] );
+      return `${ attr.name }: ${ opt ? opt.value : '' }`;
+    } )
+    .join( ', ' ) || undefined;
 
-  const directUnitPrice = computeDirectUnitPrice();
-  const items = directItem ? [ {
-    id: 'direct',
-    product_name: directItem.product.name,
-    slug: directItem.product.slug,
-    quantity: directItem.quantity,
-    unit_price: directUnitPrice,
-    selected_attributes_display: directItem.product.attributes
-      ?.filter( ( attr ) => directItem.selectedOptions?.[ attr.id ] )
-      .map( ( attr ) => {
-        const opt = ( attr.options || [] ).find( ( o ) => o.id === directItem.selectedOptions[ attr.id ] );
-        return `${ attr.name }: ${ opt ? opt.value : '' }`;
+  // When direct buy, prefer the discount-calculation result; fall back to the
+  // raw item if the calculation hasn't loaded yet.
+  const directCalcItems = ( directItem && directCalc?.items?.length > 0 )
+    ? directCalc.items.map( ( ci ) => {
+        const bogoInfo = ci.bogo_info || {};
+        return {
+          id: `direct-${ ci.product_id }`,
+          product_name: ci.product_name,
+          slug: directItem.product.slug,
+          quantity: ci.quantity,
+          unit_price: ci.unit_price,
+          selected_attributes_display: directAttrsDisplay,
+          subtotal: ci.original_subtotal,
+          discounted_subtotal: ci.discounted_subtotal,
+          discount_amount: ci.discount_amount,
+          bonus_quantity: ci.bonus_quantity,
+          bogo_bonus_quantity: ci.bonus_quantity,
+          bogo_get_discount_percent: bogoInfo.get_discount_percent ?? bogoInfo.get_discount_pct ?? null,
+          simple_bogo: ci.simple_bogo,
+        };
       } )
-      .join( ', ' ) || undefined,
-    subtotal: ( directUnitPrice * directItem.quantity ).toFixed( 2 ),
-  } ] : ( cart?.items || [] );
-  const totalPrice = directItem
-    ? directUnitPrice * directItem.quantity
-    : parseFloat( cart?.total_price || '0' );
+    : [];
+
+  const directFallbackItem = directItem && ( directUnitPrice > 0 )
+    ? [ {
+        id: 'direct',
+        product_name: directItem.product.name,
+        slug: directItem.product.slug,
+        quantity: directItem.quantity,
+        unit_price: directUnitPrice,
+        selected_attributes_display: directAttrsDisplay,
+        subtotal: ( directUnitPrice * directItem.quantity ).toFixed( 2 ),
+      } ]
+    : [];
+
+  const items = directItem
+    ? ( directCalcItems.length > 0 ? directCalcItems : directFallbackItem )
+    : ( cart?.items || [] );
+
+  // Effective display values: use direct calc result for "Buy Now", cart context otherwise.
+  const displaySimpleBogo = directItem
+    ? ( directCalc ? directCalc.simple_bogo : false )
+    : simpleBogo;
+  const displayBogoFreeNote = directItem
+    ? ( directCalc ? directCalc.bogo_free_note : null )
+    : bogoFreeNote;
+  const displayDiscountBreakdown = directItem
+    ? ( directCalc ? directCalc.discount_breakdown : [] )
+    : ( discountBreakdown || [] );
+  const displayTotalDiscount = directItem
+    ? ( directCalc ? parseFloat( directCalc.total_discount ) : 0 )
+    : totalDiscount;
+  const displayFreeShipping = directItem
+    ? ( directCalc ? directCalc.free_shipping : false )
+    : freeShipping;
+  const displayShippingCharge = displayFreeShipping
+    ? null
+    : getShippingChargeForDistrict( formData.district );
+  const checkoutTotal = directItem
+    ? ( directCalc ? parseFloat( directCalc.total_after_discount ) : ( directUnitPrice * directItem.quantity ) )
+    : totalAfterDiscount;
 
   // Order success screen - use API response data (items, total) not cart state
   if ( orderSuccess ) {
@@ -483,13 +560,13 @@ function Checkout () {
                 </div>
               ) ) }
 
-              { simpleBogo && bogoFreeNote && (
+              { displaySimpleBogo && displayBogoFreeNote && (
                 <div className="checkout-summary-row checkout-bogo-note">
-                  <span>{ bogoFreeNote }</span>
+                  <span>{ displayBogoFreeNote }</span>
                 </div>
               ) }
 
-              { !simpleBogo && totalDiscount > 0 && discountBreakdown && discountBreakdown.length > 0 && discountBreakdown
+              { !displaySimpleBogo && displayTotalDiscount > 0 && displayDiscountBreakdown && displayDiscountBreakdown.length > 0 && displayDiscountBreakdown
                 .filter( ( entry ) => parseFloat( entry.amount || 0 ) > 0 )
                 .map( ( entry, idx ) => (
                   <div className="checkout-summary-row checkout-discount-row" key={ idx }>
@@ -502,27 +579,27 @@ function Checkout () {
                   </div>
                 ) ) }
 
-              { freeShipping && (
+              { displayFreeShipping && (
                 <div className="checkout-summary-row checkout-free-shipping">
                   <span><span className="fs-badge">🚚</span> Free Shipping</span>
                   <span className="free-shipping-text">FREE</span>
                 </div>
               ) }
 
-              { !simpleBogo && totalDiscount > 0 && (
+              { !displaySimpleBogo && displayTotalDiscount > 0 && (
                 <div className="checkout-summary-row checkout-total-discount">
                   <span>Total Discount</span>
-                  <span className="discount-amount">-৳{ totalDiscount.toLocaleString() }</span>
+                  <span className="discount-amount">-৳{ displayTotalDiscount.toLocaleString() }</span>
                 </div>
               ) }
 
               <div className="checkout-total">
                 <span>Total</span>
-                <span>৳{ totalAfterDiscount.toLocaleString() }</span>
+                <span>৳{ checkoutTotal.toLocaleString() }</span>
               </div>
             </div>
 
-            { !freeShipping && (
+            { !displayFreeShipping && (
               <div className="checkout-shipment">
                 <h2>Shipment</h2>
                 <div className="shipment-zones">

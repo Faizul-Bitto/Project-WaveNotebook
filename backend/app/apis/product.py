@@ -1,5 +1,6 @@
 import json
 from fastapi import APIRouter, HTTPException, Path, Body
+from sqlalchemy import func
 from starlette import status
 
 from app.core.logger import logger
@@ -12,6 +13,7 @@ from app.models.product_attribute_option import ProductAttributeOption
 from app.models.product_variant import ProductVariant
 from app.models.file import File
 from app.utils.variant_generator import find_matching_variant, compute_product_in_stock
+from app.services.view_tracker import view_tracker
 
 router = APIRouter(
     prefix="/products",
@@ -57,9 +59,13 @@ async def get_products(
         if sort_by == 'latest':
             query = query.order_by(Product.created_at.desc())
         elif sort_by == 'price_asc':
-            query = query.join(ProductVariant).filter(ProductVariant.is_active == True).order_by(ProductVariant.price.asc()).distinct()
+            query = query.join(ProductVariant).filter(
+                ProductVariant.is_active == True
+            ).group_by(Product.id).order_by(func.min(ProductVariant.price).asc())
         elif sort_by == 'price_desc':
-            query = query.join(ProductVariant).filter(ProductVariant.is_active == True).order_by(ProductVariant.price.desc()).distinct()
+            query = query.join(ProductVariant).filter(
+                ProductVariant.is_active == True
+            ).group_by(Product.id).order_by(func.min(ProductVariant.price).desc())
 
         products = query.offset(skip).limit(limit).all()
         total = query.count()
@@ -170,7 +176,90 @@ async def get_products(
         logger.error(f"❌ Error retrieving products | Error={str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve products.",
+            detail="Failed to retrieve product.",
+        )
+
+
+@router.post("/{product_id}/view", status_code=status.HTTP_200_OK)
+async def register_product_view(
+    db: db_dependency,
+    product_id: int = Path(gt=0),
+    payload: dict = Body(...),
+):
+    """
+    Register (or refresh) a viewer session for a product and return the
+    current active viewer count.
+
+    The client should call this periodically (e.g. every 5-10 seconds) to
+    keep its session alive and receive real-time count updates.
+
+    POST /products/{product_id}/view
+    Body: {"session_id": "<unique-client-id>"}
+    """
+    session_id = payload.get("session_id")
+    if not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="session_id is required.",
+        )
+
+    try:
+        product = (
+            db.query(Product)
+            .filter(Product.id == product_id, Product.is_active == True)
+            .first()
+        )
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Product not found.",
+            )
+
+        count = view_tracker.register(product_id, session_id)
+        return {"product_id": product_id, "count": count}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error registering product view | Error={str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to register view.",
+        )
+
+
+@router.get("/{product_id}/view-count", status_code=status.HTTP_200_OK)
+async def get_product_view_count(
+    db: db_dependency,
+    product_id: int = Path(gt=0),
+):
+    """
+    Get the number of active viewers for a product.
+
+    GET /products/{product_id}/view-count
+    """
+    try:
+        product = (
+            db.query(Product)
+            .filter(Product.id == product_id, Product.is_active == True)
+            .first()
+        )
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Product not found.",
+            )
+
+        count = view_tracker.get_count(product_id)
+        return {"product_id": product_id, "count": count}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting view count | Error={str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get view count.",
         )
 
 
