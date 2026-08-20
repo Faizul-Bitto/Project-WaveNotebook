@@ -1,11 +1,13 @@
-from typing import Any, List
+import json
+from typing import Any
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # CORS
-    CORS_ORIGINS: List[str]
+    # CORS — stored as Any to prevent pydantic-settings from JSON-decoding env
+    # var values before the validator runs. The validator parses into List[str].
+    CORS_ORIGINS: Any
 
     # Database
     DATABASE_URL: str
@@ -45,7 +47,16 @@ class Settings(BaseSettings):
     @classmethod
     def parse_cors_origins(cls, value: Any):
         if isinstance(value, str):
-            return [origin.strip() for origin in value.split(",")]
+            if value.strip().startswith("["):
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, list):
+                        return [origin.strip().rstrip("/") for origin in parsed]
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return [origin.strip().rstrip("/") for origin in value.split(",")]
+        if isinstance(value, list):
+            return [str(origin).strip().rstrip("/") for origin in value]
         return value
 
 
