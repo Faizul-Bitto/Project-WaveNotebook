@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { FaBolt, FaCheckCircle, FaEye, FaGift, FaShieldAlt, FaShoppingCart, FaTag, FaTruck, FaUndo } from 'react-icons/fa';
+import { FaBolt, FaCheckCircle, FaEye, FaGift, FaPhone, FaShieldAlt, FaShoppingCart, FaTag, FaTruck, FaUndo, FaWhatsapp } from 'react-icons/fa';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { findVariant, getDefaultVariant, getProductBySlug, getProductDiscounts, registerProductView } from '../api/services';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
+import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useToast } from '../context/ToastContext';
 
 function ProductDetail () {
@@ -12,6 +13,7 @@ function ProductDetail () {
   const { addItem } = useCart();
   const { setDirectItem } = useDirectBuy();
   const { addToast } = useToast();
+  const { settings } = useSiteSettings();
   const [ product, setProduct ] = useState( null );
   const [ loading, setLoading ] = useState( true );
   const [ quantity, setQuantity ] = useState( 1 );
@@ -421,17 +423,22 @@ function ProductDetail () {
               </div>
             ) }
 
-            { allSelected && currentVariant ? (
-              variantInStock ? (
-                <span className="stock-badge in-stock">✓ In Stock</span>
+            <div className="stock-badge-row">
+              { allSelected && currentVariant ? (
+                variantInStock ? (
+                  <span className="stock-badge in-stock">✓ In Stock</span>
+                ) : (
+                  <span className="stock-badge out-of-stock">✗ Out of Stock</span>
+                )
+              ) : variantError ? (
+                <span className="stock-badge out-of-stock">✗ { variantError }</span>
               ) : (
-                <span className="stock-badge out-of-stock">✗ Out of Stock</span>
-              )
-            ) : variantError ? (
-              <span className="stock-badge out-of-stock">✗ { variantError }</span>
-            ) : (
-              <span className="stock-badge in-stock">✓ In Stock</span>
-            ) }
+                <span className="stock-badge in-stock">✓ In Stock</span>
+              ) }
+              { allSelected && currentVariant && variantInStock && maxQuantity > 0 && (
+                <span className="stock-count-inline">{ maxQuantity } in stock</span>
+              ) }
+            </div>
 
             {/* Attributes - no auto-selection, user must choose */ }
             { product.attributes?.length > 0 && (
@@ -487,28 +494,52 @@ function ProductDetail () {
               { allSelected && currentVariant && !variantInStock && (
                 <p className="stock-warning">Out of stock</p>
               ) }
-              { allSelected && currentVariant && variantInStock && maxQuantity > 0 && (
-                <p className="stock-available">{ maxQuantity } in stock</p>
-              ) }
             </div>
 
-            {/* Add to Cart */ }
-            <button
-              className="btn btn-primary btn-lg add-to-cart-detail"
-              onClick={ handleAddToCart }
-              disabled={ !allSelected || !currentVariant || !variantInStock || variantLoading || quantity > maxQuantity }
-            >
-              { added ? <><FaCheckCircle /> Added to Cart</> : <><FaShoppingCart /> Add to Cart</> }
-            </button>
+            {/* Action Buttons Grid */ }
+            <div className="action-buttons-grid">
+              {/* Add to Cart */ }
+              <button
+                className="btn btn-primary btn-lg add-to-cart-detail"
+                onClick={ handleAddToCart }
+                disabled={ !allSelected || !currentVariant || !variantInStock || variantLoading || quantity > maxQuantity }
+              >
+                { added ? <><FaCheckCircle /> Added to Cart</> : <><FaShoppingCart /> Add to Cart</> }
+              </button>
 
-            {/* Buy Now */ }
-            <button
-              className="btn btn-success btn-lg add-to-cart-detail"
-              onClick={ handleBuyNow }
-              disabled={ !allSelected || !currentVariant || !variantInStock || variantLoading || quantity > maxQuantity }
-            >
-              <FaBolt /> Buy Now
-            </button>
+              {/* Buy Now */ }
+              <button
+                className="btn btn-success btn-lg add-to-cart-detail"
+                onClick={ handleBuyNow }
+                disabled={ !allSelected || !currentVariant || !variantInStock || variantLoading || quantity > maxQuantity }
+              >
+                <FaBolt /> Buy Now
+              </button>
+
+              {/* Order via WhatsApp / Call */ }
+              { ( settings?.order_whatsapp_number || settings?.order_call_number ) && (
+                <div className="order-contact-buttons">
+                  { settings?.order_whatsapp_number && (
+                    <a
+                      className="order-contact-btn order-whatsapp-btn"
+                      href={ `https://wa.me/${ settings.order_whatsapp_number.replace( /[^0-9]/g, '' ) }?text=${ encodeURIComponent( `Hi, I want to order: ${ product.name } (Code: ${ product.product_code })` ) }` }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FaWhatsapp /> Order on WhatsApp
+                    </a>
+                  ) }
+                  { settings?.order_call_number && (
+                    <a
+                      className="order-contact-btn order-call-btn"
+                      href={ `tel:${ settings.order_call_number.replace( /[^0-9]/g, '' ) }` }
+                    >
+                      <FaPhone /> Call for Order: { settings.order_call_number }
+                    </a>
+                  ) }
+                </div>
+              ) }
+            </div>
 
             {/* Trust badges */ }
             <div className="trust-badges">

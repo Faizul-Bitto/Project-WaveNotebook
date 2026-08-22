@@ -21,6 +21,8 @@ function AdminSettings () {
     twitter_url: '',
     whatsapp_number: '',
     messenger_url: '',
+    order_whatsapp_number: '',
+    order_call_number: '',
     privacy_policy: '',
     terms_conditions: '',
     refund_policy: '',
@@ -49,6 +51,8 @@ function AdminSettings () {
         twitter_url: s.twitter_url || '',
         whatsapp_number: s.whatsapp_number || '',
         messenger_url: s.messenger_url || '',
+        order_whatsapp_number: s.order_whatsapp_number || '',
+        order_call_number: s.order_call_number || '',
         privacy_policy: s.privacy_policy || '',
         terms_conditions: s.terms_conditions || '',
         refund_policy: s.refund_policy || '',
@@ -103,6 +107,8 @@ function AdminSettings () {
       fd.append( 'twitter_url', formData.twitter_url );
       fd.append( 'whatsapp_number', formData.whatsapp_number );
       fd.append( 'messenger_url', formData.messenger_url );
+      fd.append( 'order_whatsapp_number', formData.order_whatsapp_number );
+      fd.append( 'order_call_number', formData.order_call_number );
       fd.append( 'privacy_policy', formData.privacy_policy );
       fd.append( 'terms_conditions', formData.terms_conditions );
       fd.append( 'refund_policy', formData.refund_policy );
@@ -231,6 +237,24 @@ function AdminSettings () {
           <div className="form-group">
             <label>Instagram URL</label>
             <input type="url" name="instagram_url" value={ formData.instagram_url } onChange={ handleChange } placeholder="https://instagram.com/..." />
+          </div>
+        </div>
+
+        {/* Order Contact Numbers */ }
+        <div className="admin-form">
+          <h3>Order Contact Numbers</h3>
+          <p style={ { fontSize: '12px', color: '#64748b', marginBottom: '16px' } }>These numbers appear on the product detail page so customers can place orders via WhatsApp or phone call directly. These are separate from the chat/social numbers.</p>
+
+          <div className="form-group">
+            <label>Order WhatsApp Number</label>
+            <input type="text" name="order_whatsapp_number" value={ formData.order_whatsapp_number } onChange={ handleChange } placeholder="+8801700000000" />
+            <p className="upload-hint">Customers click this on the product page to order via WhatsApp (e.g. +8801700000000)</p>
+          </div>
+
+          <div className="form-group">
+            <label>Order Call Number</label>
+            <input type="text" name="order_call_number" value={ formData.order_call_number } onChange={ handleChange } placeholder="01700-000000" />
+            <p className="upload-hint">Customers click this on the product page to call for orders (e.g. 01700-000000)</p>
           </div>
         </div>
 

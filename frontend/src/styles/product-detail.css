@@ -149,17 +149,28 @@
   color: #991b1b;
 }
 
+/* Stock badge + count inline row */
+.stock-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stock-badge-row .stock-badge {
+  margin-bottom: 0;
+}
+
+.stock-count-inline {
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
+}
+
 .stock-warning {
   margin-top: 4px;
   font-size: 13px;
   color: #dc2626;
-  font-weight: 600;
-}
-
-.stock-available {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #059669;
   font-weight: 600;
 }
 
@@ -270,10 +281,18 @@
 }
 
 .add-to-cart-detail {
-  width: 100%;
-  max-width: 280px;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Action Buttons Grid (Add to Cart | Buy Now / WhatsApp | Call) */
+.action-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   margin-bottom: 24px;
-  display: block;
 }
 
 .add-to-cart-detail:disabled,
@@ -284,6 +303,55 @@
   opacity: 0.65;
   transform: none;
   box-shadow: none;
+}
+
+/* Order Contact Buttons (WhatsApp / Call) */
+.order-contact-buttons {
+  display: contents;
+}
+
+.order-contact-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  text-align: center;
+}
+
+.order-whatsapp-btn {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: var(--white);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
+}
+
+.order-whatsapp-btn:hover {
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+}
+
+.order-call-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+}
+
+.order-call-btn:hover {
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+}
+
+.order-contact-btn svg {
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
 .trust-badges {

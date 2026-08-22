@@ -29,6 +29,10 @@ class SiteSettings(Base):
     whatsapp_number = Column(String(50), nullable=True, server_default=None)
     messenger_url = Column(String(500), nullable=True, server_default=None)
 
+    # Order Contact Numbers (Product Detail Page)
+    order_whatsapp_number = Column(String(50), nullable=True, server_default=None)
+    order_call_number = Column(String(50), nullable=True, server_default=None)
+
     # Policy Pages
     privacy_policy = Column(Text, nullable=True, server_default=None)
     terms_conditions = Column(Text, nullable=True, server_default=None)

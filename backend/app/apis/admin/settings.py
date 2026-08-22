@@ -44,6 +44,8 @@ async def get_settings(db: db_dependency, admin: admin_dependency):
             "twitter_url": settings.twitter_url,
             "whatsapp_number": settings.whatsapp_number,
             "messenger_url": settings.messenger_url,
+            "order_whatsapp_number": settings.order_whatsapp_number,
+            "order_call_number": settings.order_call_number,
             "privacy_policy": settings.privacy_policy,
             "terms_conditions": settings.terms_conditions,
             "refund_policy": settings.refund_policy,
@@ -68,6 +70,8 @@ async def update_settings(
     twitter_url: str = Form(None),
     whatsapp_number: str = Form(None),
     messenger_url: str = Form(None),
+    order_whatsapp_number: str = Form(None),
+    order_call_number: str = Form(None),
     privacy_policy: str = Form(None),
     terms_conditions: str = Form(None),
     refund_policy: str = Form(None),
@@ -102,6 +106,10 @@ async def update_settings(
         settings.whatsapp_number = whatsapp_number
     if messenger_url is not None:
         settings.messenger_url = messenger_url
+    if order_whatsapp_number is not None:
+        settings.order_whatsapp_number = order_whatsapp_number
+    if order_call_number is not None:
+        settings.order_call_number = order_call_number
     if privacy_policy is not None:
         settings.privacy_policy = privacy_policy
     if terms_conditions is not None:
@@ -142,6 +150,8 @@ async def update_settings(
             "twitter_url": settings.twitter_url,
             "whatsapp_number": settings.whatsapp_number,
             "messenger_url": settings.messenger_url,
+            "order_whatsapp_number": settings.order_whatsapp_number,
+            "order_call_number": settings.order_call_number,
             "privacy_policy": settings.privacy_policy,
             "terms_conditions": settings.terms_conditions,
             "refund_policy": settings.refund_policy,

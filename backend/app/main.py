@@ -115,6 +115,35 @@ async def lifespan(app: FastAPI):
         # ==========================================================
         Base.metadata.create_all(bind=engine)
 
+        # Lightweight migration: ensure new settings columns exist
+        # (create_all only creates missing tables, not missing columns)
+        from sqlalchemy import inspect
+
+        try:
+            inspector = inspect(engine)
+            columns = [c["name"] for c in inspector.get_columns("site_settings")]
+            with engine.begin() as conn:
+                if "order_whatsapp_number" not in columns:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE site_settings "
+                            "ADD COLUMN order_whatsapp_number VARCHAR(50) "
+                            "DEFAULT NULL"
+                        )
+                    )
+                    logger.info("➕ Added column: site_settings.order_whatsapp_number")
+                if "order_call_number" not in columns:
+                    conn.execute(
+                        text(
+                            "ALTER TABLE site_settings "
+                            "ADD COLUMN order_call_number VARCHAR(50) "
+                            "DEFAULT NULL"
+                        )
+                    )
+                    logger.info("➕ Added column: site_settings.order_call_number")
+        except Exception:
+            logger.exception("⚠️ Could not run settings column migration")
+
         logger.info("📦 Database Tables Synchronized")
 
         # ==========================================================
