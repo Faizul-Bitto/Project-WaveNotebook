@@ -2,7 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -278,11 +278,11 @@ async def get_all_products(
             query = query.filter(Product.is_featured == is_featured)
 
         if search:
-            search_term = f"%{search}%"
+            search_term = f"%{search.lower()}%"
             query = query.filter(
                 or_(
-                    Product.name.ilike(search_term),
-                    Product.product_code.ilike(search_term),
+                    func.lower(Product.name).like(search_term),
+                    func.lower(Product.product_code).like(search_term),
                 )
             )
 

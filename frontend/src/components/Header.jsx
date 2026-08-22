@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useRef } from 'react';
-import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield } from 'react-icons/fa';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield, FaTimes } from 'react-icons/fa';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
+import { searchProducts } from '../api/services';
 
 function Header() {
   const { settings } = useSiteSettings();
@@ -11,7 +11,19 @@ function Header() {
   const logoUrl = settings.logo_url;
   const siteName = settings.site_name || 'WaveNotebook';
   const navigate = useNavigate();
-  const headerRef = useRef(null);
+  const location = useLocation();
+  const isHome = location.pathname === '/';
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchInputRef = useRef(null);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -25,16 +37,51 @@ function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (headerRef.current) {
-        setScrolled(headerRef.current.scrollY > 50);
-      }
+      setScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const data = await searchProducts(searchQuery, 8);
+        setSearchResults(data.products || []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        closeSearch();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    if (searchOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [searchOpen]);
+
   return (
-    <header className={`header ${scrolled ? 'scrolled' : ''}`} ref={headerRef}>
+    <header className={`header ${scrolled ? 'scrolled' : ''}`}>
       {/* Top bar */}
       <div className="top-bar">
         <div className="container top-bar-inner">
@@ -65,24 +112,119 @@ function Header() {
             <span className="logo-text">{siteName}</span>
           </Link>
 
-          <form className="search-bar" onSubmit={handleSearch}>
-            <input
-              type="text"
-              name="search"
-              placeholder="Search products..."
-              className="search-input"
-            />
-            <button type="submit" className="search-btn">
-              <FaSearch />
-            </button>
-          </form>
+          {isHome ? (
+            <div className="header-actions">
+              <div className="search-dropdown">
+                <button
+                  type="button"
+                  className={`search-btn ${searchOpen ? 'active' : ''}`}
+                  onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) searchInputRef.current?.focus(); }}
+                  title="Search products"
+                >
+                  <FaSearch />
+                </button>
 
-          <Link to="/cart" className="cart-icon-only cart-btn">
-            <FaShoppingCart />
-            {cartCount > 0 && (
-              <span className="cart-count">{cartCount}</span>
-            )}
-          </Link>
+                {searchOpen && (
+                  <div className="search-overlay search-overlay-open">
+                    <div className="search-overlay-nav">
+                      <div className="container search-overlay-container">
+                        <div className="search-overlay-input-wrapper">
+                          <FaSearch className="search-overlay-input-icon" />
+                          <input
+                            ref={searchInputRef}
+                            type="text"
+                            className="search-input-overlay"
+                            placeholder="Search products..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && searchQuery.trim()) {
+                                navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+                                closeSearch();
+                              }
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          className="search-close-btn"
+                          onClick={closeSearch}
+                          title="Cancel search"
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="search-overlay-body">
+                      {searchLoading ? (
+                        <div className="search-overlay-loading">Searching...</div>
+                      ) : searchResults.length === 0 && searchQuery ? (
+                        <div className="search-overlay-no-results">No products found</div>
+                      ) : searchQuery ? (
+                        <div className="search-results-grid">
+                          {searchResults.map((product) => {
+                            const priceMin = product.price_range ? parseFloat(product.price_range.min) : 0;
+                            const priceMax = product.price_range ? parseFloat(product.price_range.max) : 0;
+                            const displayPrice = priceMax > 0
+                              ? (priceMin === priceMax
+                                ? `৳${priceMax.toLocaleString()}`
+                                : `৳${priceMin.toLocaleString()} - ৳${priceMax.toLocaleString()}`)
+                              : '৳0';
+                            const imageUrl = (product.files || []).find((f) => f.file_url)?.file_url || 'https://placehold.co/100x100?text=No+Image';
+                            return (
+                              <div
+                                key={product.id}
+                                className="search-result-card"
+                                onClick={() => {
+                                  navigate(`/products/${product.slug || product.id}`);
+                                  closeSearch();
+                                }}
+                              >
+                                <img src={imageUrl} alt={product.name} className="search-result-image" />
+                                <div className="search-result-info">
+                                  <span className="search-result-name">{product.name}</span>
+                                  <span className="search-result-price">{displayPrice}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="search-placeholder">Start typing to search products...</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+             </div>
+              <Link to="/cart" className="cart-icon-only cart-btn">
+                <FaShoppingCart />
+                {cartCount > 0 && (
+                  <span className="cart-count">{cartCount}</span>
+                )}
+              </Link>
+            </div>
+          ) : (
+            <>
+              <form className="search-bar" onSubmit={handleSearch}>
+                <input
+                  type="text"
+                  name="search"
+                  placeholder="Search products..."
+                  className="search-input"
+                />
+                <button type="submit" className="search-btn">
+                  <FaSearch />
+                </button>
+              </form>
+              <Link to="/cart" className="cart-icon-only cart-btn">
+                <FaShoppingCart />
+                {cartCount > 0 && (
+                  <span className="cart-count">{cartCount}</span>
+                )}
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

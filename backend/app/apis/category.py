@@ -72,30 +72,12 @@ async def get_categories(
 
         if include_counts:
             from app.models.product import Product
-            from sqlalchemy import func as sql_func
 
-            # Build a flat map of category_id -> descendant_ids (including self)
-            cat_children = {}
-            cat_ids = [c.id for c in categories]
-            for c in categories:
-                cat_children[c.id] = []
-            for c in categories:
-                if c.parent_id and c.parent_id in cat_children:
-                    cat_children[c.parent_id].append(c.id)
-
-            # Recursively collect all descendant IDs for each category
-            def get_all_descendants(cat_id):
-                result = [cat_id]
-                for child_id in cat_children.get(cat_id, []):
-                    result.extend(get_all_descendants(child_id))
-                return result
-
-            # Count products per category (including subcategories)
+            # Count products per category (direct only, not descendants)
             product_counts = {}
             for c in categories:
-                descendant_ids = get_all_descendants(c.id)
                 count = db.query(Product).filter(
-                    Product.category_id.in_(descendant_ids),
+                    Product.category_id == c.id,
                     Product.is_active == True,
                 ).count()
                 product_counts[c.id] = count

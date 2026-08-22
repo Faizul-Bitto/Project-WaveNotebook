@@ -86,7 +86,7 @@ function Products() {
   const flatCategories = flattenCategories(categories);
 
   useEffect(() => {
-    if (categoriesLoaded && !categoryId && flatCategories.length > 0) {
+    if (categoriesLoaded && !categoryId && !searchQuery && flatCategories.length > 0) {
       const firstCatId = String(flatCategories[0].id);
       const autoSelect = () => {
         setSelectedCategory(firstCatId);

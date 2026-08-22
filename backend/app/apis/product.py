@@ -40,8 +40,8 @@ async def get_products(
             query = query.filter(Product.category_id == category_id)
 
         if search:
-            search_term = f"%{search}%"
-            query = query.filter(Product.name.ilike(search_term))
+            search_term = f"%{search.lower()}%"
+            query = query.filter(func.lower(Product.name).like(search_term))
 
         if is_featured is not None:
             query = query.filter(Product.is_featured == is_featured)

@@ -8,6 +8,11 @@ export const getProducts = async (params = {}) => {
   return data;
 };
 
+export const searchProducts = async (query, limit = 8) => {
+  const { data } = await api.get('/products', { params: { search: query, limit } });
+  return data;
+};
+
 export const getProductById = async (id) => {
   const { data } = await api.get(`/products/${id}`);
   return data;
