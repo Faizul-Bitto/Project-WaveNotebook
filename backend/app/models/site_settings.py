@@ -10,7 +10,9 @@ class SiteSettings(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     logo_url = Column(String(500), nullable=True, server_default=None)
+    favicon_url = Column(String(500), nullable=True, server_default=None)
     site_name = Column(String(255), nullable=True, server_default="WaveNotebook")
+    page_title = Column(String(255), nullable=True, server_default=None)
 
     # Footer & Contact
     site_description = Column(Text, nullable=True, server_default=None)

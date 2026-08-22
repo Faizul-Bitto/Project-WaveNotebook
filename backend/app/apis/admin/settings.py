@@ -16,7 +16,7 @@ router = APIRouter(
 def get_or_create_settings(db):
     settings = db.query(SiteSettings).first()
     if not settings:
-        settings = SiteSettings(logo_url=None, site_name="WaveNotebook")
+        settings = SiteSettings(logo_url=None, favicon_url=None, site_name="WaveNotebook", page_title=None)
         db.add(settings)
         db.commit()
         db.refresh(settings)
@@ -30,7 +30,9 @@ async def get_settings(db: db_dependency, admin: admin_dependency):
         "message": "Settings retrieved successfully.",
         "settings": {
             "logo_url": settings.logo_url,
+            "favicon_url": settings.favicon_url,
             "site_name": settings.site_name,
+            "page_title": settings.page_title,
             "site_description": settings.site_description,
             "contact_phone": settings.contact_phone,
             "contact_email": settings.contact_email,
@@ -54,6 +56,7 @@ async def update_settings(
     db: db_dependency,
     admin: admin_dependency,
     site_name: str = Form(None),
+    page_title: str = Form(None),
     site_description: str = Form(None),
     contact_phone: str = Form(None),
     contact_email: str = Form(None),
@@ -69,11 +72,14 @@ async def update_settings(
     terms_conditions: str = Form(None),
     refund_policy: str = Form(None),
     logo: UploadFile = File(None),
+    favicon: UploadFile = File(None),
 ):
     settings = get_or_create_settings(db)
 
     if site_name is not None:
         settings.site_name = site_name
+    if page_title is not None:
+        settings.page_title = page_title
     if site_description is not None:
         settings.site_description = site_description
     if contact_phone is not None:
@@ -104,9 +110,14 @@ async def update_settings(
         settings.refund_policy = refund_policy
 
     if logo:
-        logo_url = await upload_file_to_storage(logo, 0)
+        logo_url = await upload_file_to_storage(logo, "logo")
         if logo_url:
             settings.logo_url = logo_url
+
+    if favicon:
+        favicon_url = await upload_file_to_storage(favicon, "favicon")
+        if favicon_url:
+            settings.favicon_url = favicon_url
 
     db.commit()
     db.refresh(settings)
@@ -117,7 +128,9 @@ async def update_settings(
         "message": "Settings updated successfully.",
         "settings": {
             "logo_url": settings.logo_url,
+            "favicon_url": settings.favicon_url,
             "site_name": settings.site_name,
+            "page_title": settings.page_title,
             "site_description": settings.site_description,
             "contact_phone": settings.contact_phone,
             "contact_email": settings.contact_email,

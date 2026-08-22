@@ -9,6 +9,7 @@ function AdminSettings () {
   const { addToast } = useToast();
   const [ formData, setFormData ] = useState( {
     site_name: 'WaveNotebook',
+    page_title: '',
     site_description: '',
     contact_phone: '',
     contact_email: '',
@@ -26,35 +27,40 @@ function AdminSettings () {
   } );
   const [ logoUrl, setLogoUrl ] = useState( '' );
   const [ logoFile, setLogoFile ] = useState( null );
+  const [ faviconUrl, setFaviconUrl ] = useState( '' );
+  const [ faviconFile, setFaviconFile ] = useState( null );
   const [ saving, setSaving ] = useState( false );
 
-  useEffect( () => {
-    const loadSettings = async () => {
-      try {
-        const data = await adminGetSettings();
-        const s = data.settings || {};
-        setFormData( {
-          site_name: s.site_name || 'WaveNotebook',
-          site_description: s.site_description || '',
-          contact_phone: s.contact_phone || '',
-          contact_email: s.contact_email || '',
-          contact_address: s.contact_address || '',
-          hotline_number: s.hotline_number || '',
-          facebook_url: s.facebook_url || '',
-          youtube_url: s.youtube_url || '',
-          instagram_url: s.instagram_url || '',
-          twitter_url: s.twitter_url || '',
-          whatsapp_number: s.whatsapp_number || '',
-          messenger_url: s.messenger_url || '',
-          privacy_policy: s.privacy_policy || '',
-          terms_conditions: s.terms_conditions || '',
-          refund_policy: s.refund_policy || '',
-        } );
-        setLogoUrl( s.logo_url || '' );
+  const loadSettings = async () => {
+    try {
+      const data = await adminGetSettings();
+      const s = data.settings || {};
+      setFormData( {
+        site_name: s.site_name || 'WaveNotebook',
+        page_title: s.page_title || '',
+        site_description: s.site_description || '',
+        contact_phone: s.contact_phone || '',
+        contact_email: s.contact_email || '',
+        contact_address: s.contact_address || '',
+        hotline_number: s.hotline_number || '',
+        facebook_url: s.facebook_url || '',
+        youtube_url: s.youtube_url || '',
+        instagram_url: s.instagram_url || '',
+        twitter_url: s.twitter_url || '',
+        whatsapp_number: s.whatsapp_number || '',
+        messenger_url: s.messenger_url || '',
+        privacy_policy: s.privacy_policy || '',
+        terms_conditions: s.terms_conditions || '',
+        refund_policy: s.refund_policy || '',
+      } );
+      setLogoUrl( s.logo_url || '' );
+      setFaviconUrl( s.favicon_url || '' );
       } catch ( err ) {
         addToast( err.response?.data?.detail || 'Failed to load settings.', 'error' );
       }
-    };
+  };
+
+  useEffect( () => {
     loadSettings();
   }, [] );
 
@@ -71,12 +77,21 @@ function AdminSettings () {
     }
   };
 
+  const handleFaviconChange = ( e ) => {
+    const file = e.target.files[ 0 ];
+    if ( file ) {
+      setFaviconFile( file );
+      setFaviconUrl( URL.createObjectURL( file ) );
+    }
+  };
+
   const handleSubmit = async ( e ) => {
     e.preventDefault();
     try {
       setSaving( true );
       const fd = new FormData();
       fd.append( 'site_name', formData.site_name );
+      fd.append( 'page_title', formData.page_title );
       fd.append( 'site_description', formData.site_description );
       fd.append( 'contact_phone', formData.contact_phone );
       fd.append( 'contact_email', formData.contact_email );
@@ -92,8 +107,10 @@ function AdminSettings () {
       fd.append( 'terms_conditions', formData.terms_conditions );
       fd.append( 'refund_policy', formData.refund_policy );
       if ( logoFile ) fd.append( 'logo', logoFile );
+      if ( faviconFile ) fd.append( 'favicon', faviconFile );
       await adminUpdateSettings( fd );
       await refresh();
+      await loadSettings();
       addToast( 'Settings saved successfully!', 'success' );
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to save settings.', 'error' );
@@ -121,13 +138,19 @@ function AdminSettings () {
             </div>
           ) }
 
-          <div className="form-group">
-            <label>Site Name</label>
-            <input type="text" name="site_name" value={ formData.site_name } onChange={ handleChange } placeholder="WaveNotebook" />
-          </div>
+           <div className="form-group">
+             <label>Site Name</label>
+             <input type="text" name="site_name" value={ formData.site_name } onChange={ handleChange } placeholder="WaveNotebook" />
+           </div>
 
-          <div className="form-group">
-            <label>Site Description (for footer)</label>
+           <div className="form-group">
+             <label>Title (Browser Tab)</label>
+             <input type="text" name="page_title" value={ formData.page_title } onChange={ handleChange } placeholder="e.g. Wave Notebook – Best Notebooks in Bangladesh" />
+             <p className="upload-hint">Sets the browser tab title. Leave empty to use the Site Name.</p>
+           </div>
+
+           <div className="form-group">
+             <label>Site Description (for footer)</label>
             <textarea
               name="site_description"
               value={ formData.site_description }
@@ -137,11 +160,27 @@ function AdminSettings () {
             />
           </div>
 
-          <div className="form-group">
-            <label>Upload Logo</label>
-            <input type="file" accept="image/*" onChange={ handleLogoChange } />
-            <p className="upload-hint">Upload a logo (PNG, JPG)</p>
-          </div>
+           <div className="form-group">
+             <label>Upload Logo</label>
+             <input type="file" accept="image/*" onChange={ handleLogoChange } />
+             <p className="upload-hint">Upload a logo (PNG, JPG)</p>
+           </div>
+
+           { faviconUrl && (
+             <div style={ { marginBottom: '16px', textAlign: 'center' } }>
+               <img
+                 src={ faviconUrl }
+                 alt="Nav Icon"
+                 className="favicon-preview"
+               />
+             </div>
+           ) }
+
+           <div className="form-group">
+             <label>Nav Icon (Favicon)</label>
+             <input type="file" accept="image/*" onChange={ handleFaviconChange } />
+             <p className="upload-hint">Upload a nav icon — upload a circular/rounded image for a rounded browser tab icon (PNG, JPG, SVG)</p>
+           </div>
         </div>
 
         {/* Contact Information */ }

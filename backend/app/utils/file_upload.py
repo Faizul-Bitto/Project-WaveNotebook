@@ -14,7 +14,7 @@ async def upload_file_to_storage(file, product_id: int):
             return None
 
         # Validate file
-        allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
         file_ext = os.path.splitext(file.filename)[1].lower()
 
         if file_ext not in allowed_extensions:

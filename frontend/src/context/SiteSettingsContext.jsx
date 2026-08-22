@@ -8,7 +8,9 @@ export const useSiteSettings = () => useContext(SiteSettingsContext);
 export function SiteSettingsProvider({ children }) {
   const [settings, setSettings] = useState({
     logo_url: null,
+    favicon_url: null,
     site_name: 'WaveNotebook',
+    page_title: null,
     site_description: null,
     contact_phone: null,
     contact_email: null,
@@ -28,9 +30,11 @@ export function SiteSettingsProvider({ children }) {
   const refresh = async () => {
     try {
       const data = await getSiteSettings();
-      setSettings(data.settings || {
-        logo_url: null,
-        site_name: 'WaveNotebook',
+       setSettings(data.settings || {
+         logo_url: null,
+         favicon_url: null,
+         site_name: 'WaveNotebook',
+         page_title: null,
         site_description: null,
         contact_phone: null,
         contact_email: null,

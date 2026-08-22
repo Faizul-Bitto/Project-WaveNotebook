@@ -24,7 +24,9 @@ async def get_site_settings(db: db_dependency):
             "message": "Settings retrieved successfully.",
             "settings": {
                 "logo_url": None,
+                "favicon_url": None,
                 "site_name": "WaveNotebook",
+                "page_title": None,
                 "site_description": None,
                 "contact_phone": None,
                 "contact_email": None,
@@ -46,7 +48,9 @@ async def get_site_settings(db: db_dependency):
         "message": "Settings retrieved successfully.",
             "settings": {
                 "logo_url": settings.logo_url,
+                "favicon_url": settings.favicon_url,
                 "site_name": settings.site_name or "WaveNotebook",
+                "page_title": settings.page_title,
                 "site_description": settings.site_description,
                 "contact_phone": settings.contact_phone,
                 "contact_email": settings.contact_email,

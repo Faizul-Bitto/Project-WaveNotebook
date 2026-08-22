@@ -104,9 +104,12 @@
 
 .logo-img {
   height: 40px;
-  width: auto;
-  max-width: 160px;
-  object-fit: contain;
+  width: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-200);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .logo-text span {

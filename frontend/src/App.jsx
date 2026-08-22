@@ -8,6 +8,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import ChatIcons from './components/ChatIcons';
 import BackToTop from './components/BackToTop';
+import SiteMeta from './components/SiteMeta';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -74,8 +75,9 @@ function App() {
       <SiteSettingsProvider>
       <DirectBuyProvider>
       <CartProvider>
-      <ToastProvider>
-        <ScrollToTop />
+        <ToastProvider>
+          <ScrollToTop />
+          <SiteMeta />
         <Routes>
           {/* Store routes */}
           <Route

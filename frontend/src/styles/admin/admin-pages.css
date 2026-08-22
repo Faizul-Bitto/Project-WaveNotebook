@@ -347,10 +347,22 @@
   border-radius: var(--radius);
 }
 
-.banner-preview {
-  max-width: 200px;
-  border-radius: var(--radius);
-  border: 1px solid var(--gray-200);
+ .banner-preview {
+   max-width: 200px;
+   border-radius: var(--radius);
+   border: 1px solid var(--gray-200);
+ }
+
+ /* Favicon / Nav Icon Preview */
+.favicon-preview {
+  height: 64px;
+  width: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gray-300);
+  background: #f3f4f6;
+  padding: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Admin Form */
