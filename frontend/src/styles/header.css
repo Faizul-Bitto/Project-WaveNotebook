@@ -178,13 +178,43 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--gray-700);
-  font-size: 18px;
-  transition: color 0.2s;
+  color: var(--white);
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+  overflow: visible;
+}
+
+.cart-icon-only::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  z-index: -1;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.cart-icon-only:hover {
+  color: var(--white);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.45);
+}
+
+.cart-icon-only:active {
+  transform: scale(0.95);
+}
+
+.cart-icon-only svg {
+  display: block;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .header-actions {
@@ -193,27 +223,36 @@
   gap: 8px;
 }
 
-.cart-icon-only:hover {
-  color: var(--primary);
-}
-
 .cart-count {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -4px;
+  right: -4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--white);
-  background-color: var(--secondary);
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
   border-radius: 9999px;
   border: 2px solid var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  animation: cart-count-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cart-count-pop {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ==========================================

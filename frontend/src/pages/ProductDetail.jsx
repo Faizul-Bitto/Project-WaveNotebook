@@ -584,24 +584,37 @@ function triggerFlyToCart ( sourceEl ) {
   const deltaX = endX - startX;
   const deltaY = endY - startY;
 
+  // Get the product image to fly
+  const productImg = sourceEl.querySelector( '.main-image img, .product-main-image, .product-image, .product-detail-image' );
+  const imgSrc = productImg ? productImg.src : null;
+
   const flyEl = document.createElement( 'div' );
   flyEl.className = 'fly-to-cart';
-  flyEl.textContent = '🛒';
+  if ( imgSrc ) {
+    const img = document.createElement( 'img' );
+    img.src = imgSrc;
+    img.alt = '';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+    flyEl.appendChild( img );
+  } else {
+    flyEl.textContent = '🛒';
+  }
   document.body.appendChild( flyEl );
 
   flyEl.style.left = `${ startX }px`;
   flyEl.style.top = `${ startY }px`;
   flyEl.style.setProperty( '--fly-to-x', `${ deltaX }px` );
   flyEl.style.setProperty( '--fly-to-y', `${ deltaY }px` );
-  flyEl.style.animation = 'fly-to-cart-parabolic 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+  flyEl.style.animation = 'fly-to-cart-parabolic 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
 
-  for ( let i = 0; i < 6; i++ ) {
+  // Create sparkles with alternating colors
+  for ( let i = 0; i < 8; i++ ) {
     const sparkle = document.createElement( 'div' );
     sparkle.className = 'cart-sparkle';
     sparkle.style.left = `${ startX }px`;
     sparkle.style.top = `${ startY }px`;
-    sparkle.style.animationDelay = `${ i * 0.05 }s`;
-    sparkle.style.setProperty( '--sparkle-rotation', `${ i * 60 }deg` );
+    sparkle.style.animationDelay = `${ i * 0.06 }s`;
+    sparkle.style.setProperty( '--sparkle-rotation', `${ i * 45 }deg` );
     document.body.appendChild( sparkle );
   }
 
@@ -609,8 +622,8 @@ function triggerFlyToCart ( sourceEl ) {
     flyEl.remove();
     document.querySelectorAll( '.cart-sparkle' ).forEach( ( el ) => el.remove() );
     cartBtn.classList.add( 'cart-bounce' );
-    setTimeout( () => cartBtn.classList.remove( 'cart-bounce' ), 500 );
-  }, 800 );
+    setTimeout( () => cartBtn.classList.remove( 'cart-bounce' ), 600 );
+  }, 900 );
 }
 
 export default ProductDetail;
