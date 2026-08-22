@@ -1,16 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FaShoppingCart, FaCheckCircle } from 'react-icons/fa';
-import { useCart } from '../context/CartContext';
-import { useToast } from '../context/ToastContext';
 import { getProductDiscounts } from '../api/services';
 
 function ProductCard({ product }) {
-  const { addItem } = useCart();
-  const { addToast } = useToast();
-  const [added, setAdded] = useState(false);
   const [discountInfo, setDiscountInfo] = useState(null);
-  const cardRef = useRef(null);
 
   const validFiles = (product.files || []).filter((f) => f.file_url);
   const imageUrl = validFiles?.[0]?.file_url || 'https://placehold.co/300x300?text=No+Image';
@@ -42,16 +35,6 @@ function ProductCard({ product }) {
   const inStockVariants = product.in_stock_variants || [];
   const isInStock = inStockVariants.length > 0 || product.is_in_stock;
 
-  const firstInStockAttrs = inStockVariants.length > 0
-    ? (() => {
-        try {
-          return JSON.parse(inStockVariants[0]);
-        } catch {
-          return null;
-        }
-      })()
-    : null;
-
   const badge = discountInfo?.badge;
   const badgeType = discountInfo?.badge_type;
   const hasDiscount = badge && badgeType !== 'free_shipping';
@@ -74,49 +57,8 @@ function ProductCard({ product }) {
     return badge;
   }, [badge]);
 
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isInStock) {
-      addToast('This product is out of stock.', 'error');
-      return;
-    }
-
-    const selectedAttributes = {};
-    const attrs = product.attributes || [];
-
-    if (firstInStockAttrs && attrs.length > 0) {
-      attrs.forEach((attr) => {
-        const options = attr.options || [];
-        const attrName = attr.name.toLowerCase();
-        const matchingValue = firstInStockAttrs[attr.name] || firstInStockAttrs[attr.slug] || firstInStockAttrs[attrName];
-        if (matchingValue) {
-          const option = options.find((opt) => opt.value === matchingValue);
-          if (option) {
-            selectedAttributes[attr.id] = option.id;
-          }
-        }
-      });
-    }
-
-    const attrsString = Object.keys(selectedAttributes).length > 0
-      ? JSON.stringify(selectedAttributes)
-      : null;
-
-    const result = await addItem(product.id, 1, attrsString);
-    if (result.success) {
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
-      triggerFlyToCart(cardRef.current);
-      addToast('Added to cart!', 'success');
-    } else {
-      addToast(result.error || 'Failed to add to cart.', 'error');
-    }
-  };
-
   return (
-    <div className="product-card" ref={cardRef}>
+    <div className="product-card">
       <Link to={`/product/${product.slug}`} className="product-card-link">
         <div className="product-image-wrap">
           <img src={imageUrl} alt={product.name} className="product-image" loading="lazy" />
@@ -151,73 +93,8 @@ function ProductCard({ product }) {
           </div>
         </div>
       </Link>
-      <button
-        className="add-to-cart-btn"
-        onClick={handleAddToCart}
-        disabled={!isInStock}
-      >
-        {added ? <><FaCheckCircle /> Added</> : <><FaShoppingCart /> Add to Cart</>}
-      </button>
     </div>
   );
-}
-
-function triggerFlyToCart(sourceEl) {
-  if (!sourceEl) return;
-  const cartBtn = document.querySelector('.cart-btn');
-  if (!cartBtn) return;
-
-  const sourceRect = sourceEl.getBoundingClientRect();
-  const cartRect = cartBtn.getBoundingClientRect();
-
-  const startX = sourceRect.left + sourceRect.width / 2;
-  const startY = sourceRect.top + sourceRect.height / 2;
-  const endX = cartRect.left + cartRect.width / 2;
-  const endY = cartRect.top + cartRect.height / 2;
-
-  const deltaX = endX - startX;
-  const deltaY = endY - startY;
-
-  // Get the product image to fly
-  const productImg = sourceEl.querySelector('.product-image');
-  const imgSrc = productImg ? productImg.src : null;
-
-  const flyEl = document.createElement('div');
-  flyEl.className = 'fly-to-cart';
-  if (imgSrc) {
-    const img = document.createElement('img');
-    img.src = imgSrc;
-    img.alt = '';
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
-    flyEl.appendChild(img);
-  } else {
-    flyEl.textContent = '🛒';
-  }
-  document.body.appendChild(flyEl);
-
-  flyEl.style.left = `${startX}px`;
-  flyEl.style.top = `${startY}px`;
-  flyEl.style.setProperty('--fly-to-x', `${deltaX}px`);
-  flyEl.style.setProperty('--fly-to-y', `${deltaY}px`);
-  flyEl.style.animation = 'fly-to-cart-parabolic 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
-
-  // Create sparkles with alternating colors
-  for (let i = 0; i < 8; i++) {
-    const sparkle = document.createElement('div');
-    sparkle.className = 'cart-sparkle';
-    sparkle.style.left = `${startX}px`;
-    sparkle.style.top = `${startY}px`;
-    sparkle.style.animationDelay = `${i * 0.06}s`;
-    sparkle.style.setProperty('--sparkle-rotation', `${i * 45}deg`);
-    document.body.appendChild(sparkle);
-  }
-
-  setTimeout(() => {
-    flyEl.remove();
-    document.querySelectorAll('.cart-sparkle').forEach((el) => el.remove());
-    cartBtn.classList.add('cart-bounce');
-    setTimeout(() => cartBtn.classList.remove('cart-bounce'), 600);
-  }, 900);
 }
 
 export default ProductCard;

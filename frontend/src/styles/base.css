@@ -279,11 +279,6 @@ textarea {
   transform: translateY(-2px);
 }
 
-.add-to-cart-btn:disabled {
-  background-color: var(--gray-300);
-  cursor: not-allowed;
-}
-
 .btn-danger {
   background-color: var(--danger);
   color: var(--white);
