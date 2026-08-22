@@ -1,0 +1,604 @@
+/* ==========================================
+   Wave Notebook - Admin Orders Styles
+   Order Detail, Order Create, Adjustments, Variants
+   ========================================== */
+
+.order-detail-page .order-detail-card {
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.order-detail-page .order-detail-card h3 {
+  font-size: 16px;
+  color: var(--gray-900);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-detail-page .order-detail-card h3 svg {
+  color: var(--primary);
+}
+.order-detail-page .order-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+.order-detail-page .detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.order-detail-page .detail-label {
+  font-size: 12px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.order-detail-page .detail-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--gray-800);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.order-detail-page .detail-value.total-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.order-detail-page .address-full {
+  margin-top: 16px;
+}
+.order-detail-page .attributes-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  background-color: #eff6ff;
+  color: var(--primary-dark);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+}
+.order-detail-page .admin-table tfoot td {
+  background-color: var(--gray-50);
+  font-weight: 700;
+  padding: 14px 16px;
+  border-top: 2px solid var(--gray-200);
+}
+.order-detail-page .total-label {
+  text-align: right;
+  color: var(--gray-700);
+}
+.order-detail-page .total-value {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 16px;
+}
+.order-detail-page .payment-info p {
+  font-size: 14px;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+.order-detail-page .product-link {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Admin Order Adjustments */
+.adjustment-form {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+}
+.adjustment-form h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 12px;
+}
+.adjustment-form .form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.adjustment-form .form-row .form-group {
+  flex: 1;
+}
+.adjustment-form .form-group {
+  margin-bottom: 12px;
+}
+.adjustment-form .form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 4px;
+}
+.adjustment-form .form-group select,
+.adjustment-form .form-group input,
+.adjustment-form .form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+.adjustment-form .form-group textarea {
+  resize: vertical;
+}
+.adjustment-form .btn {
+  margin-top: 4px;
+}
+.discount-amount {
+  color: #059669;
+  font-weight: 600;
+}
+.charge-amount {
+  color: #dc2626;
+  font-weight: 600;
+}
+.admin-bogo-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+.order-create-page .discount-breakdown-detail {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-200);
+}
+.order-create-page .discount-breakdown-detail h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+.order-create-page .discount-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+}
+.order-create-page .discount-label {
+  color: var(--gray-700);
+}
+.order-create-page .discount-value {
+  color: #059669;
+  font-weight: 600;
+}
+.order-create-page .item-builder-total {
+  font-size: 14px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+.order-create-page .product-add-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.order-create-page .product-add-row select {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+}
+.order-create-page .order-items-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.order-create-page .order-item-builder {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--gray-50);
+}
+.order-create-page .item-builder-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.order-create-page .item-builder-header strong {
+  flex: 1;
+  font-size: 14px;
+  color: var(--gray-800);
+}
+.order-create-page .qty-row {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.order-create-page .qty-row button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--gray-100);
+  font-weight: 600;
+  cursor: pointer;
+}
+.order-create-page .qty-row span {
+  width: 32px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+.order-create-page .btn-remove-item {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius);
+  background: #fee2e2;
+  color: #991b1b;
+  cursor: pointer;
+}
+.order-create-page .item-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.order-create-page .option-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.order-create-page .option-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+.order-create-page .option-group select {
+  padding: 6px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.order-create-page .item-builder-total {
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.order-create-page .item-stock-info {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-top: 4px;
+}
+.order-create-page .item-stock-info.out-of-stock {
+  color: var(--danger);
+  font-weight: 600;
+}
+.order-create-page .total-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+.order-create-page .no-items-hint {
+  color: var(--gray-500);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+  border: 2px dashed var(--gray-300);
+  border-radius: var(--radius);
+}
+
+/* ==========================================
+   Product Variant Management Styles
+   ========================================== */
+
+.variant-product-name {
+  font-size: 14px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.btn-variants {
+  background-color: var(--primary);
+  color: var(--white);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.btn-variants:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-sm {
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.btn-copy {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.btn-copy:hover:not(:disabled) {
+  background-color: var(--gray-200);
+  color: var(--gray-800);
+}
+
+.variant-table {
+  min-width: 900px;
+}
+
+.variant-table .variant-sku {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--gray-600);
+  white-space: nowrap;
+}
+
+.variant-table .variant-attrs {
+  font-size: 13px;
+  color: var(--gray-700);
+  min-width: 200px;
+}
+
+.variant-input {
+  width: 100px;
+  padding: 6px 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: right;
+  transition: border-color 0.2s;
+}
+
+.variant-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.1);
+}
+
+.variant-input-empty {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: var(--danger);
+}
+
+.variant-input-empty::placeholder {
+  color: var(--danger);
+  opacity: 0.7;
+}
+
+.variant-stock-input {
+  width: 80px;
+}
+
+.profit-negative {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.variant-inactive {
+  opacity: 0.5;
+}
+
+.variant-inactive td {
+  background-color: var(--gray-100) !important;
+}
+
+.status-toggle {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.2s;
+}
+
+.status-toggle:hover {
+  transform: scale(1.1);
+}
+
+.status-toggle.active {
+  color: var(--success);
+}
+
+.status-toggle.inactive {
+  color: var(--gray-400);
+}
+
+.unsaved-changes-banner {
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.add-variant-attr-group {
+  margin-bottom: 20px;
+}
+
+.add-variant-attr-group h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 10px;
+}
+
+.add-variant-attr-group .options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.add-variant-attr-group .option-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.add-variant-attr-group .option-checkbox:hover {
+  border-color: var(--primary);
+  background-color: var(--gray-50);
+}
+
+.add-variant-attr-group .option-checkbox input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+
+.price-range {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* ==========================================
+   Order Snapshot UI (deleted product/user support)
+   ========================================== */
+
+/* Product cell in admin order detail */
+.product-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.product-cell .product-name {
+  font-weight: 600;
+}
+
+.product-cell .product-code {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-warning {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+/* Admin modal overlay */
+.admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--gray-500);
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.modal-close-btn:hover {
+  color: var(--gray-800);
+}
+
+.usage-modal {
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.usage-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.usage-modal-header h3 {
+  font-size: 18px;
+  color: var(--gray-900);
+}
+
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.usage-stat {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+
+.usage-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.usage-stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.usage-table-wrap {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.usage-table {
+  font-size: 13px;
+}

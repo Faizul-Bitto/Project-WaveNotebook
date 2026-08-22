@@ -1,0 +1,280 @@
+/* ==========================================
+   Wave Notebook - Track Order Page Styles
+   Track Form, Order Cards, Statuses, Phone Input
+   ========================================== */
+
+.track-order-page {
+  padding: 40px 0 60px;
+
+}
+
+.track-form {
+  display: flex;
+  gap: 12px;
+  max-width: 640px;
+  margin-bottom: 32px;
+  align-items: stretch;
+}
+
+.track-form .btn {
+  padding: 0 28px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .track-form {
+    flex-direction: column;
+  }
+
+  .track-form .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.track-form input:focus {
+  border-color: var(--primary);
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.order-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.order-card-header h3 {
+  font-size: 16px;
+  color: var(--gray-900);
+}
+
+.order-date {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.order-status {
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-pending {
+  background: rgba(251, 146, 60, 0.15);
+  color: #c2410c;
+  border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
+.status-called {
+  background: rgba(148, 163, 184, 0.15);
+  color: #334155;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.status-confirmed {
+  background: rgba(147, 51, 234, 0.15);
+  color: #5b21b6;
+  border: 1px solid rgba(147, 51, 234, 0.3);
+}
+
+.status-processing {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-shipped {
+  background: rgba(13, 148, 136, 0.15);
+  color: #0f766e;
+  border: 1px solid rgba(13, 148, 136, 0.3);
+}
+
+.status-delivered {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  color: #991b1b;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-returned {
+  background: rgba(139, 92, 246, 0.15);
+  color: #5c1a99;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.status-paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-due {
+  background: rgba(245, 158, 11, 0.15);
+  color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.order-card-body {
+  padding: 16px 24px;
+}
+
+.order-info-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.order-info-row span {
+  color: var(--gray-500);
+  min-width: 80px;
+}
+
+.order-card-items {
+  padding: 16px 24px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+/* Product code in customer track order view */
+.order-item-code {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+/* ==========================================
+   Phone Input - Country Code Selector
+   ========================================== */
+.phone-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background-color: var(--white);
+}
+.phone-input-wrap:focus-within {
+  border-color: var(--primary);
+}
+.phone-code-select-wrap {
+  border-right: 1px solid var(--gray-200);
+  background-color: var(--gray-50);
+}
+.phone-code-select {
+  border: none;
+  background: transparent;
+  padding: 10px 8px;
+  font-size: 14px;
+  color: var(--gray-700);
+  cursor: pointer;
+  outline: none;
+  min-width: 90px;
+}
+.phone-input {
+  flex: 1;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  background: var(--white);
+  color: var(--gray-800);
+}
+.track-phone-wrap {
+  flex: 1;
+}
+.track-phone-wrap .phone-input-wrap {
+  width: 100%;
+}
+.track-search-type {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+.track-type-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--gray-700);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.track-type-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.track-type-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--white);
+}
+.track-order-number-wrap {
+  flex: 1;
+}
+.track-order-number-wrap input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  font-size: 15px;
+  outline: none;
+}
+.track-order-number-wrap input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
+}
+
+/* Admin search - order_number */
+@media (max-width: 768px) {
+  .track-search-type {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,54 @@
+/* ==========================================
+   Wave Notebook - Policy Pages Styles
+   ========================================== */
+
+.policy-page {
+  padding: 40px 0 60px;
+}
+
+.policy-content {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+}
+
+.policy-content h2 {
+  font-size: 28px;
+  color: var(--primary);
+  margin-bottom: 16px;
+  font-weight: 700;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--secondary);
+}
+
+.policy-content p {
+  color: var(--gray-600);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.policy-content h3 {
+  font-size: 16px;
+  color: var(--gray-800);
+  margin: 24px 0 8px;
+  font-weight: 600;
+}
+
+.policy-content ul {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.policy-content li {
+  margin-bottom: 6px;
+  color: var(--gray-600);
+}
+
+@media (max-width: 640px) {
+  .policy-content {
+    padding: 24px;
+  }
+}

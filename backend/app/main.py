@@ -46,7 +46,19 @@ from app.models.order_adjustment import OrderAdjustment
 from app.models.shipping_charge import ShippingCharge
 
 # Import routers
-from app.apis import auth, category, attribute, attribute_option, product, file, order, cart, lookup, banner, discount
+from app.apis import (
+    auth,
+    category,
+    attribute,
+    attribute_option,
+    product,
+    file,
+    order,
+    cart,
+    lookup,
+    banner,
+    discount,
+)
 from app.apis import settings as site_settings
 from app.apis.admin import category as admin_category
 from app.apis.admin import attribute as admin_attribute
@@ -57,7 +69,7 @@ from app.apis.admin import file as admin_file
 from app.apis.admin import order as admin_order
 from app.apis.admin import user as admin_user
 from app.apis.admin import expense as admin_expense
-from app.apis.admin import expense as admin_expense  # noqa: F811  (duplicate import preserved per existing code)
+from app.apis.admin import expense as admin_expense
 from app.apis.admin import banner as admin_banner
 from app.apis.admin import settings as admin_settings
 from app.apis.admin import discount as admin_discount
@@ -255,9 +267,7 @@ def custom_openapi() -> Dict[str, Any]:
                 if "$ref" in schema_ref:
                     ref_name = schema_ref["$ref"].split("/")[-1]
                     resolved = (
-                        schema.get("components", {})
-                        .get("schemas", {})
-                        .get(ref_name)
+                        schema.get("components", {}).get("schemas", {}).get(ref_name)
                     )
                     if resolved:
                         media["schema"] = resolved
