@@ -113,6 +113,7 @@ function Products() {
   }, [fetchProducts, products.length]);
 
   const handleCategoryClick = (catId) => {
+    setSearch('');
     const params = new URLSearchParams();
     if (catId) params.set('category', catId);
     setSearchParams(params);
@@ -121,12 +122,13 @@ function Products() {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams();
     if (search.trim()) {
       params.set('search', search.trim());
-    } else {
-      params.delete('search');
     }
+    if (priceMin) params.set('price_min', priceMin);
+    if (priceMax) params.set('price_max', priceMax);
+    if (sortBy && sortBy !== 'default') params.set('sort', sortBy);
     setSearchParams(params);
   };
 
@@ -187,11 +189,11 @@ function Products() {
               <h3 className="sidebar-title">Categories</h3>
               <ul className="category-list">
                 {flatCategories.map((cat) => (
-                  <li
-                    key={cat.id}
-                    className={`category-item ${selectedCategory === String(cat.id) ? 'active' : ''}`}
-                    onClick={() => handleCategoryClick(String(cat.id))}
-                  >
+                   <li
+                     key={cat.id}
+                     className={`category-item ${searchQuery ? '' : (selectedCategory === String(cat.id) ? 'active' : '')}`}
+                     onClick={() => handleCategoryClick(String(cat.id))}
+                   >
                     <span className="category-name">{cat.name}</span>
                     {cat.product_count !== undefined && (
                       <span className="category-count">({cat.product_count})</span>

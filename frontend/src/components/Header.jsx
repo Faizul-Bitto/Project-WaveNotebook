@@ -13,6 +13,7 @@ function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const isProductsPage = location.pathname === '/products';
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -206,17 +207,19 @@ function Header() {
             </div>
           ) : (
             <>
-              <form className="search-bar" onSubmit={handleSearch}>
-                <input
-                  type="text"
-                  name="search"
-                  placeholder="Search products..."
-                  className="search-input"
-                />
-                <button type="submit" className="search-btn">
-                  <FaSearch />
-                </button>
-              </form>
+              {!isProductsPage && (
+                <form className="search-bar" onSubmit={handleSearch}>
+                  <input
+                    type="text"
+                    name="search"
+                    placeholder="Search products..."
+                    className="search-input"
+                  />
+                  <button type="submit" className="search-btn">
+                    <FaSearch />
+                  </button>
+                </form>
+              )}
               <Link to="/cart" className="cart-icon-only cart-btn">
                 <FaShoppingCart />
                 {cartCount > 0 && (
