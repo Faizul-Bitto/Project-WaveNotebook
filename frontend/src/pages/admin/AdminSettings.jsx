@@ -55,9 +55,9 @@ function AdminSettings () {
       } );
       setLogoUrl( s.logo_url || '' );
       setFaviconUrl( s.favicon_url || '' );
-      } catch ( err ) {
-        addToast( err.response?.data?.detail || 'Failed to load settings.', 'error' );
-      }
+    } catch ( err ) {
+      addToast( err.response?.data?.detail || 'Failed to load settings.', 'error' );
+    }
   };
 
   useEffect( () => {
@@ -138,19 +138,19 @@ function AdminSettings () {
             </div>
           ) }
 
-           <div className="form-group">
-             <label>Site Name</label>
-             <input type="text" name="site_name" value={ formData.site_name } onChange={ handleChange } placeholder="WaveNotebook" />
-           </div>
+          <div className="form-group">
+            <label>Site Name</label>
+            <input type="text" name="site_name" value={ formData.site_name } onChange={ handleChange } placeholder="WaveNotebook" />
+          </div>
 
-           <div className="form-group">
-             <label>Title (Browser Tab)</label>
-             <input type="text" name="page_title" value={ formData.page_title } onChange={ handleChange } placeholder="e.g. Wave Notebook – Best Notebooks in Bangladesh" />
-             <p className="upload-hint">Sets the browser tab title. Leave empty to use the Site Name.</p>
-           </div>
+          <div className="form-group">
+            <label>Title (Browser Tab)</label>
+            <input type="text" name="page_title" value={ formData.page_title } onChange={ handleChange } placeholder="e.g. Wave Notebook – Best Notebooks in Bangladesh" />
+            <p className="upload-hint">Sets the browser tab title. Leave empty to use the Site Name.</p>
+          </div>
 
-           <div className="form-group">
-             <label>Site Description (for footer)</label>
+          <div className="form-group">
+            <label>Site Description (for footer)</label>
             <textarea
               name="site_description"
               value={ formData.site_description }
@@ -160,27 +160,27 @@ function AdminSettings () {
             />
           </div>
 
-           <div className="form-group">
-             <label>Upload Logo</label>
-             <input type="file" accept="image/*" onChange={ handleLogoChange } />
-             <p className="upload-hint">Upload a logo (PNG, JPG)</p>
-           </div>
+          <div className="form-group">
+            <label>Upload Logo</label>
+            <input type="file" accept="image/*" onChange={ handleLogoChange } />
+            <p className="upload-hint">Upload a logo (PNG, JPG)</p>
+          </div>
 
-           { faviconUrl && (
-             <div style={ { marginBottom: '16px', textAlign: 'center' } }>
-               <img
-                 src={ faviconUrl }
-                 alt="Nav Icon"
-                 className="favicon-preview"
-               />
-             </div>
-           ) }
+          { faviconUrl && (
+            <div style={ { marginBottom: '16px', textAlign: 'center' } }>
+              <img
+                src={ faviconUrl }
+                alt="Nav Icon"
+                className="favicon-preview"
+              />
+            </div>
+          ) }
 
-           <div className="form-group">
-             <label>Nav Icon (Favicon)</label>
-             <input type="file" accept="image/*" onChange={ handleFaviconChange } />
-             <p className="upload-hint">Upload a nav icon — upload a circular/rounded image for a rounded browser tab icon (PNG, JPG, SVG)</p>
-           </div>
+          <div className="form-group">
+            <label>Favicon</label>
+            <input type="file" accept="image/*" onChange={ handleFaviconChange } />
+            <p className="upload-hint">Upload a fav icon — upload a circular/rounded image for a rounded browser tab icon (PNG, JPG, SVG)</p>
+          </div>
         </div>
 
         {/* Contact Information */ }
