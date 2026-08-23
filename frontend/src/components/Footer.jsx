@@ -67,10 +67,16 @@ function Footer() {
           <h3 className="footer-title">Contact Us</h3>
           <ul className="footer-contact">
             {settings.contact_phone && (
-              <li><FaPhoneAlt className="footer-contact-icon" /> {settings.contact_phone}</li>
+              <li>
+                <FaPhoneAlt className="footer-contact-icon" />
+                <a href={`tel:${settings.contact_phone.replace(/[^+\d]/g, '')}`}>{settings.contact_phone}</a>
+              </li>
             )}
             {settings.contact_email && (
-              <li><FaEnvelope className="footer-contact-icon" /> {settings.contact_email}</li>
+              <li>
+                <FaEnvelope className="footer-contact-icon" />
+                <a href={`mailto:${settings.contact_email}`}>{settings.contact_email}</a>
+              </li>
             )}
             {settings.contact_address && (
               <li><FaMapMarkerAlt className="footer-contact-icon" /> {settings.contact_address}</li>

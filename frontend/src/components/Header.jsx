@@ -79,10 +79,20 @@ function Header() {
         <div className="container top-bar-inner">
           <div className="top-bar-center">
             <FaPhoneAlt className="top-bar-icon" />
-            <span>Hotline: {settings.hotline_number || '01700-000000'}</span>
+            <a
+              href={`tel:${(settings.hotline_number || '01700-000000').replace(/[^+\d]/g, '')}`}
+              className="top-bar-link"
+            >
+              Hotline: {settings.hotline_number || '01700-000000'}
+            </a>
             <span className="top-bar-divider">|</span>
             <FaEnvelope className="top-bar-icon" />
-            <span>Email: {settings.contact_email || 'info@wavenotebook.com'}</span>
+            <a
+              href={`mailto:${settings.contact_email || 'info@wavenotebook.com'}`}
+              className="top-bar-link"
+            >
+              Email: {settings.contact_email || 'info@wavenotebook.com'}
+            </a>
             <span className="top-bar-divider">|</span>
             <Link to="/admin/login" className="top-bar-link">
               <FaUserShield className="top-bar-icon" /> Admin

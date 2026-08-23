@@ -61,6 +61,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  text-decoration: none;
 }
 
 .top-bar-link:hover {
