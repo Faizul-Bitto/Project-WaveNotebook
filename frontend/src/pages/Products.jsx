@@ -85,6 +85,19 @@ function Products() {
 
   const flatCategories = flattenCategories(categories);
 
+  // Keep all filter states in sync with URL params so the UI always
+  // reflects what is actually applied. Without this, navigating away
+  // and returning could show stale/mismatched filters (e.g. filtered
+  // results with an empty search box).
+  useEffect(() => {
+    setSearch(searchParams.get('search') || '');
+    setSelectedCategory(searchParams.get('category') || '');
+    setPriceMin(searchParams.get('price_min') || '');
+    setPriceMax(searchParams.get('price_max') || '');
+    setSortBy(searchParams.get('sort') || 'default');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   useEffect(() => {
     if (categoriesLoaded && !categoryId && !searchQuery && flatCategories.length > 0) {
       const firstCatId = String(flatCategories[0].id);

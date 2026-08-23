@@ -12,7 +12,6 @@ function Header() {
   const siteName = settings.site_name || 'WaveNotebook';
   const navigate = useNavigate();
   const location = useLocation();
-  const isHome = location.pathname === '/';
   const isProductsPage = location.pathname === '/products';
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,14 +23,6 @@ function Header() {
     setSearchOpen(false);
     setSearchQuery('');
     setSearchResults([]);
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const query = e.target.elements.search.value.trim();
-    if (query) {
-      navigate(`/products?search=${encodeURIComponent(query)}`);
-    }
   };
 
   const [scrolled, setScrolled] = useState(false);
@@ -112,9 +103,9 @@ function Header() {
             <span className="logo-text">{siteName}</span>
           </Link>
 
-          {isHome ? (
-            <div className="header-actions">
-              <div className="search-dropdown">
+          <div className="header-actions">
+            {!isProductsPage && (
+            <div className="search-dropdown">
                 <button
                   type="button"
                   className={`search-btn ${searchOpen ? 'active' : ''}`}
@@ -197,46 +188,18 @@ function Header() {
                   </div>
                 )}
              </div>
-              <Link to="/track-order" className="track-order-btn" title="Track your order">
-                <FaShippingFast />
-                <span className="track-order-label">Order Track</span>
-              </Link>
-              <Link to="/cart" className="cart-icon-only cart-btn">
-                <FaShoppingCart />
-                {cartCount > 0 && (
-                  <span className="cart-count">{cartCount}</span>
-                )}
-              </Link>
-            </div>
-          ) : (
-            <>
-              {!isProductsPage && (
-                <form className="search-bar" onSubmit={handleSearch}>
-                  <input
-                    type="text"
-                    name="search"
-                    placeholder="Search products..."
-                    className="search-input"
-                  />
-                  <button type="submit" className="search-btn">
-                    <FaSearch />
-                  </button>
-                </form>
+            )}
+            <Link to="/track-order" className="track-order-btn" title="Track your order">
+              <FaShippingFast />
+              <span className="track-order-label">Order Track</span>
+            </Link>
+            <Link to="/cart" className="cart-icon-only cart-btn">
+              <FaShoppingCart />
+              {cartCount > 0 && (
+                <span className="cart-count">{cartCount}</span>
               )}
-              {!isProductsPage && (
-                <Link to="/track-order" className="track-order-btn" title="Track your order">
-                  <FaShippingFast />
-                  <span className="track-order-label">Order Track</span>
-                </Link>
-              )}
-              <Link to="/cart" className="cart-icon-only cart-btn">
-                <FaShoppingCart />
-                {cartCount > 0 && (
-                  <span className="cart-count">{cartCount}</span>
-                )}
-              </Link>
-            </>
-          )}
+            </Link>
+          </div>
         </div>
       </div>
     </header>
