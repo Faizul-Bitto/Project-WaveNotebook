@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { FaBan, FaEye, FaPlus, FaSearch, FaTrash } from 'react-icons/fa';
+import { FaBan, FaEye, FaFileInvoice, FaPlus, FaSearch, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import {
+  adminCreateInvoiceTicket,
   adminDeleteOrder,
   adminGetOrders,
   adminSearchOrders,
   adminUpdateOrderStatus,
 } from '../../api/adminServices';
+import { API_BASE_URL } from '../../api/client';
 import Modal from '../../components/Modal';
 import { useToast } from '../../context/ToastContext';
 
@@ -37,6 +39,7 @@ function AdminOrders () {
   const { addToast } = useToast();
   const [ orders, setOrders ] = useState( [] );
   const [ loading, setLoading ] = useState( true );
+  const [ invoiceLoadingId, setInvoiceLoadingId ] = useState( null );
   const [ statusFilter, setStatusFilter ] = useState( '' );
   const [ searchType, setSearchType ] = useState( 'phone' );
   const [ searchValue, setSearchValue ] = useState( '' );
@@ -121,6 +124,25 @@ function AdminOrders () {
       addToast( 'Order deleted successfully!', 'success' );
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to delete order.', 'error' );
+    }
+  };
+
+  const handleDownloadInvoice = async ( orderId ) => {
+    setInvoiceLoadingId( orderId );
+    try {
+      const { ticket } = await adminCreateInvoiceTicket( orderId );
+      const url = `${API_BASE_URL}/admin/orders/${orderId}/invoice?ticket=${ticket}`;
+      const link = document.createElement( 'a' );
+      link.href = url;
+      link.rel = 'noopener';
+      document.body.appendChild( link );
+      link.click();
+      link.remove();
+      addToast( 'Invoice generated! Download starting...', 'success' );
+    } catch ( err ) {
+      addToast( err.response?.data?.detail || 'Failed to generate invoice.', 'error' );
+    } finally {
+      setInvoiceLoadingId( null );
     }
   };
 
@@ -239,21 +261,29 @@ function AdminOrders () {
                     </td>
                     <td>{ new Date( order.created_at ).toLocaleDateString() }</td>
                     <td>
-                      <div className="table-actions">
-                        <button
-                          className="action-btn action-edit"
-                          onClick={ () => navigate( `/admin/orders/${ order.id }` ) }
-                          aria-label={ `View order ${ order.order_number }` }
-                        >
-                          <FaEye />
-                        </button>
-                        <button
-                          className="action-btn action-delete"
-                          onClick={ () => handleDelete( order.id, order.order_number ) }
-                          aria-label={ `Delete order ${ order.order_number }` }
-                        >
-                          <FaTrash />
-                        </button>
+                       <div className="table-actions">
+                         <button
+                           className="action-btn action-invoice"
+                           onClick={ () => handleDownloadInvoice( order.id ) }
+                           aria-label={ `Download invoice for order ${ order.order_number }` }
+                           disabled={ invoiceLoadingId === order.id }
+                         >
+                           <FaFileInvoice />
+                         </button>
+                         <button
+                           className="action-btn action-edit"
+                           onClick={ () => navigate( `/admin/orders/${ order.id }` ) }
+                           aria-label={ `View order ${ order.order_number }` }
+                         >
+                           <FaEye />
+                         </button>
+                         <button
+                           className="action-btn action-delete"
+                           onClick={ () => handleDelete( order.id, order.order_number ) }
+                           aria-label={ `Delete order ${ order.order_number }` }
+                         >
+                           <FaTrash />
+                         </button>
                         { order.status !== 'cancelled' && order.status !== 'returned' && (
                           <button
                             className="action-btn action-cancel"
