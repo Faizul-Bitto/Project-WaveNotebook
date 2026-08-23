@@ -335,9 +335,11 @@ async def update_order(
             user = User(phone_number=order_data.phone_number, email=order_data.email, role="customer", password=None)
             db.add(user)
             db.flush()
+        elif order_data.email:
+            user.email = order_data.email
 
         # Update user email if provided
-        if order_data.email and not user.email:
+        if order_data.email:
             user.email = order_data.email
 
         # Update order fields
@@ -706,6 +708,8 @@ async def create_order_for_user(
             logger.info(
                 f"✅ New User Auto-Created | User ID={user.id} | Phone={user.phone_number} | Admin={admin.phone_number}"
             )
+        elif order_data.email:
+            user.email = order_data.email
 
         # Generate unique order number
         from app.apis.order import generate_order_number

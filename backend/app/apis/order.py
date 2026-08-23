@@ -135,6 +135,8 @@ async def create_order(db: db_dependency, order_data: OrderCreate):
             logger.info(
                 f"✅ New User Auto-Created | User ID={user.id} | Phone={user.phone_number}"
             )
+        elif order_data.email:
+            user.email = order_data.email
 
         # Generate unique order number
         order_number = generate_order_number()
