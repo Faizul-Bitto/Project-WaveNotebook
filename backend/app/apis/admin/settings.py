@@ -58,68 +58,46 @@ async def get_settings(db: db_dependency, admin: admin_dependency):
 async def update_settings(
     db: db_dependency,
     admin: admin_dependency,
-    site_name: str = Form(None),
-    page_title: str = Form(None),
-    site_description: str = Form(None),
-    contact_phone: str = Form(None),
-    contact_email: str = Form(None),
-    contact_address: str = Form(None),
-    hotline_number: str = Form(None),
-    website_url: str = Form(None),
-    facebook_url: str = Form(None),
-    youtube_url: str = Form(None),
-    instagram_url: str = Form(None),
-    twitter_url: str = Form(None),
-    whatsapp_number: str = Form(None),
-    messenger_url: str = Form(None),
-    order_whatsapp_number: str = Form(None),
-    order_call_number: str = Form(None),
-    privacy_policy: str = Form(None),
-    terms_conditions: str = Form(None),
-    refund_policy: str = Form(None),
+    site_name: str = Form(""),
+    page_title: str = Form(""),
+    site_description: str = Form(""),
+    contact_phone: str = Form(""),
+    contact_email: str = Form(""),
+    contact_address: str = Form(""),
+    hotline_number: str = Form(""),
+    website_url: str = Form(""),
+    facebook_url: str = Form(""),
+    youtube_url: str = Form(""),
+    instagram_url: str = Form(""),
+    twitter_url: str = Form(""),
+    whatsapp_number: str = Form(""),
+    messenger_url: str = Form(""),
+    order_whatsapp_number: str = Form(""),
+    order_call_number: str = Form(""),
+    privacy_policy: str = Form(""),
+    terms_conditions: str = Form(""),
+    refund_policy: str = Form(""),
     logo: UploadFile = File(None),
     favicon: UploadFile = File(None),
 ):
     settings = get_or_create_settings(db)
 
-    if site_name is not None:
-        settings.site_name = site_name
-    if page_title is not None:
-        settings.page_title = page_title
-    if site_description is not None:
-        settings.site_description = site_description
-    if contact_phone is not None:
-        settings.contact_phone = contact_phone
-    if contact_email is not None:
-        settings.contact_email = contact_email
-    if contact_address is not None:
-        settings.contact_address = contact_address
-    if hotline_number is not None:
-        settings.hotline_number = hotline_number
-    if website_url is not None:
-        settings.website_url = website_url
-    if facebook_url is not None:
-        settings.facebook_url = facebook_url
-    if youtube_url is not None:
-        settings.youtube_url = youtube_url
-    if instagram_url is not None:
-        settings.instagram_url = instagram_url
-    if twitter_url is not None:
-        settings.twitter_url = twitter_url
-    if whatsapp_number is not None:
-        settings.whatsapp_number = whatsapp_number
-    if messenger_url is not None:
-        settings.messenger_url = messenger_url
-    if order_whatsapp_number is not None:
-        settings.order_whatsapp_number = order_whatsapp_number
-    if order_call_number is not None:
-        settings.order_call_number = order_call_number
-    if privacy_policy is not None:
-        settings.privacy_policy = privacy_policy
-    if terms_conditions is not None:
-        settings.terms_conditions = terms_conditions
-    if refund_policy is not None:
-        settings.refund_policy = refund_policy
+    # All text fields default to "" so cleared fields are always saved
+    # (even when the browser omits the field from multipart form data).
+    # Empty strings are saved as-is so the frontend form can distinguish
+    # "cleared by user" from "never set" when using nullish coalescing.
+    _fields = [
+        "site_name", "page_title", "site_description",
+        "contact_phone", "contact_email", "contact_address",
+        "hotline_number", "website_url",
+        "facebook_url", "youtube_url", "instagram_url", "twitter_url",
+        "whatsapp_number", "messenger_url",
+        "order_whatsapp_number", "order_call_number",
+        "privacy_policy", "terms_conditions", "refund_policy",
+    ]
+    for _field in _fields:
+        _val = locals()[_field]
+        setattr(settings, _field, _val)
 
     if logo:
         logo_url = await upload_file_to_storage(logo, "logo")

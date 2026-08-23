@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit, FaCopy, FaFileInvoice } from 'react-icons/fa';
+import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit, FaCopy, FaFileInvoice, FaEnvelope } from 'react-icons/fa';
 import { adminGetOrder, adminDeleteOrder, adminGetOrderAdjustments, adminCreateOrderAdjustment, adminDeleteOrderAdjustment, adminCreateInvoiceTicket } from '../../api/adminServices';
 import { API_BASE_URL } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
@@ -204,6 +204,7 @@ function AdminOrderDetail() {
         <div className="order-detail-grid">
           <div className="detail-item"><span className="detail-label">Name</span><span className="detail-value">{order.full_name}</span></div>
           <div className="detail-item"><span className="detail-label">Phone</span><span className="detail-value"><FaPhone /> {order.phone_number}</span></div>
+          {order.email && <div className="detail-item"><span className="detail-label">Email</span><span className="detail-value"><FaEnvelope /> {order.email}</span></div>}
           <div className="detail-item"><span className="detail-label">District</span><span className="detail-value"><FaMapMarkerAlt /> {order.district}</span></div>
           <div className="detail-item"><span className="detail-label">Thana</span><span className="detail-value"><FaMapMarkerAlt /> {order.thana}</span></div>
         </div>

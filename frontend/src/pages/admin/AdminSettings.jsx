@@ -16,7 +16,6 @@ function AdminSettings () {
     contact_address: '',
     hotline_number: '',
     website_url: '',
-    website_url: '',
     facebook_url: '',
     youtube_url: '',
     instagram_url: '',
@@ -40,26 +39,25 @@ function AdminSettings () {
       const data = await adminGetSettings();
       const s = data.settings || {};
       setFormData( {
-        site_name: s.site_name || 'WaveNotebook',
-        page_title: s.page_title || '',
-        site_description: s.site_description || '',
-        contact_phone: s.contact_phone || '',
-        contact_email: s.contact_email || '',
-        contact_address: s.contact_address || '',
-        hotline_number: s.hotline_number || '',
-        website_url: s.website_url || '',
-        website_url: s.website_url || '',
-        facebook_url: s.facebook_url || '',
-        youtube_url: s.youtube_url || '',
-        instagram_url: s.instagram_url || '',
-        twitter_url: s.twitter_url || '',
-        whatsapp_number: s.whatsapp_number || '',
-        messenger_url: s.messenger_url || '',
-        order_whatsapp_number: s.order_whatsapp_number || '',
-        order_call_number: s.order_call_number || '',
-        privacy_policy: s.privacy_policy || '',
-        terms_conditions: s.terms_conditions || '',
-        refund_policy: s.refund_policy || '',
+        site_name: s.site_name ?? 'WaveNotebook',
+        page_title: s.page_title ?? '',
+        site_description: s.site_description ?? '',
+        contact_phone: s.contact_phone ?? '',
+        contact_email: s.contact_email ?? '',
+        contact_address: s.contact_address ?? '',
+        hotline_number: s.hotline_number ?? '',
+        website_url: s.website_url ?? '',
+        facebook_url: s.facebook_url ?? '',
+        youtube_url: s.youtube_url ?? '',
+        instagram_url: s.instagram_url ?? '',
+        twitter_url: s.twitter_url ?? '',
+        whatsapp_number: s.whatsapp_number ?? '',
+        messenger_url: s.messenger_url ?? '',
+        order_whatsapp_number: s.order_whatsapp_number ?? '',
+        order_call_number: s.order_call_number ?? '',
+        privacy_policy: s.privacy_policy ?? '',
+        terms_conditions: s.terms_conditions ?? '',
+        refund_policy: s.refund_policy ?? '',
       } );
       setLogoUrl( s.logo_url || '' );
       setFaviconUrl( s.favicon_url || '' );
@@ -105,7 +103,6 @@ function AdminSettings () {
       fd.append( 'contact_email', formData.contact_email );
       fd.append( 'contact_address', formData.contact_address );
       fd.append( 'hotline_number', formData.hotline_number );
-      fd.append( 'website_url', formData.website_url );
       fd.append( 'website_url', formData.website_url );
       fd.append( 'facebook_url', formData.facebook_url );
       fd.append( 'youtube_url', formData.youtube_url );
