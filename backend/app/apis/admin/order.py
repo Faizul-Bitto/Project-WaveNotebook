@@ -1364,17 +1364,112 @@ async def delete_order(
 # Invoice PDF Download (system generated)
 # ==========================================================
 
-@router.get("/{order_id}/invoice", status_code=status.HTTP_200_OK)
-async def download_order_invoice(
+# One-time short-lived download tickets. Lets the frontend trigger a direct
+# browser navigation (no XHR -> no CORS / download-manager conflicts) while
+# still requiring admin authentication.
+#
+# NOTE: Tickets are intentionally RE-USABLE within their TTL. Download
+# managers (e.g. IDM) fire several parallel/retry requests for one download;
+# single-use tickets break them and trigger auth pop-ups.
+_invoice_tickets = {}
+
+TICKET_TTL_SECONDS = 300
+
+
+def _validate_invoice_token(authorization: str | None) -> bool:
+    """Manually validate an admin JWT from the Authorization header."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return False
+    try:
+        from jose import jwt as jose_jwt
+        from app.core.config import settings as app_settings
+
+        payload = jose_jwt.decode(
+            authorization.split(" ", 1)[1],
+            app_settings.SECRET_KEY,
+            algorithms=[app_settings.ALGORITHM],
+        )
+        return payload.get("role") == "admin"
+    except Exception:
+        return False
+
+
+@router.post("/{order_id}/invoice-ticket", status_code=status.HTTP_200_OK)
+async def create_invoice_ticket(
     db: db_dependency,
     admin: admin_dependency,
     order_id: int = Path(..., gt=0),
 ):
     """
-    Generate and download the invoice PDF for an order.
-    GET /admin/orders/{order_id}/invoice
-    Returns application/pdf with Content-Disposition attachment.
+    Create a download ticket for an order invoice.
+    POST /admin/orders/{order_id}/invoice-ticket
+
+    The returned ticket is valid for 5 minutes and can be used multiple
+    times (download managers fire parallel/retry requests) via:
+    GET /admin/orders/{order_id}/invoice?ticket=<ticket>
     """
+    import uuid
+    from time import time as now_ts
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found.",
+        )
+
+    # Lazy cleanup of expired tickets so the dict stays small.
+    current = now_ts()
+    for t in [k for k, v in _invoice_tickets.items() if v["expires"] < current]:
+        _invoice_tickets.pop(t, None)
+
+    ticket = uuid.uuid4().hex
+    _invoice_tickets[ticket] = {
+        "order_id": order_id,
+        "expires": current + TICKET_TTL_SECONDS,
+    }
+
+    return {"ticket": ticket}
+
+
+@router.get("/{order_id}/invoice", status_code=status.HTTP_200_OK)
+async def download_order_invoice(
+    db: db_dependency,
+    order_id: int = Path(..., gt=0),
+    ticket: str = Query(None),
+    authorization: str | None = None,
+):
+    """
+    Generate and download the invoice PDF for an order.
+
+    Auth (either one):
+    - one-time ticket: GET .../invoice?ticket=<ticket>
+    - admin Authorization: Bearer header
+    """
+    from time import time as now_ts
+
+    authorized_via_ticket = False
+
+    if ticket:
+        entry = _invoice_tickets.get(ticket)
+        if (
+            not entry
+            or entry["expires"] < now_ts()
+            or entry["order_id"] != order_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired download link. Please try again.",
+            )
+        # Re-usable within TTL - do NOT consume. Download managers fire
+        # multiple parallel/retry requests for a single download.
+        authorized_via_ticket = True
+    elif not _validate_invoice_token(authorization):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated.",
+        )
+
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(
@@ -1402,11 +1497,18 @@ async def download_order_invoice(
             detail="Failed to generate invoice PDF.",
         )
 
-    logger.info(f"🧾 Invoice Generated | Order={order.order_number} | Admin={admin.phone_number}")
+    logger.info(
+        f"🧾 Invoice Generated | Order={order.order_number} | "
+        f"Auth={'ticket' if authorized_via_ticket else 'header'}"
+    )
 
     filename = f"invoice-{order.order_number}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
     )

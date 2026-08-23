@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit, FaCopy, FaFileInvoice } from 'react-icons/fa';
-import { adminGetOrder, adminDeleteOrder, adminGetOrderAdjustments, adminCreateOrderAdjustment, adminDeleteOrderAdjustment, adminDownloadInvoice } from '../../api/adminServices';
+import { adminGetOrder, adminDeleteOrder, adminGetOrderAdjustments, adminCreateOrderAdjustment, adminDeleteOrderAdjustment, adminCreateInvoiceTicket } from '../../api/adminServices';
+import { API_BASE_URL } from '../../api/client';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
 
@@ -111,19 +112,22 @@ function AdminOrderDetail() {
   const handleDownloadInvoice = async () => {
     setInvoiceLoading(true);
     try {
-      const response = await adminDownloadInvoice(id);
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
+      // Step 1: get a one-time download ticket (normal authenticated XHR).
+      const { ticket } = await adminCreateInvoiceTicket(order.id);
+
+      // Step 2: direct browser navigation with the ticket - avoids CORS
+      // and download-manager interception issues entirely.
+      const url = `${API_BASE_URL}/admin/orders/${order.id}/invoice?ticket=${ticket}`;
       const link = document.createElement('a');
       link.href = url;
-      link.download = `invoice-${order.order_number}.pdf`;
+      link.rel = 'noopener';
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
-      addToast('Invoice downloaded successfully!', 'success');
+
+      addToast('Invoice generated! Download starting...', 'success');
     } catch (err) {
-      addToast('Failed to download invoice. Please try again.', 'error');
+      addToast(err.response?.data?.detail || 'Failed to generate invoice. Please try again.', 'error');
     } finally {
       setInvoiceLoading(false);
     }

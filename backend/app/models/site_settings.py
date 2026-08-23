@@ -20,6 +20,7 @@ class SiteSettings(Base):
     contact_email = Column(String(255), nullable=True, server_default=None)
     contact_address = Column(String(500), nullable=True, server_default=None)
     hotline_number = Column(String(50), nullable=True, server_default=None)
+    website_url = Column(String(500), nullable=True, server_default=None)
 
     # Social Links
     facebook_url = Column(String(500), nullable=True, server_default=None)

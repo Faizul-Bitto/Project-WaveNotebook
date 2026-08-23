@@ -15,6 +15,8 @@ function AdminSettings () {
     contact_email: '',
     contact_address: '',
     hotline_number: '',
+    website_url: '',
+    website_url: '',
     facebook_url: '',
     youtube_url: '',
     instagram_url: '',
@@ -45,6 +47,8 @@ function AdminSettings () {
         contact_email: s.contact_email || '',
         contact_address: s.contact_address || '',
         hotline_number: s.hotline_number || '',
+        website_url: s.website_url || '',
+        website_url: s.website_url || '',
         facebook_url: s.facebook_url || '',
         youtube_url: s.youtube_url || '',
         instagram_url: s.instagram_url || '',
@@ -101,6 +105,8 @@ function AdminSettings () {
       fd.append( 'contact_email', formData.contact_email );
       fd.append( 'contact_address', formData.contact_address );
       fd.append( 'hotline_number', formData.hotline_number );
+      fd.append( 'website_url', formData.website_url );
+      fd.append( 'website_url', formData.website_url );
       fd.append( 'facebook_url', formData.facebook_url );
       fd.append( 'youtube_url', formData.youtube_url );
       fd.append( 'instagram_url', formData.instagram_url );
@@ -196,6 +202,11 @@ function AdminSettings () {
           <div className="form-group">
             <label>Hotline Number (Header)</label>
             <input type="text" name="hotline_number" value={ formData.hotline_number } onChange={ handleChange } placeholder="01700-000000" />
+          </div>
+
+          <div className="form-group">
+            <label>Website URL (Invoice)</label>
+            <input type="url" name="website_url" value={ formData.website_url } onChange={ handleChange } placeholder="https://www.yoursite.com" />
           </div>
 
           <div className="form-group">

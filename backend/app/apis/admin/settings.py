@@ -38,6 +38,7 @@ async def get_settings(db: db_dependency, admin: admin_dependency):
             "contact_email": settings.contact_email,
             "contact_address": settings.contact_address,
             "hotline_number": settings.hotline_number,
+            "website_url": settings.website_url,
             "facebook_url": settings.facebook_url,
             "youtube_url": settings.youtube_url,
             "instagram_url": settings.instagram_url,
@@ -64,6 +65,7 @@ async def update_settings(
     contact_email: str = Form(None),
     contact_address: str = Form(None),
     hotline_number: str = Form(None),
+    website_url: str = Form(None),
     facebook_url: str = Form(None),
     youtube_url: str = Form(None),
     instagram_url: str = Form(None),
@@ -94,6 +96,8 @@ async def update_settings(
         settings.contact_address = contact_address
     if hotline_number is not None:
         settings.hotline_number = hotline_number
+    if website_url is not None:
+        settings.website_url = website_url
     if facebook_url is not None:
         settings.facebook_url = facebook_url
     if youtube_url is not None:
@@ -144,6 +148,7 @@ async def update_settings(
             "contact_email": settings.contact_email,
             "contact_address": settings.contact_address,
             "hotline_number": settings.hotline_number,
+            "website_url": settings.website_url,
             "facebook_url": settings.facebook_url,
             "youtube_url": settings.youtube_url,
             "instagram_url": settings.instagram_url,

@@ -466,9 +466,7 @@ export const adminDeleteMessage = async (id) => {
   return data;
 };
 
-export const adminDownloadInvoice = async (orderId) => {
-  const response = await api.get(`/admin/orders/${orderId}/invoice`, {
-    responseType: 'blob',
-  });
-  return response;
+export const adminCreateInvoiceTicket = async (orderId) => {
+  const { data } = await api.post(`/admin/orders/${orderId}/invoice-ticket`);
+  return data;
 };
