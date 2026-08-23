@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaShoppingCart, FaSearch, FaPhoneAlt, FaUserShield, FaTimes } from 'react-icons/fa';
+import { FaShoppingCart, FaSearch, FaPhoneAlt, FaEnvelope, FaUserShield, FaTimes, FaShippingFast } from 'react-icons/fa';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
 import { searchProducts } from '../api/services';
@@ -86,14 +86,13 @@ function Header() {
       {/* Top bar */}
       <div className="top-bar">
         <div className="container top-bar-inner">
-          <div className="top-bar-left">
+          <div className="top-bar-center">
             <FaPhoneAlt className="top-bar-icon" />
             <span>Hotline: {settings.hotline_number || '01700-000000'}</span>
-          </div>
-          <div className="top-bar-right">
-            <Link to="/track-order" className="top-bar-link">
-              Track Order
-            </Link>
+            <span className="top-bar-divider">|</span>
+            <FaEnvelope className="top-bar-icon" />
+            <span>Email: {settings.contact_email || 'info@wavenotebook.com'}</span>
+            <span className="top-bar-divider">|</span>
             <Link to="/admin/login" className="top-bar-link">
               <FaUserShield className="top-bar-icon" /> Admin
             </Link>
@@ -198,6 +197,10 @@ function Header() {
                   </div>
                 )}
              </div>
+              <Link to="/track-order" className="track-order-btn" title="Track your order">
+                <FaShippingFast />
+                <span className="track-order-label">Order Track</span>
+              </Link>
               <Link to="/cart" className="cart-icon-only cart-btn">
                 <FaShoppingCart />
                 {cartCount > 0 && (
@@ -219,6 +222,12 @@ function Header() {
                     <FaSearch />
                   </button>
                 </form>
+              )}
+              {!isProductsPage && (
+                <Link to="/track-order" className="track-order-btn" title="Track your order">
+                  <FaShippingFast />
+                  <span className="track-order-label">Order Track</span>
+                </Link>
               )}
               <Link to="/cart" className="cart-icon-only cart-btn">
                 <FaShoppingCart />

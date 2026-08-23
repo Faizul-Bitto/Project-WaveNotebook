@@ -24,11 +24,17 @@
 
 .top-bar-inner {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 8px 24px;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+.top-bar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .top-bar-left,
@@ -59,6 +65,51 @@
 
 .top-bar-link:hover {
   color: var(--white);
+}
+
+.top-bar-divider {
+  color: var(--gray-600);
+  margin: 0 12px;
+  font-weight: 300;
+  user-select: none;
+}
+
+/* Track order button in main navbar */
+.track-order-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 2px solid var(--primary);
+  background: var(--white);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.2s ease,
+    box-shadow 0.3s ease;
+}
+
+.track-order-btn svg {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.track-order-btn:hover {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+.track-order-btn:active {
+  transform: scale(0.96);
 }
 
 .main-header {
@@ -477,13 +528,33 @@
   }
 
   .top-bar-inner {
-    flex-direction: column;
-    gap: 4px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    text-align: center;
+  }
+
+  .top-bar-center {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .top-bar-divider {
+    margin: 0 6px;
   }
 }
 
 @media (max-width: 480px) {
   .cart-btn .cart-text {
     display: none;
+  }
+
+  .track-order-label {
+    display: none;
+  }
+
+  .track-order-btn {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
   }
 }
