@@ -465,3 +465,10 @@ export const adminDeleteMessage = async (id) => {
   const { data } = await api.delete(`/admin/contacts/${id}`);
   return data;
 };
+
+export const adminDownloadInvoice = async (orderId) => {
+  const response = await api.get(`/admin/orders/${orderId}/invoice`, {
+    responseType: 'blob',
+  });
+  return response;
+};

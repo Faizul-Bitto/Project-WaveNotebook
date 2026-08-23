@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, HTTPException, Path, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 from sqlalchemy import or_
 from starlette import status
 
@@ -15,6 +15,7 @@ from app.models.attribute_option import AttributeOption
 from app.models.product_attribute_option import ProductAttributeOption
 from app.models.product_variant import ProductVariant
 from app.models.order_adjustment import OrderAdjustment
+from app.models.site_settings import SiteSettings
 from app.schemas.order import OrderCreate, OrderStatusUpdate, OrderPreviewRequest
 from app.schemas.order_adjustment import OrderAdjustmentCreate
 from app.utils.variant_generator import (
@@ -1358,3 +1359,54 @@ async def delete_order(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete order.",
         )
+
+# ==========================================================
+# Invoice PDF Download (system generated)
+# ==========================================================
+
+@router.get("/{order_id}/invoice", status_code=status.HTTP_200_OK)
+async def download_order_invoice(
+    db: db_dependency,
+    admin: admin_dependency,
+    order_id: int = Path(..., gt=0),
+):
+    """
+    Generate and download the invoice PDF for an order.
+    GET /admin/orders/{order_id}/invoice
+    Returns application/pdf with Content-Disposition attachment.
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found.",
+        )
+
+    items = (
+        db.query(OrderItem)
+        .filter(OrderItem.order_id == order_id)
+        .order_by(OrderItem.created_at.asc(), OrderItem.id.asc())
+        .all()
+    )
+
+    settings_row = db.query(SiteSettings).first()
+
+    try:
+        from app.services.invoice_service import build_invoice_pdf
+
+        pdf_bytes = build_invoice_pdf(order, items, settings_row)
+    except Exception as e:
+        logger.error(f"❌ Invoice generation failed | Order={order.order_number} | Error={str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate invoice PDF.",
+        )
+
+    logger.info(f"🧾 Invoice Generated | Order={order.order_number} | Admin={admin.phone_number}")
+
+    filename = f"invoice-{order.order_number}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

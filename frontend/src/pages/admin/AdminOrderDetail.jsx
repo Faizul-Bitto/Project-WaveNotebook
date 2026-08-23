@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit, FaCopy } from 'react-icons/fa';
-import { adminGetOrder, adminDeleteOrder, adminGetOrderAdjustments, adminCreateOrderAdjustment, adminDeleteOrderAdjustment } from '../../api/adminServices';
+import { FaArrowLeft, FaBoxOpen, FaUser, FaPhone, FaMapMarkerAlt, FaClipboardList, FaTrash, FaEdit, FaCopy, FaFileInvoice } from 'react-icons/fa';
+import { adminGetOrder, adminDeleteOrder, adminGetOrderAdjustments, adminCreateOrderAdjustment, adminDeleteOrderAdjustment, adminDownloadInvoice } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
 
@@ -28,6 +28,7 @@ function AdminOrderDetail() {
   const [adjustments, setAdjustments] = useState([]);
   const [adjLoading, setAdjLoading] = useState(false);
   const [adjForm, setAdjForm] = useState({ type: 'manual_discount', amount: '', reason: '' });
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   useEffect(() => {
     adminGetOrder(id)
@@ -107,6 +108,27 @@ function AdminOrderDetail() {
     }
   };
 
+  const handleDownloadInvoice = async () => {
+    setInvoiceLoading(true);
+    try {
+      const response = await adminDownloadInvoice(id);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${order.order_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('Invoice downloaded successfully!', 'success');
+    } catch (err) {
+      addToast('Failed to download invoice. Please try again.', 'error');
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
   if (loading) return <div className="loading">Loading...</div>;
   if (!order) return <div className="alert alert-error">Order not found</div>;
 
@@ -116,6 +138,14 @@ function AdminOrderDetail() {
         <h2>Order #{order.order_number}</h2>
         <div className="header-actions">
           <button className="btn btn-secondary" onClick={() => navigate('/admin/orders')}><FaArrowLeft /> Back</button>
+          <button
+            className="btn btn-primary"
+            onClick={handleDownloadInvoice}
+            disabled={invoiceLoading}
+            title="Download invoice as PDF"
+          >
+            <FaFileInvoice /> {invoiceLoading ? 'Generating...' : 'Invoice'}
+          </button>
           <button className="btn btn-primary" onClick={() => navigate(`/admin/orders/${order.id}/edit`)}><FaEdit /> Edit</button>
           <button className="btn btn-danger" onClick={handleDelete}><FaTrash /> Delete</button>
         </div>
