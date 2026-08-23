@@ -16,7 +16,9 @@ import {
   FaChevronDown,
   FaChevronRight,
   FaTruck,
+  FaEnvelopeOpenText,
 } from 'react-icons/fa';
+import { adminGetUnreadMessageCount } from '../../api/adminServices';
 
 function AdminLayout() {
   const navigate = useNavigate();
@@ -25,6 +27,29 @@ function AdminLayout() {
   const [expensesExpanded, setExpensesExpanded] = useState(
     location.pathname.startsWith('/admin/expenses')
   );
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // Poll unread contact messages for near real-time notifications
+  useEffect(() => {
+    let mounted = true;
+    const fetchCount = async () => {
+      try {
+        const data = await adminGetUnreadMessageCount();
+        if (mounted) setUnreadMessages(data.count || 0);
+      } catch {
+        // silent - badge just stays as-is
+      }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 15000);
+    const handleMessageRead = () => fetchCount();
+    window.addEventListener('contact-message-read', handleMessageRead);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+      window.removeEventListener('contact-message-read', handleMessageRead);
+    };
+  }, []);
 
   useEffect(() => {
     if (location.pathname.startsWith('/admin/expenses')) {
@@ -46,6 +71,12 @@ function AdminLayout() {
     { path: '/admin/attributes', label: 'Attributes', icon: <FaCubes /> },
     { path: '/admin/products', label: 'Products', icon: <FaBox /> },
     { path: '/admin/orders', label: 'Orders', icon: <FaShoppingBag /> },
+    {
+      path: '/admin/messages',
+      label: 'Messages',
+      icon: <FaEnvelopeOpenText />,
+      badge: unreadMessages,
+    },
     { path: '/admin/discounts', label: 'Discounts', icon: <FaTags /> },
     { path: '/admin/shipping-charges', label: 'Shipping Charges', icon: <FaTruck /> },
     {
@@ -120,6 +151,11 @@ function AdminLayout() {
               >
                 <span className="admin-nav-icon">{item.icon}</span>
                 {item.label}
+                {item.badge > 0 && (
+                  <span className="admin-nav-badge" title={`${item.badge} unread message${item.badge !== 1 ? 's' : ''}`}>
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

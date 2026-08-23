@@ -166,6 +166,14 @@ export const getShippingCharges = async () => {
 };
 
 // ==========================================
+// Contact
+// ==========================================
+export const sendMessage = async (messageData) => {
+  const { data } = await api.post('/contact', messageData);
+  return data;
+};
+
+// ==========================================
 // Auth
 // ==========================================
 export const adminLogin = async (phone_number, password) => {

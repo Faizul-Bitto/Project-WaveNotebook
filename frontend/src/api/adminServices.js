@@ -442,3 +442,26 @@ export const adminDeleteShippingCharge = async (id) => {
   const { data } = await api.delete(`/admin/shipping-charges/${id}`);
   return data;
 };
+
+// ==========================================
+// Contact Messages (Admin)
+// ==========================================
+export const adminGetContacts = async (params = {}) => {
+  const { data } = await api.get('/admin/contacts', { params });
+  return data;
+};
+
+export const adminGetUnreadMessageCount = async () => {
+  const { data } = await api.get('/admin/contacts/unread-count');
+  return data;
+};
+
+export const adminMarkMessageRead = async (id) => {
+  const { data } = await api.patch(`/admin/contacts/${id}/read`);
+  return data;
+};
+
+export const adminDeleteMessage = async (id) => {
+  const { data } = await api.delete(`/admin/contacts/${id}`);
+  return data;
+};

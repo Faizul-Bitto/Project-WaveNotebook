@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FaFacebook, FaInstagram, FaYoutube, FaTwitter, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaFacebook, FaInstagram, FaYoutube, FaTwitter, FaPaperPlane } from 'react-icons/fa';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
 function Footer() {
@@ -16,13 +16,70 @@ function Footer() {
 
   return (
     <footer className="footer">
-      <div className="container footer-grid">
-        {/* Brand & Description */}
-        <div className="footer-col">
-          <h3 className="footer-title">{settings.site_name || 'Wave Notebook'}</h3>
+      <div className="container">
+        {/* Centered Brand Header */}
+        <div className="footer-brand">
+          <h3 className="footer-brand-name">
+            {(settings.site_name || 'Wave Notebook').split(' ')[0]}{' '}
+            <span>{(settings.site_name || 'Wave Notebook').split(' ').slice(1).join(' ')}</span>
+          </h3>
           {settings.site_description && (
             <p className="footer-desc">{settings.site_description}</p>
           )}
+        </div>
+
+        {/* Fading Separator */}
+        <div className="footer-separator" />
+
+        {/* Navigation Columns */}
+        <div className="footer-nav">
+        <div className="footer-col">
+          <h3 className="footer-title">Quick Links</h3>
+          <ul className="footer-links">
+            <li><Link to="/">Home</Link></li>
+            <li><Link to="/products">All Products</Link></li>
+            <li><Link to="/cart">Cart</Link></li>
+            <li><Link to="/track-order">Track Order</Link></li>
+            <li><Link to="/contact">Contact Us</Link></li>
+          </ul>
+        </div>
+
+        {/* Policy Pages */}
+        <div className="footer-col">
+          <h3 className="footer-title">Policies</h3>
+          <ul className="footer-links">
+            <li><Link to="/privacy-policy">Privacy Policy</Link></li>
+            <li><Link to="/terms-conditions">Terms & Conditions</Link></li>
+            <li><Link to="/refund-policy">Refund & Return Policy</Link></li>
+          </ul>
+        </div>
+
+        {/* Contact Us CTA */}
+        <div className="footer-col">
+          <h3 className="footer-title">Contact Us</h3>
+          <p className="footer-contact-lead">
+            Questions, feedback or orders — we would love to hear from you.
+          </p>
+          <Link to="/contact" className="footer-contact-card">
+            <div className="fcc-icon">
+              <FaPaperPlane />
+            </div>
+            <div className="fcc-body">
+              <div className="fcc-top">
+                <span className="fcc-big">Send us a message</span>
+                <span className="fcc-arrow">→</span>
+              </div>
+              <span className="fcc-sub">We usually reply within 24 hours</span>
+            </div>
+          </Link>
+        </div>
+        </div>
+      </div>
+
+      <div className="footer-bottom">
+        <div className="container footer-bottom-inner">
+          <p>&copy; {new Date().getFullYear()} {settings.site_name || 'Wave Notebook'}. All rights reserved.</p>
+
           {visibleSocial.length > 0 && (
             <div className="footer-social">
               {visibleSocial.map((social) => (
@@ -39,55 +96,10 @@ function Footer() {
               ))}
             </div>
           )}
-        </div>
 
-        {/* Quick Links */}
-        <div className="footer-col">
-          <h3 className="footer-title">Quick Links</h3>
-          <ul className="footer-links">
-            <li><Link to="/">Home</Link></li>
-            <li><Link to="/products">All Products</Link></li>
-            <li><Link to="/cart">Cart</Link></li>
-            <li><Link to="/track-order">Track Order</Link></li>
-          </ul>
-        </div>
-
-        {/* Policy Pages */}
-        <div className="footer-col">
-          <h3 className="footer-title">Policies</h3>
-          <ul className="footer-links">
-            <li><Link to="/privacy-policy">Privacy Policy</Link></li>
-            <li><Link to="/terms-conditions">Terms & Conditions</Link></li>
-            <li><Link to="/refund-policy">Refund & Return Policy</Link></li>
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div className="footer-col">
-          <h3 className="footer-title">Contact Us</h3>
-          <ul className="footer-contact">
-            {settings.contact_phone && (
-              <li>
-                <FaPhoneAlt className="footer-contact-icon" />
-                <a href={`tel:${settings.contact_phone.replace(/[^+\d]/g, '')}`}>{settings.contact_phone}</a>
-              </li>
-            )}
-            {settings.contact_email && (
-              <li>
-                <FaEnvelope className="footer-contact-icon" />
-                <a href={`mailto:${settings.contact_email}`}>{settings.contact_email}</a>
-              </li>
-            )}
-            {settings.contact_address && (
-              <li><FaMapMarkerAlt className="footer-contact-icon" /> {settings.contact_address}</li>
-            )}
-          </ul>
-        </div>
-      </div>
-
-      <div className="footer-bottom">
-        <div className="container">
-          <p>&copy; {new Date().getFullYear()} {settings.site_name || 'Wave Notebook'}. All rights reserved.</p>
+          <p className="footer-made">
+            Crafted with <span>♥</span> for notebook lovers
+          </p>
         </div>
       </div>
     </footer>

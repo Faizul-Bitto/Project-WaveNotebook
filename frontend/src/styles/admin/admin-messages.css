@@ -1,0 +1,305 @@
+/* ==========================================
+   Wave Notebook - Admin Messages Styles
+   Nav Badge, Messages List, View Modal
+   ========================================== */
+
+/* ---------- Sidebar Badge ---------- */
+.admin-nav-badge {
+  margin-left: auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--white);
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
+}
+
+/* ---------- Filter Tabs ---------- */
+.messages-filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.messages-tab {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-600);
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.messages-tab:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.messages-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--white);
+}
+
+/* ---------- Messages List ---------- */
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.message-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.message-item:hover {
+  border-color: var(--primary-200, #99f6e4);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+  transform: translateY(-2px);
+}
+
+.message-item.unread {
+  border-left: 4px solid var(--primary);
+  background: var(--primary-50, #f0fdfa);
+}
+
+.message-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.message-top-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.unread-dot {
+  color: var(--primary);
+  font-size: 9px;
+  animation: unread-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes unread-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.message-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.message-date {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--gray-400);
+  white-space: nowrap;
+}
+
+.message-preview {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.message-meta a {
+  color: var(--primary-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.message-meta a:hover {
+  text-decoration: underline;
+}
+
+.meta-sep {
+  color: var(--gray-300);
+}
+
+/* ---------- Action Buttons ---------- */
+.message-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.msg-action-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-500);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.msg-action-btn.view:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-50, #f0fdfa);
+}
+
+.msg-action-btn.delete:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* ---------- View Modal ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modal-fade-in 0.2s ease;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.message-view-modal {
+  background: var(--white);
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: modal-pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-pop-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.message-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.message-view-header h2 {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.message-view-close {
+  background: none;
+  border: none;
+  font-size: 17px;
+  color: var(--gray-400);
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s ease;
+}
+
+.message-view-close:hover {
+  color: var(--gray-900);
+}
+
+.message-view-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 22px;
+  background: var(--gray-50, #f8fafc);
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 14px;
+}
+
+.message-view-meta .meta-label {
+  font-weight: 700;
+  color: var(--gray-500);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+
+.message-view-meta a {
+  color: var(--primary-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.message-view-meta a:hover {
+  text-decoration: underline;
+}
+
+.message-view-body {
+  padding: 20px 22px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--gray-700);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-view-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--gray-100);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .message-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .message-actions {
+    justify-content: flex-end;
+  }
+
+  .message-date {
+    margin-left: auto;
+  }
+}

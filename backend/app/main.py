@@ -44,6 +44,7 @@ from app.models.bogo_rule import BogoRule
 from app.models.discount_usage import DiscountUsage
 from app.models.order_adjustment import OrderAdjustment
 from app.models.shipping_charge import ShippingCharge
+from app.models.contact import Contact
 
 # Import routers
 from app.apis import (
@@ -74,6 +75,8 @@ from app.apis.admin import banner as admin_banner
 from app.apis.admin import settings as admin_settings
 from app.apis.admin import discount as admin_discount
 from app.apis.admin import shipping_charge as admin_shipping_charge
+from app.apis import contact as contact_api
+from app.apis.admin import contact as admin_contact
 from app.apis import shipping_charge
 
 
@@ -308,6 +311,7 @@ app.include_router(lookup.router)
 app.include_router(banner.router)
 app.include_router(site_settings.router)
 app.include_router(discount.router)
+app.include_router(contact_api.router)
 
 
 # ==========================================================
@@ -326,6 +330,7 @@ app.include_router(admin_settings.router)
 app.include_router(admin_expense.router)
 app.include_router(admin_discount.router)
 app.include_router(admin_shipping_charge.router)
+app.include_router(admin_contact.router)
 app.include_router(shipping_charge.router)
 
 

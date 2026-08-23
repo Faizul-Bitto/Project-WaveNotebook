@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const COUNTRIES = [
   { name: 'Afghanistan', code: '+93', flag: '🇦🇫' },
@@ -199,13 +199,39 @@ const COUNTRIES = [
 
 function PhoneInput({ value, onChange, placeholder, name, className }) {
   const [countryCode, setCountryCode] = useState('+880');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const wrapRef = useRef(null);
 
-  const handleCodeChange = (e) => {
-    const code = e.target.value;
-    setCountryCode(code);
-    const currentCode = COUNTRIES.find((c) => value.startsWith(c.code))?.code || countryCode;
-    const localNumber = value.startsWith(currentCode) ? value.slice(currentCode.length) : (value || '');
-    onChange(name, `${code}${localNumber}`);
+  // Close dropdown on outside click or Escape
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handleClickOutside = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') setDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [dropdownOpen]);
+
+  const handleSelectCountry = (country) => {
+    setCountryCode(country.code);
+    const currentCode =
+      COUNTRIES.find((c) => value.startsWith(c.code))?.code || countryCode;
+    const localNumber = value.startsWith(currentCode)
+      ? value.slice(currentCode.length)
+      : value || '';
+    onChange(name, `${country.code}${localNumber}`);
+    setSearch('');
+    setDropdownOpen(false);
   };
 
   const handleNumberChange = (e) => {
@@ -214,24 +240,72 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
     onChange(name, `${countryCode}${inputValue}`);
   };
 
-  const matchedCode = COUNTRIES.find((c) => value.startsWith(c.code))?.code || countryCode;
+  const matchedCode =
+    COUNTRIES.find((c) => value.startsWith(c.code))?.code || countryCode;
+  const selectedCountry =
+    COUNTRIES.find((c) => c.code === matchedCode) || { name: 'Country', flag: '🌐' };
+  const localNumber = value.startsWith(matchedCode)
+    ? value.slice(matchedCode.length)
+    : value || '';
 
-  const localNumber = value.startsWith(matchedCode) ? value.slice(matchedCode.length) : (value || '');
+  const filteredCountries = search.trim()
+    ? COUNTRIES.filter(
+        (c) =>
+          c.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+          c.code.includes(search.trim())
+      )
+    : COUNTRIES;
 
   return (
-    <div className="phone-input-wrap">
-      <div className="phone-code-select-wrap">
-        <select
-          className="phone-code-select"
-          value={matchedCode}
-          onChange={handleCodeChange}
+    <div className="phone-input-wrap" ref={wrapRef}>
+      <div className="phone-code-dropdown-wrap">
+        <button
+          type="button"
+          className="phone-code-toggle"
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          title={`${selectedCountry.name} (${matchedCode})`}
         >
-          {COUNTRIES.map((c) => (
-            <option key={c.code + c.name} value={c.code}>
-              {c.flag} {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
+          <span className="phone-code-flag">{selectedCountry.flag}</span>
+          <span className="phone-code-text">{matchedCode}</span>
+          <span className={`phone-code-chevron ${dropdownOpen ? 'open' : ''}`}>
+            ▾
+          </span>
+        </button>
+
+        {/* Custom dropdown - always opens downward */}
+        {dropdownOpen && (
+          <div className="phone-code-menu">
+            <div className="phone-code-search">
+              <input
+                type="text"
+                placeholder="Search country..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <ul className="phone-code-list">
+              {filteredCountries.map((c) => (
+                <li key={c.code + c.name}>
+                  <button
+                    type="button"
+                    className={`phone-code-option ${
+                      c.code === matchedCode ? 'selected' : ''
+                    }`}
+                    onClick={() => handleSelectCountry(c)}
+                  >
+                    <span className="option-flag">{c.flag}</span>
+                    <span className="option-name">{c.name}</span>
+                    <span className="option-code">{c.code}</span>
+                  </button>
+                </li>
+              ))}
+              {filteredCountries.length === 0 && (
+                <li className="phone-code-empty">No country found</li>
+              )}
+            </ul>
+          </div>
+        )}
       </div>
       <input
         type="tel"

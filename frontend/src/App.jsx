@@ -39,6 +39,8 @@ import AdminDiscounts from './pages/admin/AdminDiscounts';
 import AdminDiscountForm from './pages/admin/AdminDiscountForm';
 import AdminShippingCharges from './pages/admin/AdminShippingCharges';
 import Offers from './pages/Offers';
+import Contact from './pages/Contact';
+import AdminMessages from './pages/admin/AdminMessages';
 
 // Protected route component
 function ProtectedRoute({ children }) {
@@ -55,6 +57,18 @@ function StoreLayout({ children }) {
       <Header />
       <main className="main-content">{children}</main>
       <Footer />
+      <ChatIcons />
+      <BackToTop />
+    </>
+  );
+}
+
+/* Contact page uses its own layout - no footer */
+function ContactLayout({ children }) {
+  return (
+    <>
+      <Header />
+      <main className="main-content">{children}</main>
       <ChatIcons />
       <BackToTop />
     </>
@@ -137,6 +151,14 @@ function App() {
             }
           />
           <Route
+            path="/contact"
+            element={
+              <ContactLayout>
+                <Contact />
+              </ContactLayout>
+            }
+          />
+          <Route
             path="/privacy-policy"
             element={
               <StoreLayout>
@@ -181,6 +203,7 @@ function App() {
             <Route path="orders/new" element={<AdminOrderCreate />} />
             <Route path="orders/:id" element={<AdminOrderDetail />} />
             <Route path="orders/:id/edit" element={<AdminOrderCreate />} />
+            <Route path="messages" element={<AdminMessages />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="banners" element={<AdminBanners />} />
