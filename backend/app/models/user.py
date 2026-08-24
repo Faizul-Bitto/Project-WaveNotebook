@@ -22,7 +22,7 @@ class User(Base):
 
     email = Column(
         String(255),
-        unique=True,
+        unique=False,
         nullable=True,
         index=True,
     )

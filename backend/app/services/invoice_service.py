@@ -294,9 +294,6 @@ def build_invoice_pdf(order, items, settings) -> bytes:
     # ---------- Items Table ----------
     y = max(y, 70)
 
-    subtotal = 0.0
-    item_discount_total = 0.0
-
     # Pre-compute all rows so we can measure heights and handle page breaks
     # before committing any text to the page.
     row_data = []
@@ -310,7 +307,6 @@ def build_invoice_pdf(order, items, settings) -> bytes:
         qty = int(item.quantity or 0)
         bonus = int(item.bonus_quantity or 0)
         line_total = float(item.price_at_purchase or 0)
-        item_discount_total += float(item.discount_amount or 0)
 
         qty_display = str(qty) + (f" (+{bonus})" if bonus else "")
         code_txt = str(psnap.get("product_code") or "")
@@ -332,7 +328,6 @@ def build_invoice_pdf(order, items, settings) -> bytes:
             "unit_price": unit_price, "qty_display": qty_display,
             "line_total": line_total, "row_h": row_h,
         })
-        subtotal += line_total
 
     # Draw table header (handle page break before first row)
     nb = ensure_page_break(y, 8)
@@ -385,12 +380,14 @@ def build_invoice_pdf(order, items, settings) -> bytes:
     # ---------- Discount Breakdown ----------
     order_discount = float(order.total_discount or 0)
     grand_total = float(order.total_price or 0)
-    total_disc = order_discount + item_discount_total
-    shown_subtotal = subtotal if subtotal > 0 else (grand_total + total_disc)
+    total_disc = order_discount
+    snap = json.loads(order.discount_snapshot or "{}")
+    shown_subtotal = float(
+        snap.get("subtotal_before_discount", grand_total + total_disc)
+    )
 
     breakdown_entries = []
     try:
-        snap = json.loads(order.discount_snapshot or "{}")
         raw = list(snap.get("discount_breakdown", [])) + list(
             snap.get("bogo_details", [])
         )

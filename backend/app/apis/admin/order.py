@@ -338,10 +338,6 @@ async def update_order(
         elif order_data.email:
             user.email = order_data.email
 
-        # Update user email if provided
-        if order_data.email:
-            user.email = order_data.email
-
         # Update order fields
         order.user_id = user.id
         order.full_name = order_data.full_name
