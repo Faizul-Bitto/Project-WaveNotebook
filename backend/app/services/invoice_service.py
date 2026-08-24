@@ -233,6 +233,8 @@ def build_invoice_pdf(order, items, settings) -> bytes:
         pdf.set_xy(meta_x, 18.5)
         pdf.cell(70, 4.2, f"Invoice No: {invoice_no}", align="R")
         pdf.set_xy(meta_x, 22.7)
+        pdf.cell(70, 4.2, f"Order No: {order.order_number}", align="R")
+        pdf.set_xy(meta_x, 26.9)
         pdf.cell(70, 4.2, f"Date: {created}", align="R")
 
     def draw_table_header(y):
@@ -385,6 +387,7 @@ def build_invoice_pdf(order, items, settings) -> bytes:
     shown_subtotal = float(
         snap.get("subtotal_before_discount", grand_total + total_disc)
     )
+    free_shipping = snap.get("free_shipping", False)
 
     breakdown_entries = []
     try:
@@ -423,7 +426,10 @@ def build_invoice_pdf(order, items, settings) -> bytes:
         total_height_estimate += len(breakdown_entries) * (4.6 * 3 + 5 + 1.5)
         if total_disc > 0:
             total_height_estimate += 6.5  # Total Discount line
+    if free_shipping:
+        total_height_estimate += 6.5  # Free Shipping line
     total_height_estimate += 10  # Grand Total (strong, taller)
+    total_height_estimate += 5   # Payment Method line
     total_height_estimate += 8   # footer gap
 
     nb = ensure_page_break(y, total_height_estimate)
@@ -477,7 +483,18 @@ def build_invoice_pdf(order, items, settings) -> bytes:
             )
             y += 1
 
+    if free_shipping:
+        total_line("Shipping", "Free Shipping", color=TEAL_DARK)
+
     total_line("Grand Total", f"{pdf.currency}{grand_total:,.0f}", strong=True)
+
+    # Payment Method (COD for all orders)
+    R(9, GRAY)
+    pdf.set_xy(totals_x, y)
+    pdf.cell(50, 5, "Payment Method", align="L")
+    pdf.set_xy(totals_x + 50, y)
+    pdf.cell(32, 5, "Cash on Delivery", align="R")
+    y += 5
 
     # ---------- Footer ----------
     # Position after content; if it would overflow, give the footer its own page.

@@ -19,8 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Remove the unique index on users.email so multiple users can share an email."""
-    op.drop_index('ix_users_email', table_name='users', mysql_where=None)
+    """Remove the unique constraint on users.email so multiple users can share an email."""
+    op.drop_index('ix_users_email', table_name='users')
     op.create_index('ix_users_email', 'users', ['email'], unique=False)
 
 
