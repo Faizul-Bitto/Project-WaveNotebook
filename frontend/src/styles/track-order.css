@@ -8,6 +8,16 @@
 
 }
 
+.track-order-page .page-header {
+  display: block;
+}
+
+.track-order-page .page-header p {
+  font-size: 16px;
+  color: var(--gray-500);
+  max-width: 640px;
+}
+
 .track-form {
   display: flex;
   gap: 12px;
