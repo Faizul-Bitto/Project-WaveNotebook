@@ -115,9 +115,9 @@
 }
 
 .status-shipped {
-  background: rgba(13, 148, 136, 0.15);
-  color: #0f766e;
-  border: 1px solid rgba(13, 148, 136, 0.3);
+  background: rgba(40, 40, 40, 0.12);
+  color: #282828;
+  border: 1px solid rgba(40, 40, 40, 0.3);
 }
 
 .status-delivered {
@@ -274,7 +274,7 @@
 }
 .track-order-number-wrap input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Admin search - order_number */
@@ -425,11 +425,11 @@
 }
 
 .phone-code-option:hover {
-  background: var(--primary-50, #f0fdfa);
+  background: var(--primary-50, #f7f7f7);
 }
 
 .phone-code-option.selected {
-  background: var(--primary-50, #f0fdfa);
+  background: var(--primary-50, #f7f7f7);
 }
 
 .phone-code-option.selected .option-name {
@@ -562,11 +562,11 @@
 }
 
 .phone-code-option:hover {
-  background: var(--primary-50, #f0fdfa);
+  background: var(--primary-50, #f7f7f7);
 }
 
 .phone-code-option.selected {
-  background: var(--primary-50, #f0fdfa);
+  background: var(--primary-50, #f7f7f7);
   color: var(--primary-dark);
   font-weight: 600;
 }

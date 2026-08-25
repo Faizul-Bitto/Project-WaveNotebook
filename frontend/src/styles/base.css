@@ -4,42 +4,42 @@
    ========================================== */
 
 :root {
-  /* Primary - Vibrant Teal */
-  --primary: #0d9488;
-  --primary-dark: #0f766e;
-  --primary-light: #99f6e4;
-  --primary-50: #f0fdfa;
-  --primary-100: #ccfbf1;
-  --primary-200: #99f6e4;
-  --primary-300: #5eead4;
-  --primary-400: #2dd4bf;
-  --primary-500: #14b8a6;
-  --primary-600: #0d9488;
-  --primary-700: #0d9488;
-  --primary-800: #115e59;
-  --primary-900: #115e59;
+  /* Primary - Ink Black (Uber design system) */
+  --primary: #000000;
+  --primary-dark: #282828;
+  --primary-light: #5e5e5e;
+  --primary-50: #f7f7f7;
+  --primary-100: #efefef;
+  --primary-200: #e2e2e2;
+  --primary-300: #d4d4d4;
+  --primary-400: #afafaf;
+  --primary-500: #8a8a8a;
+  --primary-600: #5e5e5e;
+  --primary-700: #4b4b4b;
+  --primary-800: #282828;
+  --primary-900: #000000;
 
-  /* Accent - Warm Coral */
-  --secondary: #ff6b6b;
-  --secondary-dark: #e74c3c;
-  --secondary-light: #ff8e8e;
+  /* Accent — the system is a black-and-white duet; no second brand accent */
+  --secondary: #000000;
+  --secondary-dark: #282828;
+  --secondary-light: #afafaf;
 
-  /* Neutrals */
-  --gray-50: #fafafa;
-  --gray-100: #f8fafc;
-  --gray-200: #f1f5f9;
-  --gray-300: #e2e8f0;
-  --gray-400: #cbd5e1;
-  --gray-500: #94a3b8;
-  --gray-600: #64748b;
-  --gray-700: #475569;
-  --gray-800: #334155;
-  --gray-850: #1e293b;
-  --gray-900: #0f172a;
+  /* Neutrals — Uber grayscale roles */
+  --gray-50: #f7f7f7;
+  --gray-100: #efefef;
+  --gray-200: #e2e2e2;
+  --gray-300: #d4d4d4;
+  --gray-400: #afafaf;
+  --gray-500: #8a8a8a;
+  --gray-600: #5e5e5e;
+  --gray-700: #4b4b4b;
+  --gray-800: #282828;
+  --gray-850: #141414;
+  --gray-900: #000000;
   --white: #ffffff;
   --black: #000000;
 
-  /* Status */
+  /* Status (semantic / functional only — kept so discount + order states stay readable) */
   --success: #10b981;
   --success-bg: #d1fae5;
   --success-text: #065f46;
@@ -53,42 +53,46 @@
   --info-bg: #dbeafe;
   --info-text: #1e40af;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* Shadows — Uber elevation scale */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 4px 16px 0 rgba(0, 0, 0, 0.16);
+  --shadow-xl: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
 
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  --gradient-secondary: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
-  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  /* Gradients — monochrome only */
+  --gradient-primary: linear-gradient(135deg, #000000 0%, #282828 100%);
+  --gradient-secondary: linear-gradient(135deg, #000000 0%, #282828 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 247, 247, 0.7) 100%);
 
-  /* Border Radius */
-  --radius-sm: 6px;
-  --radius: 10px;
+  /* Border Radius — cards 16px, inputs 8px, interactive pill 999px */
+  --radius-sm: 8px;
+  --radius: 8px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  --radius-full: 9999px;
+  --radius-full: 999px;
 
   /* Glass effect */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);
 
    /* Admin */
-  --admin-bg: #f8fafc;
-  --admin-sidebar-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --admin-bg: #efefef;
+  --admin-sidebar-bg: linear-gradient(135deg, #000000 0%, #141414 100%);
   --admin-card-bg: #ffffff;
-  --admin-border: #e2e8f0;
-  --border: #e2e8f0;
+  --admin-border: #e2e2e2;
+  --border: #e2e2e2;
 
   /* Components */
-  --accent: #0d9488;
-  --accent-bg: #ccfbf1;
-  --accent-border: #99f6e4;
-  --text-h: #1e293b;
-  --social-bg: #f8fafc;
+  --accent: #000000;
+  --accent-bg: #efefef;
+  --accent-border: #d4d4d4;
+  --text-h: #000000;
+  --social-bg: #f3f3f3;
+
+  /* Display / body type faces (UberMove substitutes) */
+  --font-display: "UberMove", "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
+  --font-text: "UberMoveText", "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
@@ -98,13 +102,11 @@
 }
 
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
+  font-family: var(--font-text);
   font-size: 16px;
   line-height: 1.6;
-  color: var(--gray-700);
-  background-color: var(--gray-50);
+  color: var(--gray-600);
+  background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -134,6 +136,14 @@ button {
   font-family: inherit;
 }
 
+/* Global heading voice — weight 700 display face, sentence case (Uber) */
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #000000;
+}
+
 input,
 select,
 textarea {
@@ -142,7 +152,7 @@ textarea {
 }
 
 .container {
-  max-width: 1440px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
   width: 100%;
@@ -154,18 +164,18 @@ textarea {
 }
 
 /* ==========================================
-   Buttons
+   Buttons — pill radius + sentence-case labels
    ========================================== */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   border: none;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--radius-full);
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   text-decoration: none;
@@ -182,32 +192,32 @@ textarea {
 }
 
 /* ==========================================
-   Buttons
+   Buttons (enhanced)
    ========================================== */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 12px 20px;
   border: none;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--radius-full);
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.25s ease;
   text-decoration: none;
 }
 
 .btn-primary {
-  background: var(--gradient-primary);
+  background: var(--primary);
   color: var(--white);
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+  box-shadow: none;
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:disabled {
@@ -218,25 +228,26 @@ textarea {
 }
 
 .btn-outline {
-  background-color: transparent;
+  background-color: var(--white);
   border: 1.5px solid var(--gray-300);
-  color: var(--gray-700);
+  color: var(--ink, #000000);
 }
 
 .btn-outline:hover {
-  background-color: var(--gray-50);
+  background-color: var(--gray-100);
   border-color: var(--gray-400);
+  color: #000000;
 }
 
 .btn-success {
-  background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+  background: var(--primary);
   color: var(--white);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  box-shadow: none;
 }
 
 .btn-success:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn-success:disabled {
@@ -261,13 +272,13 @@ textarea {
 }
 
 .btn-secondary {
-  background-color: var(--gray-100);
-  color: var(--gray-700);
+  background-color: var(--white);
+  color: #000000;
   border: 1.5px solid var(--gray-300);
 }
 
 .btn-secondary:hover {
-  background-color: var(--gray-200);
+  background-color: var(--gray-100);
 }
 
 .btn-danger {
@@ -370,13 +381,13 @@ textarea {
 }
 
 .btn-outline {
-  background-color: transparent;
+  background-color: var(--white);
   border: 1.5px solid var(--gray-300);
-  color: var(--gray-700);
+  color: #000000;
 }
 
 .btn-outline:hover {
-  background-color: var(--gray-50);
+  background-color: var(--gray-100);
   border-color: var(--gray-400);
 }
 

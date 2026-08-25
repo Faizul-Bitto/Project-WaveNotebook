@@ -104,9 +104,9 @@
 }
 
 .admin-nav-item.active {
-  background: rgba(13, 148, 136, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   color: var(--white);
-  border-left: 4px solid var(--primary-300);
+  border-left: 4px solid var(--white);
   padding-left: 20px;
 }
 
@@ -151,9 +151,9 @@
 }
 
 .admin-nav-subitem.active {
-  background: rgba(13, 148, 136, 0.12);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--white);
-  border-left: 3px solid var(--primary-300);
+  border-left: 3px solid var(--white);
 }
 
 .admin-nav-icon {

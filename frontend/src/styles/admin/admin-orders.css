@@ -58,7 +58,7 @@
 .order-detail-page .attributes-chip {
   display: inline-block;
   padding: 3px 10px;
-  background-color: #eff6ff;
+  background-color: var(--gray-100);
   color: var(--primary-dark);
   border-radius: var(--radius-full);
   font-size: 12px;

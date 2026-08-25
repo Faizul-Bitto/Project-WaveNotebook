@@ -140,8 +140,8 @@
 }
 
 .stock-badge.in-stock {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--gray-100);
+  color: #282828;
 }
 
 .stock-badge.out-of-stock {
@@ -163,7 +163,7 @@
 
 .stock-count-inline {
   font-size: 13px;
-  color: #059669;
+  color: #5e5e5e;
   font-weight: 600;
 }
 
@@ -219,7 +219,7 @@
 
 .option-price {
   font-size: 11px;
-  color: var(--success);
+  color: var(--gray-500);
 }
 
 .attribute-option-btn.selected .option-price {
@@ -312,45 +312,38 @@
 
 .order-contact-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: var(--radius);
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.4;
   text-decoration: none;
   transition: all 0.25s ease;
   cursor: pointer;
   text-align: center;
 }
 
-.order-whatsapp-btn {
-  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-  color: var(--white);
-  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
-}
-
-.order-whatsapp-btn:hover {
-  color: var(--white);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
-}
-
+.order-whatsapp-btn,
 .order-call-btn {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: var(--white);
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+  background: var(--gray-100);
+  color: #000000;
+  border: 1.5px solid var(--gray-300);
+  box-shadow: none;
 }
 
+.order-whatsapp-btn:hover,
 .order-call-btn:hover {
-  color: var(--white);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+  color: #000000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .order-contact-btn svg {
-  font-size: 18px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
@@ -391,7 +384,7 @@
  }
 
 .trust-item svg {
-  color: var(--success);
+  color: var(--primary);
   font-size: 18px;
 }
 
@@ -501,7 +494,7 @@
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-full);
   z-index: 2;
   letter-spacing: 0.3px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);

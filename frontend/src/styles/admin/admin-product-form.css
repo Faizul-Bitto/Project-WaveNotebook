@@ -129,8 +129,8 @@
    Admin Product Form - Attribute Selector
    ========================================== */
 .product-form-page .attribute-selector {
-  background: linear-gradient(135deg, #eff6ff, #f0f9ff);
-  border: 1px solid #bfdbfe;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
   padding: 16px;
   margin-bottom: 20px;
@@ -262,12 +262,12 @@
 
 .product-form-page .option-checkbox:hover {
   border-color: var(--primary);
-  background-color: #eff6ff;
+  background-color: var(--gray-100);
 }
 
 .product-form-page .option-checkbox:has(input:checked) {
   border-color: var(--primary);
-  background-color: #eff6ff;
+  background-color: var(--gray-100);
   color: var(--primary-dark);
   font-weight: 500;
 }

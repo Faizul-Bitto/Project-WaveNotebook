@@ -71,14 +71,14 @@
 }
 
 .message-item:hover {
-  border-color: var(--primary-200, #99f6e4);
+  border-color: var(--primary-200, #e2e2e2);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
   transform: translateY(-2px);
 }
 
 .message-item.unread {
   border-left: 4px solid var(--primary);
-  background: var(--primary-50, #f0fdfa);
+  background: var(--primary-50, #f7f7f7);
 }
 
 .message-main {
@@ -172,7 +172,7 @@
 .msg-action-btn.view:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: var(--primary-50, #f0fdfa);
+  background: var(--primary-50, #f7f7f7);
 }
 
 .msg-action-btn.delete:hover {

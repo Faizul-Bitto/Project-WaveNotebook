@@ -207,7 +207,7 @@
 }
 
 .checkout-free-shipping {
-  color: var(--primary) !important;
+  color: var(--success) !important;
   font-weight: 500;
 }
 
@@ -282,13 +282,13 @@
 }
 
 .order-number-highlight {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: var(--gray-100);
   border: 2px solid var(--primary);
   border-radius: var(--radius-lg);
   padding: 20px 24px;
   margin: 24px 0;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .order-number-hint {

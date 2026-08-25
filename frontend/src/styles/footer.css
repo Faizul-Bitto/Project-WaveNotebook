@@ -4,30 +4,23 @@
    ========================================== */
 
 .footer {
-  background:
-    radial-gradient(80% 120% at 100% 0%, rgba(13, 148, 136, 0.08) 0%, transparent 55%),
-    linear-gradient(160deg, #0b1220 0%, var(--gray-900) 45%, #0f172a 100%);
+  background: var(--primary);
   color: var(--gray-400);
   margin-top: auto;
   width: 100%;
   position: relative;
 }
 
-/* Gradient hairline on top */
+/* Hairline on top */
 .footer::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    var(--primary) 0%,
-    var(--secondary) 35%,
-    transparent 75%
-  );
-  opacity: 0.85;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 1;
 }
 
 /* ---------- Centered Brand Header ---------- */
@@ -47,9 +40,9 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.14) 30%,
-    var(--secondary) 50%,
-    rgba(255, 255, 255, 0.14) 70%,
+    rgba(255, 255, 255, 0.18) 30%,
+    #ffffff 50%,
+    rgba(255, 255, 255, 0.18) 70%,
     transparent 100%
   );
 }
@@ -64,13 +57,13 @@
   padding-bottom: 46px;
 }
 
-/* ---------- Column Titles ---------- */
+/* ---------- Column Titles (sentence case eyebrows) ---------- */
 .footer-title {
   color: var(--white);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
   margin-bottom: 20px;
   position: relative;
   padding-bottom: 12px;
@@ -86,7 +79,7 @@
   width: 28px;
   height: 2px;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: var(--white);
 }
 
 /* ---------- Brand Header ---------- */
@@ -99,10 +92,8 @@
 }
 
 .footer-brand-name span {
-  background: linear-gradient(90deg, var(--secondary-light), var(--secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: none;
+  color: var(--gray-400);
 }
 
 .footer-desc {
@@ -134,11 +125,11 @@
 }
 
 .social-link:hover {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: var(--white);
   border-color: transparent;
-  color: var(--white);
+  color: var(--primary);
   transform: translateY(-3px);
-  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
 }
 
 /* ---------- Link Columns ---------- */
@@ -168,7 +159,7 @@
   display: inline-block;
   width: 0;
   overflow: hidden;
-  color: var(--secondary);
+  color: #ffffff;
   font-weight: 700;
   transition: width 0.25s ease;
 }
@@ -196,8 +187,8 @@
   gap: 14px;
   padding: 16px 18px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
   text-decoration: none;
   position: relative;
   overflow: hidden;
@@ -207,12 +198,12 @@
     box-shadow 0.3s ease;
 }
 
-/* Teal fill that sweeps up on hover */
+/* White fill that sweeps up on hover */
 .footer-contact-card::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  background: #ffffff;
   transform: translateY(101%);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -220,7 +211,7 @@
 .footer-contact-card:hover {
   border-color: transparent;
   transform: translateY(-3px);
-  box-shadow: 0 14px 30px rgba(13, 148, 136, 0.28);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
 }
 
 .footer-contact-card:hover::before {
@@ -236,9 +227,9 @@
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  color: var(--secondary-light);
-  background: rgba(13, 148, 136, 0.14);
-  border: 1px solid rgba(13, 148, 136, 0.3);
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   position: relative;
   z-index: 1;
@@ -246,8 +237,8 @@
 }
 
 .footer-contact-card:hover .fcc-icon {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: #000000;
+  border-color: #000000;
   color: var(--white);
   transform: rotate(-8deg) scale(1.06);
 }
@@ -278,13 +269,13 @@
 
 .fcc-arrow {
   font-size: 18px;
-  color: var(--secondary-light);
+  color: var(--gray-400);
   transition: transform 0.3s ease, color 0.3s ease;
 }
 
 .footer-contact-card:hover .fcc-arrow {
   transform: translateX(5px);
-  color: var(--white);
+  color: #000000;
 }
 
 .fcc-sub {
@@ -294,7 +285,11 @@
 }
 
 .footer-contact-card:hover .fcc-sub {
-  color: rgba(255, 255, 255, 0.85);
+  color: #5e5e5e;
+}
+
+.footer-contact-card:hover .fcc-big {
+  color: #000000;
 }
 
 /* ---------- Bottom Bar ---------- */
@@ -318,7 +313,7 @@
 }
 
 .footer-made span {
-  color: #f43f5e;
+  color: #ffffff;
 }
 
 /* Social icons in the bottom bar - slightly compact */

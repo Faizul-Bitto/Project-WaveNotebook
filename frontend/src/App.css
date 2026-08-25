@@ -219,7 +219,7 @@
   }
 
   &.selected {
-    background: #e8f5e9;
+    background: var(--gray-100);
   }
 
   input[type="checkbox"] {
@@ -246,10 +246,11 @@
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #e3f2fd;
-  border-radius: 4px;
+  background: var(--gray-100);
+  border-radius: var(--radius-full);
   font-size: 13px;
-  color: #1976d2;
+  color: #282828;
+  border: 1px solid var(--gray-200);
 
   button {
     display: inline-flex;
@@ -257,7 +258,7 @@
     justify-content: center;
     background: none;
     border: none;
-    color: #1976d2;
+    color: #282828;
     cursor: pointer;
     padding: 0;
     font-size: 12px;
@@ -366,7 +367,7 @@
 
   &:focus {
     outline: none;
-    border-color: #1976d2;
+    border-color: #000000;
   }
 }
 
@@ -407,7 +408,7 @@
 
   &:focus {
     outline: none;
-    border-color: #1976d2;
+    border-color: #000000;
   }
 }
 
@@ -446,7 +447,7 @@
   }
 
   &.selected {
-    background: #e8f5e9;
+    background: var(--gray-100);
   }
 
   &:last-child {
@@ -488,7 +489,7 @@
   }
 
   .pcp-check-icon {
-    color: #2e7d32;
+    color: #000000;
     font-size: 14px;
     flex-shrink: 0;
   }
@@ -525,10 +526,10 @@
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  background: #e3f2fd;
+  background: var(--gray-100);
   border-radius: 6px;
   font-size: 12px;
-  color: #1565c0;
+  color: #282828;
 }
 
 .pcp-tag-name {
@@ -537,8 +538,8 @@
 
 .pcp-tag-code {
   font-size: 11px;
-  color: #1565c0;
-  background: #bbdefb;
+  color: #282828;
+  background: #e2e2e2;
   padding: 1px 5px;
   border-radius: 3px;
   font-family: monospace;
@@ -550,7 +551,7 @@
   justify-content: center;
   background: none;
   border: none;
-  color: #1565c0;
+  color: #282828;
   cursor: pointer;
   padding: 0;
   font-size: 12px;
@@ -702,7 +703,7 @@
   }
 
   &.selected {
-    background: #e8f5e9;
+    background: var(--gray-100);
   }
 
   input[type="checkbox"] {
@@ -734,10 +735,10 @@
 .combo-tag {
   display: inline-block;
   padding: 4px 8px;
-  background: #e3f2fd;
+  background: var(--gray-100);
   border-radius: 4px;
   font-size: 13px;
-  color: #1976d2;
+  color: #000000;
 }
 
 .form-checkbox {
@@ -834,7 +835,7 @@
   }
 
   &.selected {
-    background: #e8f5e9;
+    background: var(--gray-100);
   }
 
   &:last-child {
@@ -918,10 +919,10 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: #e3f2fd;
+  background: var(--gray-100);
   border-radius: 6px;
   font-size: 13px;
-  color: #1976d2;
+  color: #000000;
 }
 
 .scope-tag-name {
@@ -930,8 +931,8 @@
 
 .scope-tag-code {
   font-size: 11px;
-  color: #1565c0;
-  background: #bbdefb;
+  color: #282828;
+  background: #e2e2e2;
   padding: 1px 5px;
   border-radius: 3px;
   font-family: monospace;
@@ -943,7 +944,7 @@
   justify-content: center;
   background: none;
   border: none;
-  color: #1976d2;
+  color: #000000;
   cursor: pointer;
   padding: 0;
   font-size: 12px;

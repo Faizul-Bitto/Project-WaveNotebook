@@ -20,8 +20,8 @@
   font-size: 18px;
   pointer-events: none;
   box-shadow:
-    0 0 0 4px rgba(13, 148, 136, 0.15),
-    0 8px 24px rgba(13, 148, 136, 0.35);
+    0 0 0 4px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.35);
   border: 2px solid rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -32,7 +32,7 @@
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 2px solid rgba(13, 148, 136, 0.3);
+  border: 2px solid rgba(0, 0, 0, 0.25);
   animation: fly-pulse-ring 0.8s ease-out infinite;
 }
 
@@ -87,12 +87,12 @@
   border-radius: 50%;
   pointer-events: none;
   animation: sparkle-fade 0.7s ease-out forwards;
-  box-shadow: 0 0 6px rgba(13, 148, 136, 0.6);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
 }
 
 .cart-sparkle:nth-child(odd) {
   background: var(--secondary);
-  box-shadow: 0 0 6px rgba(255, 107, 107, 0.6);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes sparkle-fade {
