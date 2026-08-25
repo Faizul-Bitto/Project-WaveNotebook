@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaMoneyCheck } from 'react-icons/fa';
 import {
   adminGetExpenses,
@@ -17,6 +18,8 @@ const PAYMENT_STATUS_LABELS = {
 };
 
 function ExpenseDashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,7 @@ function ExpenseDashboard() {
   const [summaryPeriod, setSummaryPeriod] = useState('all');
   const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
   const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
 
   const loadDropdowns = async () => {
     try {
@@ -42,10 +46,12 @@ function ExpenseDashboard() {
     }
   };
 
-  const loadExpenses = async () => {
+  const loadExpenses = async (status = '') => {
     try {
       setLoading(true);
-      const data = await adminGetExpenses({});
+      const params = {};
+      if (status) params.status = status;
+      const data = await adminGetExpenses(params);
       setExpenses(data.expenses || []);
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to load expenses.', 'error');
@@ -71,8 +77,18 @@ function ExpenseDashboard() {
 
   useEffect(() => {
     loadDropdowns();
-    loadExpenses();
+    const params = new URLSearchParams(location.search);
+    const initialStatus = params.get('status') || '';
+    setPaymentStatusFilter(initialStatus);
+    loadExpenses(initialStatus);
   }, []);
+
+  const handlePaymentStatusChange = (e) => {
+    const value = e.target.value;
+    setPaymentStatusFilter(value);
+    navigate({ pathname: '/admin/expenses', search: value ? `?status=${value}` : '' }, { replace: true });
+    loadExpenses(value);
+  };
 
   useEffect(() => {
     loadSummary();
@@ -93,7 +109,7 @@ function ExpenseDashboard() {
     try {
       await adminDeleteExpense(id);
       addToast('Expense deleted successfully!', 'success');
-      loadExpenses();
+      loadExpenses(paymentStatusFilter);
       loadSummary();
       window.dispatchEvent(new CustomEvent('expense-updated'));
     } catch (err) {
@@ -104,7 +120,7 @@ function ExpenseDashboard() {
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingExpense(null);
-    loadExpenses();
+    loadExpenses(paymentStatusFilter);
     loadSummary();
     window.dispatchEvent(new CustomEvent('expense-updated'));
   };
@@ -152,6 +168,11 @@ function ExpenseDashboard() {
 
       {/* Summary Filters */}
       <div className="admin-filters">
+        <select value={paymentStatusFilter} onChange={handlePaymentStatusChange}>
+          <option value="">All Payments</option>
+          <option value="paid">Paid</option>
+          <option value="due">Due</option>
+        </select>
         <select value={summaryPeriod} onChange={(e) => setSummaryPeriod(e.target.value)}>
           <option value="all">All Time</option>
           <option value="year">Year</option>

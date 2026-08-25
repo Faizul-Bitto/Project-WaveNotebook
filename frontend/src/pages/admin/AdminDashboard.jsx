@@ -153,9 +153,9 @@ function AdminDashboard() {
   ];
 
   const expenseCards = [
-    { label: 'Total Expense', value: `৳${expenseSummary.total_expense.toLocaleString()}`, icon: <FaMoneyBillWave />, color: 'red' },
-    { label: 'Paid', value: `৳${expenseSummary.total_paid.toLocaleString()}`, icon: <FaMoneyCheck />, color: 'green' },
-    { label: 'Due', value: `৳${expenseSummary.total_due.toLocaleString()}`, icon: <FaMoneyCheck />, color: 'orange' },
+    { label: 'Total Expense', value: `৳${expenseSummary.total_expense.toLocaleString()}`, icon: <FaMoneyBillWave />, color: 'red', link: '/admin/expenses' },
+    { label: 'Paid', value: `৳${expenseSummary.total_paid.toLocaleString()}`, icon: <FaMoneyCheck />, color: 'green', link: '/admin/expenses?status=paid' },
+    { label: 'Due', value: `৳${expenseSummary.total_due.toLocaleString()}`, icon: <FaMoneyCheck />, color: 'orange', link: '/admin/expenses?status=due' },
   ];
 
   if (loading) {
@@ -194,13 +194,13 @@ function AdminDashboard() {
       <h3 className="dashboard-section-title">Expense Overview</h3>
       <div className="stats-grid">
         {expenseCards.map((card, index) => (
-          <div className={`stat-card stat-${card.color}`} key={index}>
+          <Link to={card.link} className={`stat-card stat-${card.color}`} key={index}>
             <div className="stat-icon">{card.icon}</div>
             <div className="stat-info">
               <span className="stat-value">{countsLoading ? '...' : card.value}</span>
               <span className="stat-label">{card.label}</span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
