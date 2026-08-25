@@ -397,9 +397,9 @@
 }
 
 .product-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--gray-900);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-600);
   margin-bottom: 4px;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -411,13 +411,14 @@
 }
 
 .product-card:hover .product-name {
-  color: var(--primary);
+  color: var(--gray-900);
 }
 
+/* Price — highlighted with the theme accent so it pops off the card */
 .product-price {
   font-size: 16px;
   font-weight: 700;
-  color: var(--secondary);
+  color: var(--price-color);
 }
 
 .product-price-row {
@@ -444,7 +445,7 @@
 .product-price-discounted {
   font-size: 16px;
   font-weight: 700;
-  color: var(--secondary);
+  color: var(--price-color);
 }
 
 .shipping-badge {

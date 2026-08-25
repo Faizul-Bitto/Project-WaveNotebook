@@ -3,10 +3,12 @@ import { FaSave } from 'react-icons/fa';
 import { adminGetSettings, adminUpdateSettings } from '../../api/adminServices';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useToast } from '../../context/ToastContext';
+import { validateForm, clearFieldError, firstError } from '../../utils/validation';
 
 function AdminSettings () {
   const { refresh } = useSiteSettings();
   const { addToast, toastPromise } = useToast();
+  const [errors, setErrors] = useState({});
   const [ formData, setFormData ] = useState( {
     site_name: 'WaveNotebook',
     page_title: '',
@@ -73,6 +75,7 @@ function AdminSettings () {
   const handleChange = ( e ) => {
     const { name, value } = e.target;
     setFormData( ( prev ) => ( { ...prev, [ name ]: value } ) );
+    setErrors( ( prev ) => clearFieldError( prev, name ) );
   };
 
   const handleLogoChange = ( e ) => {
@@ -94,6 +97,17 @@ function AdminSettings () {
   const handleSubmit = async ( e ) => {
     e.preventDefault();
     setSaving( true );
+
+    const errs = validateForm( formData, {
+      site_name: { label: 'site name', required: true },
+    } );
+    if ( Object.keys( errs ).length > 0 ) {
+      setErrors( errs );
+      setSaving( false );
+      addToast( firstError( errs ), 'error' );
+      return;
+    }
+    setErrors( {} );
     const fd = new FormData();
     fd.append( 'site_name', formData.site_name );
     fd.append( 'page_title', formData.page_title );
@@ -157,9 +171,10 @@ function AdminSettings () {
             </div>
           ) }
 
-          <div className="form-group">
-            <label>Site Name</label>
-            <input type="text" name="site_name" value={ formData.site_name } onChange={ handleChange } placeholder="WaveNotebook" />
+          <div className={`form-group ${errors.site_name ? 'field-invalid' : ''}`}>
+            <label>Site Name *</label>
+            <input type="text" name="site_name" value={formData.site_name} onChange={handleChange} placeholder="WaveNotebook" />
+            {errors.site_name && <span className="field-error">{errors.site_name}</span>}
           </div>
 
           <div className="form-group">

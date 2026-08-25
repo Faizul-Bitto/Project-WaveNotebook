@@ -356,13 +356,13 @@ function ProductDetail () {
             <div className="product-price-detail">
               { hasDiscountRange ? (
                 <>
-                  <span className="price-discounted">৳{ fmt( discountRange.min ) } - ৳{ fmt( discountRange.max ) }</span>
                   <span className="price-original">৳{ fmt( originalRange?.min ) } - ৳{ fmt( originalRange?.max ) }</span>
+                  <span className="price-discounted">৳{ fmt( discountRange.min ) } - ৳{ fmt( discountRange.max ) }</span>
                 </>
               ) : discountInfo?.discounted_price ? (
                 <>
-                  <span className="price-discounted">৳{ fmt( discountInfo.discounted_price ) }</span>
                   <span className="price-original">৳{ fmt( discountInfo.original_price || displayPrice ) }</span>
+                  <span className="price-discounted">৳{ fmt( discountInfo.discounted_price ) }</span>
                 </>
               ) : displayPrice ? (
                 <span className="price">৳{ fmt( displayPrice ) }</span>
@@ -426,7 +426,9 @@ function ProductDetail () {
             <div className="stock-badge-row">
               { allSelected && currentVariant ? (
                 variantInStock ? (
-                  <span className="stock-badge in-stock">✓ In Stock</span>
+                  <span className="stock-badge in-stock">
+                    ✓ In Stock{ maxQuantity > 0 ? ` (${ maxQuantity } in stock)` : '' }
+                  </span>
                 ) : (
                   <span className="stock-badge out-of-stock">✗ Out of Stock</span>
                 )
@@ -434,9 +436,6 @@ function ProductDetail () {
                 <span className="stock-badge out-of-stock">✗ { variantError }</span>
               ) : (
                 <span className="stock-badge in-stock">✓ In Stock</span>
-              ) }
-              { allSelected && currentVariant && variantInStock && maxQuantity > 0 && (
-                <span className="stock-count-inline">{ maxQuantity } in stock</span>
               ) }
             </div>
 

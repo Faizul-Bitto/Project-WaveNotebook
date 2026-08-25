@@ -7,6 +7,7 @@ import {
   adminDeleteBanner,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
+import { validateForm, clearFieldError, firstError } from '../../utils/validation';
 import Modal from '../../components/Modal';
 
 function AdminBanners() {
@@ -56,12 +57,15 @@ function AdminBanners() {
     };
   }, []);
 
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
       [name]: type === 'checkbox' ? checked : name === 'sort_order' ? parseInt(value) || 0 : value,
     });
+    setErrors((prev) => clearFieldError(prev, name));
   };
 
   const handleImageChange = (e) => {
@@ -70,6 +74,16 @@ function AdminBanners() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errs = validateForm(formData, {
+      title: { label: 'banner title', required: true },
+    });
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      addToast(firstError(errs), 'error');
+      return;
+    }
+    setErrors({});
 
     if (!editingBanner && !imageFile) {
       addToast('Please select a banner image.', 'error');
@@ -155,7 +169,7 @@ function AdminBanners() {
         <form className="admin-form" onSubmit={handleSubmit}>
           <h3>{editingBanner ? 'Edit Banner' : 'Add New Banner'}</h3>
           <div className="form-row">
-            <div className="form-group">
+            <div className={`form-group ${errors.title ? 'field-invalid' : ''}`}>
               <label htmlFor="banner-title">Title *</label>
               <input
                 type="text"
@@ -163,9 +177,9 @@ function AdminBanners() {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                required
                 placeholder="Banner title"
               />
+              {errors.title && <span className="field-error">{errors.title}</span>}
             </div>
             <div className="form-group">
               <label htmlFor="banner-order">Sort Order</label>

@@ -93,6 +93,9 @@
   /* Display / body type faces (UberMove substitutes) */
   --font-display: "UberMove", "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
   --font-text: "UberMoveText", "Inter", system-ui, "Helvetica Neue", Arial, sans-serif;
+
+  /* Price highlight — the single accent that pops against the black/white duet */
+  --price-color: #e11d48;
 }
 
 * {
@@ -433,4 +436,44 @@ textarea {
    ========================================== */
 [data-sonner-toaster][data-y-position='top'] {
   top: 56px !important;
+}
+
+/* ==========================================
+   Form Validation — invalid highlight + message
+   Add "field-invalid" to any wrapper (.form-group etc.)
+   and render <span className="field-error"> under the input.
+   Works for native inputs AND custom components
+   (targets any descendant input/select/textarea).
+   ========================================== */
+.field-invalid input,
+.field-invalid select,
+.field-invalid textarea,
+.input-error,
+input.input-error,
+select.input-error,
+textarea.input-error {
+  border-color: var(--danger) !important;
+  background-color: #fff7f7;
+}
+
+.field-invalid input:focus,
+.field-invalid select:focus,
+.field-invalid textarea:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+.field-error::before {
+  content: '⚠';
+  font-size: 11px;
 }

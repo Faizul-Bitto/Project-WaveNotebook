@@ -494,7 +494,7 @@
 .search-result-price {
   font-size: 13px;
   font-weight: 600;
-  color: var(--secondary);
+  color: var(--price-color);
 }
 
 .search-overlay-loading,

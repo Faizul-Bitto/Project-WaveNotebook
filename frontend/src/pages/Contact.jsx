@@ -55,7 +55,7 @@ function Contact() {
       errs.phone_number = 'Please enter a valid phone number.';
     }
     if (!formData.message.trim() || formData.message.trim().length < 5) {
-      errs.message = 'Please write a message (at least 5 characters).';
+      errs.message = 'Please write a message.';
     }
     return errs;
   };

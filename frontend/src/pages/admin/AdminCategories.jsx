@@ -7,6 +7,7 @@ import {
   adminDeleteCategory,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
+import { validateForm, clearFieldError, firstError } from '../../utils/validation';
 import Modal from '../../components/Modal';
 
 function AdminCategories() {
@@ -53,9 +54,12 @@ function AdminCategories() {
     return () => { mounted = false; };
   }, []);
 
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+    setErrors((prev) => clearFieldError(prev, name));
   };
 
   const handleImageChange = (e) => {
@@ -65,6 +69,16 @@ function AdminCategories() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errs = validateForm(formData, {
+      name: { label: 'category name', required: true },
+    });
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      addToast(firstError(errs), 'error');
+      return;
+    }
+    setErrors({});
 
     const formDataObj = new FormData();
     formDataObj.append('name', formData.name);
@@ -145,9 +159,10 @@ function AdminCategories() {
         <form className="admin-form" onSubmit={handleSubmit}>
           <h3>{editingCategory ? 'Edit Category' : 'Add New Category'}</h3>
           <div className="form-row">
-            <div className="form-group">
+            <div className={`form-group ${errors.name ? 'field-invalid' : ''}`}>
               <label htmlFor="cat-name">Name *</label>
-              <input type="text" id="cat-name" name="name" value={formData.name} onChange={handleChange} required placeholder="Category name" />
+              <input type="text" id="cat-name" name="name" value={formData.name} onChange={handleChange} placeholder="Category name" />
+              {errors.name && <span className="field-error">{errors.name}</span>}
             </div>
             <div className="form-group">
               <label htmlFor="cat-parent">Parent Category</label>

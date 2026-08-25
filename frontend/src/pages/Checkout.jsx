@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { FaCheckCircle, FaCopy, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
-import { createOrder, getDistricts, calculateCart } from '../api/services';
+import { calculateCart, createOrder, getDistricts } from '../api/services';
 import PhoneInput from '../components/PhoneInput';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
 import { useToast } from '../context/ToastContext';
+import { clearFieldError, firstError, PATTERNS, validateForm } from '../utils/validation';
 
 // Build a BOGO label for an item that has free/discounted bonus units.
 // For 100% free BOGO: bonus items are added on top (show "+ N FREE").
@@ -38,6 +39,7 @@ function Checkout () {
     address: '',
   } );
   const [ directCalc, setDirectCalc ] = useState( null );
+  const [ errors, setErrors ] = useState( {} );
 
   // Compute effective unit price for a direct item (selected variant price)
   const computeDirectUnitPrice = () => {
@@ -92,32 +94,28 @@ function Checkout () {
       ...formData,
       [ e.target.name ]: e.target.value,
     } );
+    // Clear the field's highlight as soon as the user edits it
+    setErrors( ( prev ) => clearFieldError( prev, e.target.name ) );
   };
 
   const handleSubmit = async ( e ) => {
     e.preventDefault();
 
-    // Validate
-    if ( !formData.full_name.trim() ) {
-      addToast( 'Please enter your full name.', 'error' );
+    // Inline field validation with highlights + messages
+    const errs = validateForm( formData, {
+      full_name: { label: 'full name', required: true },
+      phone_number: { label: 'phone number', required: true, pattern: PATTERNS.phoneDigits, message: 'Please enter a valid phone number (11 digits).' },
+      district: { label: 'district', required: true, requiredMessage: 'Please select your district.' },
+      thana: { label: 'thana', required: true },
+      address: { label: 'address', required: true },
+      email: { label: 'email', pattern: PATTERNS.email, message: 'Please enter a valid email address.' },
+    } );
+    if ( Object.keys( errs ).length > 0 ) {
+      setErrors( errs );
+      addToast( firstError( errs ), 'error' );
       return;
     }
-    if ( !formData.phone_number.trim() || formData.phone_number.trim().length < 11 ) {
-      addToast( 'Please enter a valid phone number (11 digits).', 'error' );
-      return;
-    }
-    if ( !formData.district ) {
-      addToast( 'Please select your district.', 'error' );
-      return;
-    }
-    if ( !formData.thana.trim() ) {
-      addToast( 'Please enter your thana / upazila.', 'error' );
-      return;
-    }
-    if ( !formData.address.trim() ) {
-      addToast( 'Please enter your address.', 'error' );
-      return;
-    }
+    setErrors( {} );
 
     let items;
     if ( directItem ) {
@@ -182,35 +180,35 @@ function Checkout () {
   // raw item if the calculation hasn't loaded yet.
   const directCalcItems = ( directItem && directCalc?.items?.length > 0 )
     ? directCalc.items.map( ( ci ) => {
-        const bogoInfo = ci.bogo_info || {};
-        return {
-          id: `direct-${ ci.product_id }`,
-          product_name: ci.product_name,
-          slug: directItem.product.slug,
-          quantity: ci.quantity,
-          unit_price: ci.unit_price,
-          selected_attributes_display: directAttrsDisplay,
-          subtotal: ci.original_subtotal,
-          discounted_subtotal: ci.discounted_subtotal,
-          discount_amount: ci.discount_amount,
-          bonus_quantity: ci.bonus_quantity,
-          bogo_bonus_quantity: ci.bonus_quantity,
-          bogo_get_discount_percent: bogoInfo.get_discount_percent ?? bogoInfo.get_discount_pct ?? null,
-          simple_bogo: ci.simple_bogo,
-        };
-      } )
+      const bogoInfo = ci.bogo_info || {};
+      return {
+        id: `direct-${ ci.product_id }`,
+        product_name: ci.product_name,
+        slug: directItem.product.slug,
+        quantity: ci.quantity,
+        unit_price: ci.unit_price,
+        selected_attributes_display: directAttrsDisplay,
+        subtotal: ci.original_subtotal,
+        discounted_subtotal: ci.discounted_subtotal,
+        discount_amount: ci.discount_amount,
+        bonus_quantity: ci.bonus_quantity,
+        bogo_bonus_quantity: ci.bonus_quantity,
+        bogo_get_discount_percent: bogoInfo.get_discount_percent ?? bogoInfo.get_discount_pct ?? null,
+        simple_bogo: ci.simple_bogo,
+      };
+    } )
     : [];
 
   const directFallbackItem = directItem && ( directUnitPrice > 0 )
     ? [ {
-        id: 'direct',
-        product_name: directItem.product.name,
-        slug: directItem.product.slug,
-        quantity: directItem.quantity,
-        unit_price: directUnitPrice,
-        selected_attributes_display: directAttrsDisplay,
-        subtotal: ( directUnitPrice * directItem.quantity ).toFixed( 2 ),
-      } ]
+      id: 'direct',
+      product_name: directItem.product.name,
+      slug: directItem.product.slug,
+      quantity: directItem.quantity,
+      unit_price: directUnitPrice,
+      selected_attributes_display: directAttrsDisplay,
+      subtotal: ( directUnitPrice * directItem.quantity ).toFixed( 2 ),
+    } ]
     : [];
 
   const items = directItem
@@ -302,14 +300,14 @@ function Checkout () {
           { orderSuccess.discount_breakdown && orderSuccess.discount_breakdown.length > 0 && orderSuccess.discount_breakdown
             .filter( ( entry ) => parseFloat( entry.amount || 0 ) > 0 || entry.type === 'bogo' )
             .map( ( entry, idx ) => {
-              const isBogoFree = entry.type === 'bogo' && parseFloat(entry.get_discount_percent || entry['get_discount_percent'] || 0) >= 100;
+              const isBogoFree = entry.type === 'bogo' && parseFloat( entry.get_discount_percent || entry[ 'get_discount_percent' ] || 0 ) >= 100;
               return (
                 <div className="success-discount-row" key={ idx }>
                   <span>
                     { entry.name || ( entry.type === 'price_discount' ? 'Discount' : entry.type ) }
                   </span>
                   <span className="discount-amount">
-                    {isBogoFree ? 'FREE' : `-৳${parseFloat(entry.amount || 0).toLocaleString()}`}
+                    { isBogoFree ? 'FREE' : `-৳${ parseFloat( entry.amount || 0 ).toLocaleString() }` }
                   </span>
                 </div>
               );
@@ -377,12 +375,12 @@ function Checkout () {
                           </span>
                         ) }
                         <span style={ { display: 'block', fontSize: '12px', color: 'var(--gray-600)' } }>
-                           Qty: { item.quantity }
-                           { isFullFreeBogo && (
-                             <span style={ { color: 'var(--primary)', fontWeight: 600 } }>
-                               { ' ' }+ { bonusQty } FREE
-                             </span>
-                           ) }
+                          Qty: { item.quantity }
+                          { isFullFreeBogo && (
+                            <span style={ { color: 'var(--primary)', fontWeight: 600 } }>
+                              { ' ' }+ { bonusQty } FREE
+                            </span>
+                          ) }
                           { ' ' }× ৳{ parseFloat( item.unit_price || 0 ).toLocaleString() }
                         </span>
                       </span>
@@ -440,10 +438,10 @@ function Checkout () {
 
         <div className="checkout-layout">
           {/* Shipping Form */ }
-          <form className="checkout-form" onSubmit={ handleSubmit }>
+          <form className="checkout-form" onSubmit={ handleSubmit } noValidate>
             <h2>Shipping Information</h2>
 
-            <div className="form-group">
+            <div className={ `form-group ${ errors.full_name ? 'field-invalid' : '' }` }>
               <label htmlFor="full_name">Full Name *</label>
               <input
                 type="text"
@@ -452,21 +450,25 @@ function Checkout () {
                 value={ formData.full_name }
                 onChange={ handleChange }
                 placeholder="Enter your full name"
-                required
               />
+              { errors.full_name && <span className="field-error">{ errors.full_name }</span> }
             </div>
 
-            <div className="form-group">
+            <div className={ `form-group ${ errors.phone_number ? 'field-invalid' : '' }` }>
               <label htmlFor="phone_number">Phone Number *</label>
               <PhoneInput
                 name="phone_number"
                 value={ formData.phone_number }
-                onChange={ ( name, val ) => setFormData( ( prev ) => ( { ...prev, [ name ]: val } ) ) }
+                onChange={ ( name, val ) => {
+                  setFormData( ( prev ) => ( { ...prev, [ name ]: val } ) );
+                  setErrors( ( prev ) => clearFieldError( prev, name ) );
+                } }
                 placeholder="XXXXXXXXXXX"
               />
+              { errors.phone_number && <span className="field-error">{ errors.phone_number }</span> }
             </div>
 
-            <div className="form-group">
+            <div className={ `form-group ${ errors.email ? 'field-invalid' : '' }` }>
               <label htmlFor="email">Email (optional)</label>
               <input
                 type="email"
@@ -476,16 +478,16 @@ function Checkout () {
                 onChange={ handleChange }
                 placeholder="you@example.com"
               />
+              { errors.email && <span className="field-error">{ errors.email }</span> }
             </div>
 
-            <div className="form-group">
+            <div className={ `form-group ${ errors.district ? 'field-invalid' : '' }` }>
               <label htmlFor="district">District *</label>
               <select
                 id="district"
                 name="district"
                 value={ formData.district }
                 onChange={ handleChange }
-                required
               >
                 <option value="">Select District</option>
                 { districts.map( ( district ) => (
@@ -494,9 +496,10 @@ function Checkout () {
                   </option>
                 ) ) }
               </select>
+              { errors.district && <span className="field-error">{ errors.district }</span> }
             </div>
 
-            <div className="form-group">
+            <div className={ `form-group ${ errors.thana ? 'field-invalid' : '' }` }>
               <label htmlFor="thana">Thana *</label>
               <input
                 type="text"
@@ -505,11 +508,11 @@ function Checkout () {
                 value={ formData.thana }
                 onChange={ handleChange }
                 placeholder="Enter your thana"
-                required
               />
+              { errors.thana && <span className="field-error">{ errors.thana }</span> }
             </div>
 
-            <div className="form-group">
+            <div className={ `form-group ${ errors.address ? 'field-invalid' : '' }` }>
               <label htmlFor="address">Full Address *</label>
               <textarea
                 id="address"
@@ -518,8 +521,8 @@ function Checkout () {
                 onChange={ handleChange }
                 placeholder="House, Road, Area"
                 rows="3"
-                required
               />
+              { errors.address && <span className="field-error">{ errors.address }</span> }
             </div>
 
             <div className="form-group">

@@ -96,13 +96,13 @@
 .price {
   font-size: 32px;
   font-weight: 700;
-  color: var(--secondary);
+  color: var(--price-color);
 }
 
 .price-discounted {
   font-size: 32px;
   font-weight: 700;
-  color: var(--secondary);
+  color: var(--price-color);
 }
 
 .price-original {

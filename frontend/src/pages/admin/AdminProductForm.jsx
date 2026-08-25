@@ -10,6 +10,7 @@ import {
   adminGetAttributes,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
+import { validateForm, clearFieldError, firstError } from '../../utils/validation';
 import Modal from '../../components/Modal';
 
 function AdminProductForm() {
@@ -18,6 +19,7 @@ function AdminProductForm() {
   const isEditing = Boolean(id);
 
   const { addToast, toastPromise } = useToast();
+  const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -109,6 +111,7 @@ function AdminProductForm() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    setErrors(prev => clearFieldError(prev, name));
   };
 
   // Handle attribute selection from dropdown
@@ -185,6 +188,18 @@ function AdminProductForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+
+    const errs = validateForm(formData, {
+      name: { label: 'product name', required: true },
+      category_id: { label: 'category', required: true, requiredMessage: 'Please select a category.' },
+    });
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      setSaving(false);
+      addToast(firstError(errs), 'error');
+      return;
+    }
+    setErrors({});
 
     const formDataToSend = new FormData();
     formDataToSend.append('category_id', formData.category_id);
@@ -300,23 +315,23 @@ function AdminProductForm() {
           <div className="form-section">
             <h3>Basic Information</h3>
             
-            <div className="form-group">
+            <div className={`form-group ${errors.category_id ? 'field-invalid' : ''}`}>
               <label htmlFor="category_id">Category *</label>
               <select
                 id="category_id"
                 name="category_id"
                 value={formData.category_id}
                 onChange={handleInputChange}
-                required
               >
                 <option value="">Select Category</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+              {errors.category_id && <span className="field-error">{errors.category_id}</span>}
             </div>
 
-            <div className="form-group">
+            <div className={`form-group ${errors.name ? 'field-invalid' : ''}`}>
               <label htmlFor="name">Product Name *</label>
               <input
                 type="text"
@@ -324,9 +339,9 @@ function AdminProductForm() {
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                required
                 placeholder="Enter product name"
               />
+              {errors.name && <span className="field-error">{errors.name}</span>}
             </div>
 
             <div className="form-group">

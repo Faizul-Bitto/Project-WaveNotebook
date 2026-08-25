@@ -7,10 +7,12 @@ import {
   adminDeletePaymentBy,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
+import { validateForm, clearFieldError, firstError } from '../../utils/validation';
 import Modal from '../../components/Modal';
 
 function PaymentByManagement() {
   const { addToast } = useToast();
+  const [errors, setErrors] = useState({});
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -62,6 +64,17 @@ function PaymentByManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const errs = validateForm(formData, {
+      name: { label: 'name', required: true },
+    });
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      addToast(firstError(errs), 'error');
+      return;
+    }
+    setErrors({});
+
     try {
       if (editingItem) {
         await adminUpdatePaymentBy(editingItem.id, formData);
@@ -141,17 +154,20 @@ function PaymentByManagement() {
               <h3>{editingItem ? 'Edit Person' : 'Add Person'}</h3>
               <button className="modal-close" onClick={() => { setShowForm(false); setEditingItem(null); }}>×</button>
             </div>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="modal-body">
-                <div className="form-group">
+                <div className={`form-group ${errors.name ? 'field-invalid' : ''}`}>
                   <label>Name *</label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      setErrors((prev) => clearFieldError(prev, 'name'));
+                    }}
                     placeholder="Person name"
                   />
+                  {errors.name && <span className="field-error">{errors.name}</span>}
                 </div>
                 <div className="form-group">
                   <label>Description</label>
