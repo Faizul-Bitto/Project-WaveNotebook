@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Body
 from starlette import status
+from pydantic import BaseModel
+from typing import List
 
 from app.core.logger import logger
 from app.dependencies.admin import admin_dependency
@@ -111,6 +113,42 @@ async def create_banner(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create banner.",
+        )
+
+
+class BannerReorderRequest(BaseModel):
+    order: List[int]
+
+
+@router.put("/reorder", status_code=status.HTTP_200_OK)
+async def reorder_banners(
+    db: db_dependency,
+    admin: admin_dependency,
+    request: BannerReorderRequest,
+):
+    """
+    Reorder banners by sort_order.
+    PUT /admin/banners/reorder
+    Body: { "order": [banner_id, banner_id, ...] }  (top to bottom)
+    """
+    try:
+        for index, banner_id in enumerate(request.order):
+            db.query(Banner).filter(Banner.id == banner_id).update({"sort_order": index})
+        db.commit()
+
+        logger.info(
+            f"↕️ Banners Reordered | Count={len(request.order)} | Admin={admin.phone_number}"
+        )
+
+        return {"message": "Banners reordered successfully."}
+    except Exception as e:
+        db.rollback()
+        logger.error(
+            f"❌ Banner Reorder Failed | Error={str(e)} | Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reorder banners.",
         )
 
 

@@ -432,6 +432,26 @@
   justify-content: center;
 }
 
+/* Drag & Drop - Banners */
+.admin-table tbody tr[draggable] {
+  cursor: grab;
+}
+
+.admin-table tbody tr[draggable]:hover {
+  background-color: var(--gray-50);
+}
+
+.admin-table tbody tr[draggable]:active {
+  cursor: grabbing;
+}
+
+.drag-handle {
+  color: var(--gray-400);
+  font-size: 18px;
+  cursor: grab;
+  padding: 4px;
+}
+
 /* Admin Dashboard */
 .admin-dashboard h2 {
   font-size: 22px;

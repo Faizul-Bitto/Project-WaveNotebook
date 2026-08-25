@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaGripLines } from 'react-icons/fa';
 import {
   adminGetBanners,
   adminCreateBanner,
   adminUpdateBanner,
   adminDeleteBanner,
+  adminReorderBanners,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import { validateForm, clearFieldError, firstError } from '../../utils/validation';
@@ -25,6 +26,7 @@ function AdminBanners() {
   });
   const [imageFile, setImageFile] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, title: '' });
+  const [draggedId, setDraggedId] = useState(null);
 
   const loadBanners = async () => {
     try {
@@ -52,8 +54,13 @@ function AdminBanners() {
       }
     };
     fetchData();
+    const handleBannerUpdated = () => {
+      if (mounted) loadBanners();
+    };
+    window.addEventListener('banner-updated', handleBannerUpdated);
     return () => {
       mounted = false;
+      window.removeEventListener('banner-updated', handleBannerUpdated);
     };
   }, []);
 
@@ -96,29 +103,51 @@ function AdminBanners() {
     if (formData.link_url) form.append('link_url', formData.link_url);
     form.append('sort_order', formData.sort_order);
     form.append('is_active', formData.is_active);
+    if (imageFile) form.append('image', imageFile);
 
     const uploading = Boolean(imageFile);
+    const apiCall = editingBanner
+      ? adminUpdateBanner(editingBanner.id, form)
+      : adminCreateBanner(form);
     try {
       // Morphing promise toast: "Uploading banner image..." -> success / error
-      await toastPromise(
-        editingBanner
-          ? adminUpdateBanner(editingBanner.id, form)
-          : adminCreateBanner(form),
+      // toastPromise returns a toast id (not a Promise in goey-toast), so we
+      // await the actual API call separately to guarantee ordering.
+      toastPromise(
+        apiCall,
         {
           loading: uploading ? 'Uploading banner image...' : (editingBanner ? 'Updating banner...' : 'Creating banner...'),
           success: editingBanner ? 'Banner updated successfully!' : 'Banner created successfully!',
-          error: (err) => err?.response?.data?.detail || 'Failed to save banner.',
+          error: (err) => {
+            const detail = err?.response?.data?.detail;
+            if (Array.isArray(detail)) {
+              return detail.map((d) => d.msg || 'Validation error').join(', ');
+            }
+            return detail || 'Failed to save banner.';
+          },
         },
         { showProgress: true }
       );
+
+      const result = await apiCall;
 
       setShowForm(false);
       setEditingBanner(null);
       setFormData({ title: '', subtitle: '', link_url: '', sort_order: 0, is_active: true });
       setImageFile(null);
-      await loadBanners();
+
+      if (result?.banner) {
+        if (editingBanner) {
+          setBanners(prev => prev.map(b => b.id === editingBanner.id ? result.banner : b));
+        } else {
+          setBanners(prev => [...prev, result.banner]);
+        }
+      } else {
+        loadBanners();
+      }
     } catch {
       // Error already shown by the promise toast
+      window.dispatchEvent(new CustomEvent('banner-updated'));
     }
   };
 
@@ -136,6 +165,36 @@ function AdminBanners() {
 
   const handleDelete = async (id, title) => {
     setDeleteModal({ show: true, id: id, title: title });
+  };
+
+  const handleDragStart = (id) => {
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (targetId) => {
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+    const newBanners = [...banners];
+    const fromIndex = newBanners.findIndex((b) => b.id === draggedId);
+    const toIndex = newBanners.findIndex((b) => b.id === targetId);
+    const [moved] = newBanners.splice(fromIndex, 1);
+    newBanners.splice(toIndex, 0, moved);
+    setBanners(newBanners);
+    setDraggedId(null);
+
+    try {
+      await adminReorderBanners(newBanners.map((b) => b.id));
+      addToast('Banner order updated!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to update banner order.', 'error');
+      loadBanners();
+    }
   };
 
   const confirmDelete = async () => {
@@ -266,6 +325,7 @@ function AdminBanners() {
           <table className="admin-table">
             <thead>
               <tr>
+                <th></th>
                 <th>#</th>
                 <th>Image</th>
                 <th>Title</th>
@@ -276,13 +336,23 @@ function AdminBanners() {
               </tr>
             </thead>
             <tbody>
-              {banners.length === 0 ? (
+                {banners.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="table-empty">No banners found</td>
+                  <td colSpan="8" className="table-empty">No banners found</td>
                 </tr>
               ) : (
                 banners.map((banner, index) => (
-                  <tr key={banner.id}>
+                  <tr
+                    key={banner.id}
+                    draggable
+                    onDragStart={() => handleDragStart(banner.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(banner.id)}
+                    style={{ opacity: draggedId === banner.id ? 0.3 : 1, cursor: 'grab' }}
+                  >
+                    <td>
+                      <FaGripLines className="drag-handle" />
+                    </td>
                     <td>{index + 1}</td>
                     <td>
                       <img src={banner.image_url} alt={banner.title} className="table-image" />

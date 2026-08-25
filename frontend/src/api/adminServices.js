@@ -245,6 +245,11 @@ export const adminDeleteBanner = async (id) => {
   return data;
 };
 
+export const adminReorderBanners = async (order) => {
+  const { data } = await api.put('/admin/banners/reorder', { order });
+  return data;
+};
+
 export const adminGetSettings = async () => {
   const { data } = await api.get('/admin/settings');
   return data;

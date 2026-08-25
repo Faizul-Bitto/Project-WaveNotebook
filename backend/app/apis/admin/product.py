@@ -465,6 +465,7 @@ async def get_product_by_id(
                 "specifications": product.specifications,
                 "is_in_stock": compute_product_in_stock(db, product.id),
                 "is_active": product.is_active,
+                "is_featured": product.is_featured,
                 "files": [
                     {"id": f.id, "file_name": f.file_name, "file_url": f.file_url}
                     for f in files
