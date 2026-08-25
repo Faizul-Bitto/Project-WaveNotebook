@@ -104,6 +104,12 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+}
+
 body {
   font-family: var(--font-text);
   font-size: 16px;
@@ -112,12 +118,20 @@ body {
   background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
 }
 
 a {
@@ -159,11 +173,15 @@ textarea {
   margin: 0 auto;
   padding: 0 20px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .main-content {
   flex: 1;
   min-height: calc(100vh - 200px);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* ==========================================

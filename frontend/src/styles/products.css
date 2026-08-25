@@ -274,6 +274,13 @@
 /* ==========================================
    Products Page - Responsive
    ========================================== */
+@media (max-width: 860px) {
+  .products-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .products-toolbar {
     flex-direction: column;

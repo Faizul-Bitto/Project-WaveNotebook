@@ -283,6 +283,7 @@
   .toast {
     min-width: 260px;
     max-width: calc(100vw - 40px);
+    box-sizing: border-box;
     padding: 14px 16px;
     font-size: 13px;
   }
