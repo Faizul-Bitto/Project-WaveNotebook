@@ -440,7 +440,7 @@ async def delete_payment_method(db: db_dependency, admin: admin_dependency, meth
 async def get_expense_summary(
     db: db_dependency,
     admin: admin_dependency,
-    period: str = Query("all", regex="^(all|year|month|week)$"),
+    period: str = Query("all", pattern="^(all|year|month|week)$"),
     year: int = Query(None),
     month: int = Query(None),
 ):
