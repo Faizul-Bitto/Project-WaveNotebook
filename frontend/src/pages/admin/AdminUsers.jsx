@@ -6,21 +6,31 @@ import {
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
+import Pagination from '../../components/Pagination';
+
+const PAGE_SIZE = 20;
 
 function AdminUsers() {
   const { addToast } = useToast();
   const [users, setUsers] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, phone: '' });
 
-  const loadUsers = async (searchTerm = '') => {
+  const loadUsers = async (searchTerm = activeSearch, pageNum = page) => {
     try {
       setLoading(true);
-      const params = { limit: 100 };
+      const params = {
+        skip: pageNum * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      };
       if (searchTerm) params.search = searchTerm;
       const data = await adminGetUsers(params);
       setUsers(data.users || []);
+      setTotal(data.total || 0);
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to load users.', 'error');
     } finally {
@@ -29,27 +39,27 @@ function AdminUsers() {
   };
 
   useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await adminGetUsers({ limit: 100 });
-        if (mounted) setUsers(data.users || []);
-      } catch (err) {
-        if (mounted) addToast(err.response?.data?.detail || 'Failed to load users.', 'error');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => {
-      mounted = false;
-    };
+    loadUsers('', 0);
   }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    await loadUsers(search.trim());
+    const term = search.trim();
+    setActiveSearch(term);
+    setPage(0);
+    loadUsers(term, 0);
+  };
+
+  const handleClearSearch = () => {
+    setSearch('');
+    setActiveSearch('');
+    setPage(0);
+    loadUsers('', 0);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    loadUsers(activeSearch, newPage);
   };
 
   const handleDelete = async (user) => {
@@ -61,7 +71,8 @@ function AdminUsers() {
     setDeleteModal({ show: false, id: null, phone: '' });
     try {
       await adminDeleteUser(id);
-      await loadUsers(search);
+      setPage(0);
+      await loadUsers(activeSearch, 0);
       addToast('User deleted successfully!', 'success');
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to delete user.', 'error');
@@ -82,6 +93,11 @@ function AdminUsers() {
           <button type="submit" className="btn btn-primary">
             <FaSearch />
           </button>
+          {activeSearch && (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={handleClearSearch}>
+              Clear
+            </button>
+          )}
         </form>
       </div>
 
@@ -108,7 +124,7 @@ function AdminUsers() {
               ) : (
                 users.map((user, index) => (
                   <tr key={user.id}>
-                    <td>{index + 1}</td>
+                    <td>{page * PAGE_SIZE + index + 1}</td>
                     <td>{user.phone_number}</td>
                     <td>{user.email || '-'}</td>
                     <td>
@@ -136,6 +152,17 @@ function AdminUsers() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && (
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onPageChange={handlePageChange}
+          loading={loading}
+        />
       )}
 
       <Modal

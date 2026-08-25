@@ -100,8 +100,8 @@ async def get_all_orders(
         if status_filter:
             query = query.filter(Order.status == status_filter)
 
+        total = query.order_by(None).count()
         orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
-        total = query.count()
 
         logger.info(
             f"📦 Orders Retrieved | "
@@ -989,6 +989,8 @@ async def search_orders(
     admin: admin_dependency,
     type: str = Query(..., description="Search type: phone, name, address, or order_number"),
     value: str = Query(..., description="Search value"),
+    skip: int = 0,
+    limit: int = 20,
 ):
     """
     Search orders by phone, name, address, or order number.
@@ -1022,20 +1024,25 @@ async def search_orders(
         elif type == "order_number":
             query = db.query(Order).filter(Order.order_number.contains(value))
 
-        orders = query.order_by(Order.created_at.desc()).all()
+        total = query.order_by(None).count()
+        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
 
         logger.info(
-            f"🔍 Orders Searched | Type={type} | Value={value} | Count={len(orders)} | Admin={admin.phone_number}"
+            f"🔍 Orders Searched | Type={type} | Value={value} | Count={len(orders)} | Total={total} | Admin={admin.phone_number}"
         )
 
         return {
             "message": "Orders retrieved successfully.",
             "search_type": type,
             "search_value": value,
+            "total": total,
+            "skip": skip,
+            "limit": limit,
             "orders": [
                 {
                     "id": order.id,
                     "order_number": order.order_number,
+                    "user_id": order.user_id,
                     "full_name": order.full_name,
                     "phone_number": order.phone_number,
                     "email": order.email,
@@ -1043,6 +1050,8 @@ async def search_orders(
                     "address": order.address,
                     "status": order.status,
                     "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(parse_snapshot(order.discount_snapshot).get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
                     "created_at": order.created_at.isoformat(),
                     "updated_at": order.updated_at.isoformat(),
                 }

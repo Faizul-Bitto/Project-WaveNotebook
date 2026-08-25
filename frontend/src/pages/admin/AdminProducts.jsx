@@ -9,6 +9,7 @@ import {
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
+import Pagination from '../../components/Pagination';
 
 const PAGE_SIZE = 20;
 
@@ -314,25 +315,13 @@ function AdminProducts() {
 
       {/* Pagination */}
       {!loading && (
-        <div className="admin-pagination">
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 0}
-          >
-            Previous
-          </button>
-          <span className="admin-page-info">
-            Page {page + 1} of {totalPages}
-          </span>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page + 1 >= totalPages}
-          >
-            Next
-          </button>
-        </div>
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onPageChange={handlePageChange}
+          loading={loading}
+        />
       )}
 
       <Modal

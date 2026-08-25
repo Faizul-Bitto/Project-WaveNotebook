@@ -555,8 +555,8 @@ async def get_all_expenses(
         if type_filter:
             query = query.filter(Expense.expense_type_id == type_filter)
 
+        total = query.order_by(None).count()
         expenses = query.order_by(Expense.date.desc()).offset(skip).limit(limit).all()
-        total = query.count()
 
         return {
             "message": "Expenses retrieved successfully.",

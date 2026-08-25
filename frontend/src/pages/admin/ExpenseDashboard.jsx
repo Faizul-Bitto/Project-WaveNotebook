@@ -9,8 +9,11 @@ import {
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
+import Pagination from '../../components/Pagination';
 
 import ExpenseForm from './ExpenseForm';
+
+const PAGE_SIZE = 20;
 
 const PAYMENT_STATUS_LABELS = {
   paid: 'Paid',
@@ -22,6 +25,8 @@ function ExpenseDashboard() {
   const location = useLocation();
   const { addToast } = useToast();
   const [expenses, setExpenses] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -46,13 +51,17 @@ function ExpenseDashboard() {
     }
   };
 
-  const loadExpenses = async (status = '') => {
+  const loadExpenses = async (status = paymentStatusFilter, pageNum = page) => {
     try {
       setLoading(true);
-      const params = {};
+      const params = {
+        skip: pageNum * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      };
       if (status) params.status = status;
       const data = await adminGetExpenses(params);
       setExpenses(data.expenses || []);
+      setTotal(data.total || 0);
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to load expenses.', 'error');
     } finally {
@@ -80,14 +89,20 @@ function ExpenseDashboard() {
     const params = new URLSearchParams(location.search);
     const initialStatus = params.get('status') || '';
     setPaymentStatusFilter(initialStatus);
-    loadExpenses(initialStatus);
+    loadExpenses(initialStatus, 0);
   }, []);
 
   const handlePaymentStatusChange = (e) => {
     const value = e.target.value;
     setPaymentStatusFilter(value);
+    setPage(0);
     navigate({ pathname: '/admin/expenses', search: value ? `?status=${value}` : '' }, { replace: true });
-    loadExpenses(value);
+    loadExpenses(value, 0);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    loadExpenses(paymentStatusFilter, newPage);
   };
 
   useEffect(() => {
@@ -109,7 +124,8 @@ function ExpenseDashboard() {
     try {
       await adminDeleteExpense(id);
       addToast('Expense deleted successfully!', 'success');
-      loadExpenses(paymentStatusFilter);
+      setPage(0);
+      loadExpenses(paymentStatusFilter, 0);
       loadSummary();
       window.dispatchEvent(new CustomEvent('expense-updated'));
     } catch (err) {
@@ -120,7 +136,7 @@ function ExpenseDashboard() {
   const handleFormSuccess = () => {
     setShowForm(false);
     setEditingExpense(null);
-    loadExpenses(paymentStatusFilter);
+    loadExpenses(paymentStatusFilter, page);
     loadSummary();
     window.dispatchEvent(new CustomEvent('expense-updated'));
   };
@@ -225,7 +241,7 @@ function ExpenseDashboard() {
               ) : (
                 expenses.map((expense, index) => (
                   <tr key={expense.id}>
-                    <td>{index + 1}</td>
+                    <td>{page * PAGE_SIZE + index + 1}</td>
                     <td>{expense.date}</td>
                     <td>{expense.items}</td>
                     <td>{expense.expense_type_name || '—'}</td>
@@ -261,6 +277,17 @@ function ExpenseDashboard() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && (
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onPageChange={handlePageChange}
+          loading={loading}
+        />
       )}
 
       <ExpenseForm

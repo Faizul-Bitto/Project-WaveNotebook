@@ -10,7 +10,10 @@ import {
 } from '../../api/adminServices';
 import { API_BASE_URL } from '../../api/client';
 import Modal from '../../components/Modal';
+import Pagination from '../../components/Pagination';
 import { useToast } from '../../context/ToastContext';
+
+const PAGE_SIZE = 20;
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -39,21 +42,37 @@ function AdminOrders () {
   const location = useLocation();
   const { addToast } = useToast();
   const [ orders, setOrders ] = useState( [] );
+  const [ total, setTotal ] = useState( 0 );
+  const [ page, setPage ] = useState( 0 );
   const [ loading, setLoading ] = useState( true );
   const [ invoiceLoadingId, setInvoiceLoadingId ] = useState( null );
   const [ statusFilter, setStatusFilter ] = useState( '' );
   const [ searchType, setSearchType ] = useState( 'phone' );
   const [ searchValue, setSearchValue ] = useState( '' );
+  const [ activeSearch, setActiveSearch ] = useState( { type: 'phone', value: '' } );
   const [ deleteModal, setDeleteModal ] = useState( { show: false, id: null, number: '' } );
   const [ cancelModal, setCancelModal ] = useState( { show: false, id: null, number: '' } );
 
-  const loadOrders = async ( status = '' ) => {
+  const loadOrders = async ( status = statusFilter, pageNum = page, searchObj = activeSearch ) => {
     try {
       setLoading( true );
-      const params = {};
-      if ( status ) params.status = status;
-      const data = await adminGetOrders( params );
-      setOrders( data.orders || [] );
+      if ( searchObj.value.trim() ) {
+        const data = await adminSearchOrders( searchObj.type, searchObj.value.trim(), {
+          skip: pageNum * PAGE_SIZE,
+          limit: PAGE_SIZE,
+        } );
+        setOrders( data.orders || [] );
+        setTotal( data.total || 0 );
+      } else {
+        const params = {
+          skip: pageNum * PAGE_SIZE,
+          limit: PAGE_SIZE,
+        };
+        if ( status ) params.status = status;
+        const data = await adminGetOrders( params );
+        setOrders( data.orders || [] );
+        setTotal( data.total || 0 );
+      }
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to load orders.', 'error' );
     } finally {
@@ -65,20 +84,26 @@ function AdminOrders () {
     const params = new URLSearchParams( location.search );
     const initialStatus = params.get( 'status' ) || '';
     setStatusFilter( initialStatus );
-    loadOrders( initialStatus );
+    loadOrders( initialStatus, 0, { type: 'phone', value: '' } );
   }, [] );
 
   const handleStatusChange = ( e ) => {
     const value = e.target.value;
     setStatusFilter( value );
+    setPage( 0 );
     navigate( { pathname: '/admin/orders', search: value ? `?status=${ value }` : '' }, { replace: true } );
-    loadOrders( value );
+    loadOrders( value, 0, activeSearch );
+  };
+
+  const handlePageChange = ( newPage ) => {
+    setPage( newPage );
+    loadOrders( statusFilter, newPage, activeSearch );
   };
 
   const handleStatusUpdate = async ( orderId, newStatus ) => {
     try {
       await adminUpdateOrderStatus( orderId, newStatus );
-      await loadOrders( statusFilter );
+      await loadOrders( statusFilter, page, activeSearch );
       addToast( 'Order status updated!', 'success' );
       window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
@@ -95,7 +120,7 @@ function AdminOrders () {
     setCancelModal( { show: false, id: null, number: '' } );
     try {
       await adminUpdateOrderStatus( id, 'cancelled' );
-      await loadOrders( statusFilter );
+      await loadOrders( statusFilter, page, activeSearch );
       addToast( 'Order cancelled successfully!', 'success' );
       window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
@@ -112,7 +137,8 @@ function AdminOrders () {
     setDeleteModal( { show: false, id: null, number: '' } );
     try {
       await adminDeleteOrder( id );
-      await loadOrders( statusFilter );
+      setPage( 0 );
+      await loadOrders( statusFilter, 0, activeSearch );
       addToast( 'Order deleted successfully!', 'success' );
       window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
@@ -141,19 +167,18 @@ function AdminOrders () {
 
   const handleSearch = async ( e ) => {
     e.preventDefault();
-    if ( !searchValue.trim() ) {
-      loadOrders( statusFilter );
-      return;
-    }
-    try {
-      setLoading( true );
-      const data = await adminSearchOrders( searchType, searchValue.trim() );
-      setOrders( data.orders || [] );
-    } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to search orders.', 'error' );
-    } finally {
-      setLoading( false );
-    }
+    const searchObj = { type: searchType, value: searchValue.trim() };
+    setActiveSearch( searchObj );
+    setPage( 0 );
+    loadOrders( statusFilter, 0, searchObj );
+  };
+
+  const handleClearSearch = () => {
+    setSearchValue( '' );
+    const searchObj = { type: searchType, value: '' };
+    setActiveSearch( searchObj );
+    setPage( 0 );
+    loadOrders( statusFilter, 0, searchObj );
   };
 
   return (
@@ -192,6 +217,11 @@ function AdminOrders () {
           <button type="submit" className="btn btn-primary">
             <FaSearch />
           </button>
+          { activeSearch.value && (
+            <button type="button" className="btn btn-secondary btn-sm" onClick={ handleClearSearch }>
+              Clear
+            </button>
+          ) }
         </form>
       </div>
 
@@ -294,6 +324,17 @@ function AdminOrders () {
             </tbody>
           </table>
         </div>
+      ) }
+
+      {/* Pagination */}
+      { !loading && (
+        <Pagination
+          page={ page }
+          total={ total }
+          pageSize={ PAGE_SIZE }
+          onPageChange={ handlePageChange }
+          loading={ loading }
+        />
       ) }
 
       <Modal

@@ -134,16 +134,41 @@
 
 .admin-pagination {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
-  padding: 20px 0;
+  padding: 18px 4px 10px;
   font-size: 14px;
+  margin-top: 8px;
+}
+
+.admin-pagination-info {
+  color: var(--gray-600);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.admin-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .admin-page-info {
-  color: var(--gray-600);
-  font-weight: 500;
+  color: var(--gray-700);
+  font-weight: 600;
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .admin-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
 }
 
 .admin-table-wrap {

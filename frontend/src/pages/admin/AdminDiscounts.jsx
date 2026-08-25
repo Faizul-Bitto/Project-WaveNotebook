@@ -9,6 +9,9 @@ import {
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
+import Pagination from '../../components/Pagination';
+
+const PAGE_SIZE = 20;
 
 const DISCOUNT_TYPE_LABELS = {
   percentage: 'Percentage',
@@ -27,17 +30,26 @@ function AdminDiscounts() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [discounts, setDiscounts] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
   const [usageModal, setUsageModal] = useState({ show: false, discount: null, usages: [], totalUses: 0, totalApplied: 0, loading: false });
 
-  const loadDiscounts = async (params = {}) => {
+  const loadDiscounts = async (type = typeFilter, status = statusFilter, pageNum = page) => {
     try {
       setLoading(true);
+      const params = {
+        skip: pageNum * PAGE_SIZE,
+        limit: PAGE_SIZE,
+      };
+      if (type) params.discount_type = type;
+      if (status) params.status = status;
       const data = await adminGetDiscounts(params);
       setDiscounts(data.discounts || []);
+      setTotal(data.total || 0);
     } catch (err) {
       console.error('Failed to load discounts:', err);
       addToast(err.response?.data?.detail || 'Failed to load discounts.', 'error');
@@ -47,42 +59,26 @@ function AdminDiscounts() {
   };
 
   useEffect(() => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const data = await adminGetDiscounts({});
-        if (mounted) setDiscounts(data.discounts || []);
-      } catch (err) {
-        if (mounted) addToast(err.response?.data?.detail || 'Failed to load discounts.', 'error');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => { mounted = false; };
+    loadDiscounts('', '', 0);
   }, []);
-
-  const applyFilters = (params) => {
-    loadDiscounts(params);
-  };
 
   const handleTypeChange = (e) => {
     const val = e.target.value;
     setTypeFilter(val);
-    const params = {};
-    if (val) params.discount_type = val;
-    if (statusFilter) params.status = statusFilter;
-    applyFilters(params);
+    setPage(0);
+    loadDiscounts(val, statusFilter, 0);
   };
 
   const handleStatusChange = (e) => {
     const val = e.target.value;
     setStatusFilter(val);
-    const params = {};
-    if (typeFilter) params.discount_type = typeFilter;
-    if (val) params.status = val;
-    applyFilters(params);
+    setPage(0);
+    loadDiscounts(typeFilter, val, 0);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    loadDiscounts(typeFilter, statusFilter, newPage);
   };
 
   const handleToggleStatus = async (discount) => {
@@ -107,7 +103,8 @@ function AdminDiscounts() {
     setDeleteModal({ show: false, id: null, name: '' });
     try {
       await adminDeleteDiscount(id);
-      setDiscounts(discounts.filter(d => d.id !== id));
+      setPage(0);
+      await loadDiscounts(typeFilter, statusFilter, 0);
       addToast('Discount deleted successfully!', 'success');
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to delete discount.', 'error');
@@ -233,7 +230,7 @@ function AdminDiscounts() {
 
                   return (
                     <tr key={discount.id}>
-                      <td>{index + 1}</td>
+                      <td>{page * PAGE_SIZE + index + 1}</td>
                       <td>
                         <div className="table-cell-primary">
                            {discount.name}
@@ -305,6 +302,17 @@ function AdminDiscounts() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && (
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onPageChange={handlePageChange}
+          loading={loading}
+        />
       )}
 
       <Modal

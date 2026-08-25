@@ -7,21 +7,29 @@ import {
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
+import Pagination from '../../components/Pagination';
+
+const PAGE_SIZE = 20;
 
 function AdminMessages() {
   const { addToast } = useToast();
   const [messages, setMessages] = useState([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [viewMessage, setViewMessage] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
 
   const loadMessages = useCallback(
-    async (currentFilter = filter) => {
+    async (currentFilter = filter, pageNum = page) => {
       try {
         setLoading(true);
-        const data = await adminGetContacts({ filter: currentFilter, limit: 100 });
+        const data = await adminGetContacts({
+          filter: currentFilter,
+          skip: pageNum * PAGE_SIZE,
+          limit: PAGE_SIZE,
+        });
         setMessages(data.messages || []);
         setTotal(data.total || 0);
       } catch (err) {
@@ -31,22 +39,31 @@ function AdminMessages() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filter]
+    [filter, page]
   );
 
   useEffect(() => {
-    loadMessages(filter);
+    loadMessages(filter, page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, page]);
 
   // Light polling so newly sent messages appear without manual refresh
   useEffect(() => {
     const interval = setInterval(() => {
-      loadMessages(filter);
+      loadMessages(filter, page);
     }, 20000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, page]);
+
+  const handleFilterChange = (newFilter) => {
+    setFilter(newFilter);
+    setPage(0);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+  };
 
   const handleView = async (message) => {
     setViewMessage(message);
@@ -117,7 +134,7 @@ function AdminMessages() {
           <button
             key={tab.key}
             className={`messages-tab ${filter === tab.key ? 'active' : ''}`}
-            onClick={() => setFilter(tab.key)}
+            onClick={() => handleFilterChange(tab.key)}
           >
             {tab.label}
           </button>
@@ -197,6 +214,17 @@ function AdminMessages() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && (
+        <Pagination
+          page={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onPageChange={handlePageChange}
+          loading={loading}
+        />
       )}
 
       {/* View Message Modal */}

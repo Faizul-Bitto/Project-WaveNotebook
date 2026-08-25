@@ -183,9 +183,9 @@ export const adminDeleteOrder = async (id) => {
   return data;
 };
 
-export const adminSearchOrders = async (type, value) => {
+export const adminSearchOrders = async (type, value, params = {}) => {
   const { data } = await api.get('/admin/orders/search', {
-    params: { type, value },
+    params: { type, value, ...params },
   });
   return data;
 };
