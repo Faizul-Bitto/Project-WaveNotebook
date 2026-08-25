@@ -321,14 +321,24 @@
   flex-direction: column;
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
   transform: translateY(-100%);
-  transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, opacity;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease,
+    visibility 0s linear 0.4s;
 }
 
 .search-overlay.search-overlay-open {
   opacity: 1;
   pointer-events: all;
+  visibility: visible;
   transform: translateY(0);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease,
+    visibility 0s linear 0s;
 }
 
 /* Navbar bar - solid white, not transparent */

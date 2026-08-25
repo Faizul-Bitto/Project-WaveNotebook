@@ -62,13 +62,20 @@ function Header() {
     };
     document.addEventListener('keydown', handleEscape);
     if (searchOpen) {
+      // Lock scroll WITHOUT layout shift: compensate for the removed scrollbar
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
     } else {
       document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
     }
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
     };
   }, [searchOpen]);
 
@@ -114,19 +121,19 @@ function Header() {
           </Link>
 
           <div className="header-actions">
-            {!isProductsPage && (
-            <div className="search-dropdown">
-                <button
-                  type="button"
-                  className={`search-btn ${searchOpen ? 'active' : ''}`}
-                  onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) searchInputRef.current?.focus(); }}
-                  title="Search products"
-                >
-                  <FaSearch />
-                </button>
+                {isProductsPage ? null : (
+                <div className="search-dropdown">
+                    <button
+                      type="button"
+                      className={`search-btn ${searchOpen ? 'active' : ''}`}
+                      onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 100); }}
+                      title="Search products"
+                    >
+                      <FaSearch />
+                    </button>
 
-                {searchOpen && (
-                  <div className="search-overlay search-overlay-open">
+                    {/* Always rendered so open/close transitions animate smoothly */}
+                    <div className={`search-overlay ${searchOpen ? 'search-overlay-open' : ''}`}>
                     <div className="search-overlay-nav">
                       <div className="container search-overlay-container">
                         <div className="search-overlay-input-wrapper">
@@ -196,7 +203,6 @@ function Header() {
                       )}
                     </div>
                   </div>
-                )}
              </div>
             )}
             <Link to="/track-order" className="track-order-btn" title="Track your order">
