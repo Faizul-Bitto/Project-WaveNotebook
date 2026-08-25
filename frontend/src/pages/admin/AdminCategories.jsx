@@ -10,7 +10,7 @@ import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
 
 function AdminCategories() {
-  const { addToast } = useToast();
+  const { addToast, toastPromise } = useToast();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -65,29 +65,37 @@ function AdminCategories() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const formDataObj = new FormData();
-      formDataObj.append('name', formData.name);
-      formDataObj.append('description', formData.description || '');
-       if (formData.parent_id) formDataObj.append('parent_id', parseInt(formData.parent_id));
-       else formDataObj.append('parent_id', '0');
-      formDataObj.append('is_active', formData.is_active);
-      if (imageFile) formDataObj.append('image', imageFile);
 
-      if (editingCategory) {
-        await adminUpdateCategory(editingCategory.id, formDataObj);
-      } else {
-        await adminCreateCategory(formDataObj);
-      }
+    const formDataObj = new FormData();
+    formDataObj.append('name', formData.name);
+    formDataObj.append('description', formData.description || '');
+     if (formData.parent_id) formDataObj.append('parent_id', parseInt(formData.parent_id));
+     else formDataObj.append('parent_id', '0');
+    formDataObj.append('is_active', formData.is_active);
+    if (imageFile) formDataObj.append('image', imageFile);
+
+    const uploading = Boolean(imageFile);
+    try {
+      // Morphing promise toast: "Uploading category image..." -> success / error
+      await toastPromise(
+        editingCategory
+          ? adminUpdateCategory(editingCategory.id, formDataObj)
+          : adminCreateCategory(formDataObj),
+        {
+          loading: uploading ? 'Uploading category image...' : (editingCategory ? 'Updating category...' : 'Creating category...'),
+          success: editingCategory ? 'Category updated successfully!' : 'Category created successfully!',
+          error: (err) => err?.response?.data?.detail || 'Failed to save category.',
+        },
+        { showProgress: true }
+      );
 
       setShowForm(false);
       setEditingCategory(null);
       setImageFile(null);
       setFormData({ name: '', description: '', parent_id: '', is_active: true });
       await loadCategories();
-      addToast(editingCategory ? 'Category updated successfully!' : 'Category created successfully!', 'success');
-    } catch (err) {
-      addToast(err.response?.data?.detail || 'Failed to save category.', 'error');
+    } catch {
+      // Error already shown by the promise toast
     }
   };
 

@@ -17,7 +17,7 @@ function AdminProductForm() {
   const { id } = useParams();
   const isEditing = Boolean(id);
 
-  const { addToast } = useToast();
+  const { addToast, toastPromise } = useToast();
   const [categories, setCategories] = useState([]);
   const [attributes, setAttributes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -186,31 +186,34 @@ function AdminProductForm() {
     e.preventDefault();
     setSaving(true);
 
+    const formDataToSend = new FormData();
+    formDataToSend.append('category_id', formData.category_id);
+    formDataToSend.append('name', formData.name);
+    formDataToSend.append('description', formData.description);
+    formDataToSend.append('specifications', formData.specifications);
+    formDataToSend.append('is_active', formData.is_active);
+    formDataToSend.append('is_featured', formData.is_featured);
+    formDataToSend.append('attributes', JSON.stringify(formData.attributes));
+
+    formData.files.forEach(file => {
+      formDataToSend.append('files', file);
+    });
+
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('category_id', formData.category_id);
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('specifications', formData.specifications);
-      formDataToSend.append('is_active', formData.is_active);
-      formDataToSend.append('is_featured', formData.is_featured);
-      formDataToSend.append('attributes', JSON.stringify(formData.attributes));
-
-      formData.files.forEach(file => {
-        formDataToSend.append('files', file);
-      });
-
-      if (isEditing) {
-        await adminUpdateProduct(id, formDataToSend);
-        addToast('Product updated successfully!', 'success');
-      } else {
-        await adminCreateProduct(formDataToSend);
-        addToast('Product created successfully!', 'success');
-      }
+      // Morphing promise toast: "Uploading images..." -> success / error
+      await toastPromise(
+        isEditing ? adminUpdateProduct(id, formDataToSend) : adminCreateProduct(formDataToSend),
+        {
+          loading: isEditing ? 'Updating product...' : 'Uploading product & images...',
+          success: isEditing ? 'Product updated successfully!' : 'Product created successfully!',
+          error: (err) => err?.response?.data?.detail || 'Failed to save product.',
+        },
+        { showProgress: true }
+      );
 
       setTimeout(() => navigate('/admin/products'), 1500);
-    } catch (err) {
-      addToast(err.response?.data?.detail || 'Failed to save product.', 'error');
+    } catch {
+      // Error already shown by the promise toast
     } finally {
       setSaving(false);
     }
@@ -219,34 +222,43 @@ function AdminProductForm() {
   const handleCreateVariants = async () => {
     setSaving(true);
 
+    const formDataToSend = new FormData();
+    formDataToSend.append('category_id', formData.category_id);
+    formDataToSend.append('name', formData.name);
+    formDataToSend.append('description', formData.description);
+    formDataToSend.append('specifications', formData.specifications);
+    formDataToSend.append('is_active', formData.is_active);
+    formDataToSend.append('is_featured', formData.is_featured);
+    formDataToSend.append('attributes', JSON.stringify(formData.attributes));
+
+    formData.files.forEach(file => {
+      formDataToSend.append('files', file);
+    });
+
+    let productId = id;
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('category_id', formData.category_id);
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('specifications', formData.specifications);
-      formDataToSend.append('is_active', formData.is_active);
-      formDataToSend.append('is_featured', formData.is_featured);
-      formDataToSend.append('attributes', JSON.stringify(formData.attributes));
-
-      formData.files.forEach(file => {
-        formDataToSend.append('files', file);
-      });
-
-      let productId = id;
-      if (isEditing) {
-        await adminUpdateProduct(id, formDataToSend);
-        addToast('Product updated successfully!', 'success');
-      } else {
-        const result = await adminCreateProduct(formDataToSend);
-        productId = result.product.id;
-        addToast('Product created successfully!', 'success');
+      // Morphing promise toast: "Uploading images..." -> success / error
+      let created = null;
+      await toastPromise(
+        (isEditing
+          ? adminUpdateProduct(id, formDataToSend)
+          : adminCreateProduct(formDataToSend).then((result) => { created = result; return result; })
+        ),
+        {
+          loading: isEditing ? 'Updating product...' : 'Uploading product & images...',
+          success: isEditing ? 'Product updated successfully!' : 'Product created successfully!',
+          error: (err) => err?.response?.data?.detail || 'Failed to save product.',
+        },
+        { showProgress: true }
+      );
+      if (!isEditing && created) {
+        productId = created.product.id;
       }
 
       // Navigate to variants page where admin can generate variants and set prices
       navigate(`/admin/products/${productId}/variants`);
-    } catch (err) {
-      addToast(err.response?.data?.detail || 'Failed to save product.', 'error');
+    } catch {
+      // Error already shown by the promise toast
     } finally {
       setSaving(false);
     }

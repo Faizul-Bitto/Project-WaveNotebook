@@ -7,7 +7,7 @@ import Modal from '../components/Modal';
 
 function Cart() {
   const { cart, loading, fetchCart, updateItem, removeItem, clearAll, totalDiscount, totalAfterDiscount, discountBreakdown, freeShipping, winningRule, pendingBogoOffers, simpleBogo, bogoFreeNote } = useCart();
-  const { addToast } = useToast();
+  const { addToast, toastPromise } = useToast();
   const [showClearModal, setShowClearModal] = useState(false);
   const [bogoUpdating, setBogoUpdating] = useState(false);
 
@@ -26,12 +26,26 @@ function Cart() {
 
     setBogoUpdating(true);
     try {
-      const result = await updateItem(match.id, newQty);
-      if (result.success) {
-        addToast(`BOGO applied — ${offer.extra_units} more added at ${offer.get_discount_percent}% off!`, 'success');
-      } else {
-        addToast(result.error || 'Failed to apply BOGO offer.', 'error');
-      }
+      // Morphing promise toast: "Applying..." -> success / error blob
+      await toastPromise(
+        (async () => {
+          const result = await updateItem(match.id, newQty);
+          if (!result.success) {
+            const err = new Error(result.error || 'Failed to apply BOGO offer.');
+            err.isExpected = true;
+            throw err;
+          }
+          return result;
+        })(),
+        {
+          loading: 'Applying BOGO offer...',
+          success: `BOGO applied — ${offer.extra_units} more added at ${offer.get_discount_percent}% off!`,
+          error: (err) => (err && err.message) || 'Failed to apply BOGO offer.',
+        },
+        { showProgress: true }
+      );
+    } catch {
+      // Error already shown by the promise toast
     } finally {
       setBogoUpdating(false);
     }

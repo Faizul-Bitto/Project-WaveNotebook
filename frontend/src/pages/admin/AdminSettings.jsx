@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext';
 
 function AdminSettings () {
   const { refresh } = useSiteSettings();
-  const { addToast } = useToast();
+  const { addToast, toastPromise } = useToast();
   const [ formData, setFormData ] = useState( {
     site_name: 'WaveNotebook',
     page_title: '',
@@ -93,36 +93,46 @@ function AdminSettings () {
 
   const handleSubmit = async ( e ) => {
     e.preventDefault();
+    setSaving( true );
+    const fd = new FormData();
+    fd.append( 'site_name', formData.site_name );
+    fd.append( 'page_title', formData.page_title );
+    fd.append( 'site_description', formData.site_description );
+    fd.append( 'contact_phone', formData.contact_phone );
+    fd.append( 'contact_email', formData.contact_email );
+    fd.append( 'contact_address', formData.contact_address );
+    fd.append( 'hotline_number', formData.hotline_number );
+    fd.append( 'website_url', formData.website_url );
+    fd.append( 'facebook_url', formData.facebook_url );
+    fd.append( 'youtube_url', formData.youtube_url );
+    fd.append( 'instagram_url', formData.instagram_url );
+    fd.append( 'twitter_url', formData.twitter_url );
+    fd.append( 'whatsapp_number', formData.whatsapp_number );
+    fd.append( 'messenger_url', formData.messenger_url );
+    fd.append( 'order_whatsapp_number', formData.order_whatsapp_number );
+    fd.append( 'order_call_number', formData.order_call_number );
+    fd.append( 'privacy_policy', formData.privacy_policy );
+    fd.append( 'terms_conditions', formData.terms_conditions );
+    fd.append( 'refund_policy', formData.refund_policy );
+    if ( logoFile ) fd.append( 'logo', logoFile );
+    if ( faviconFile ) fd.append( 'favicon', faviconFile );
+
+    // Morphing promise toast: mentions uploads when files are attached
+    const hasUploads = Boolean( logoFile || faviconFile );
     try {
-      setSaving( true );
-      const fd = new FormData();
-      fd.append( 'site_name', formData.site_name );
-      fd.append( 'page_title', formData.page_title );
-      fd.append( 'site_description', formData.site_description );
-      fd.append( 'contact_phone', formData.contact_phone );
-      fd.append( 'contact_email', formData.contact_email );
-      fd.append( 'contact_address', formData.contact_address );
-      fd.append( 'hotline_number', formData.hotline_number );
-      fd.append( 'website_url', formData.website_url );
-      fd.append( 'facebook_url', formData.facebook_url );
-      fd.append( 'youtube_url', formData.youtube_url );
-      fd.append( 'instagram_url', formData.instagram_url );
-      fd.append( 'twitter_url', formData.twitter_url );
-      fd.append( 'whatsapp_number', formData.whatsapp_number );
-      fd.append( 'messenger_url', formData.messenger_url );
-      fd.append( 'order_whatsapp_number', formData.order_whatsapp_number );
-      fd.append( 'order_call_number', formData.order_call_number );
-      fd.append( 'privacy_policy', formData.privacy_policy );
-      fd.append( 'terms_conditions', formData.terms_conditions );
-      fd.append( 'refund_policy', formData.refund_policy );
-      if ( logoFile ) fd.append( 'logo', logoFile );
-      if ( faviconFile ) fd.append( 'favicon', faviconFile );
-      await adminUpdateSettings( fd );
+      await toastPromise(
+        adminUpdateSettings( fd ),
+        {
+          loading: hasUploads ? 'Uploading image & saving settings...' : 'Saving settings...',
+          success: hasUploads ? 'Image uploaded & settings saved successfully!' : 'Settings saved successfully!',
+          error: ( err ) => err?.response?.data?.detail || 'Failed to save settings.',
+        },
+        { showProgress: true }
+      );
       await refresh();
       await loadSettings();
-      addToast( 'Settings saved successfully!', 'success' );
-    } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to save settings.', 'error' );
+    } catch {
+      // Error already shown by the promise toast
     } finally {
       setSaving( false );
     }

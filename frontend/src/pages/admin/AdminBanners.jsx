@@ -10,7 +10,7 @@ import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
 
 function AdminBanners() {
-  const { addToast } = useToast();
+  const { addToast, toastPromise } = useToast();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -70,34 +70,41 @@ function AdminBanners() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const form = new FormData();
-      form.append('title', formData.title);
-      if (formData.subtitle) form.append('subtitle', formData.subtitle);
-      if (formData.link_url) form.append('link_url', formData.link_url);
-      form.append('sort_order', formData.sort_order);
-      form.append('is_active', formData.is_active);
 
-      if (editingBanner) {
-        if (imageFile) form.append('image', imageFile);
-        await adminUpdateBanner(editingBanner.id, form);
-      } else {
-        if (!imageFile) {
-          addToast('Please select a banner image.', 'error');
-          return;
-        }
-        form.append('image', imageFile);
-        await adminCreateBanner(form);
-      }
+    if (!editingBanner && !imageFile) {
+      addToast('Please select a banner image.', 'error');
+      return;
+    }
+
+    const form = new FormData();
+    form.append('title', formData.title);
+    if (formData.subtitle) form.append('subtitle', formData.subtitle);
+    if (formData.link_url) form.append('link_url', formData.link_url);
+    form.append('sort_order', formData.sort_order);
+    form.append('is_active', formData.is_active);
+
+    const uploading = Boolean(imageFile);
+    try {
+      // Morphing promise toast: "Uploading banner image..." -> success / error
+      await toastPromise(
+        editingBanner
+          ? adminUpdateBanner(editingBanner.id, form)
+          : adminCreateBanner(form),
+        {
+          loading: uploading ? 'Uploading banner image...' : (editingBanner ? 'Updating banner...' : 'Creating banner...'),
+          success: editingBanner ? 'Banner updated successfully!' : 'Banner created successfully!',
+          error: (err) => err?.response?.data?.detail || 'Failed to save banner.',
+        },
+        { showProgress: true }
+      );
 
       setShowForm(false);
       setEditingBanner(null);
       setFormData({ title: '', subtitle: '', link_url: '', sort_order: 0, is_active: true });
       setImageFile(null);
       await loadBanners();
-      addToast(editingBanner ? 'Banner updated successfully!' : 'Banner created successfully!', 'success');
-    } catch (err) {
-      addToast(err.response?.data?.detail || 'Failed to save banner.', 'error');
+    } catch {
+      // Error already shown by the promise toast
     }
   };
 

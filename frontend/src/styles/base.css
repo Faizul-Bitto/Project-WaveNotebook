@@ -426,3 +426,11 @@ textarea {
   background: var(--white);
   min-width: 160px;
 }
+
+/* ==========================================
+   Gooey Toaster — nudge down from top edge
+   (keeps right-side position untouched)
+   ========================================== */
+[data-sonner-toaster][data-y-position='top'] {
+  top: 56px !important;
+}

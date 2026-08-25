@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useCallback } from 'react';
+import { GooeyToaster, gooeyToast } from 'goey-toast';
+import 'goey-toast/styles.css';
 
 const ToastContext = createContext();
-
-let toastId = 0;
 
 export function useToast() {
   const context = useContext(ToastContext);
@@ -13,66 +13,62 @@ export function useToast() {
 }
 
 export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
-
+  /**
+   * Drop-in replacement for the legacy toaster.
+   * Same signature: addToast(message, type, duration) -> id
+   */
   const addToast = useCallback((message, type = 'info', duration = 3000) => {
-    const id = toastId++;
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
-    return id;
+    const text = String(message ?? '');
+    const options = {
+      preset: 'snappy',
+      timing: { displayDuration: duration },
+      showProgress: duration >= 4000,
+    };
+
+    switch (type) {
+      case 'success':
+        return gooeyToast.success(text, options);
+      case 'error':
+        return gooeyToast.error(text, options);
+      case 'warning':
+        return gooeyToast.warning(text, options);
+      default:
+        return gooeyToast.info(text, options);
+    }
+  }, []);
+
+  /**
+   * Morphing promise toast: pill (loading) -> blob (success / error).
+   * Messages may be strings or functions:
+   *   toastPromise(uploadFile(file), {
+   *     loading: 'Uploading image...',
+   *     success: 'Image uploaded!',
+   *     error: (err) => err?.response?.data?.detail || 'Upload failed',
+   *   })
+   */
+  const toastPromise = useCallback((promise, messages = {}, options = {}) => {
+    return gooeyToast.promise(promise, {
+      preset: 'snappy',
+      ...options,
+      loading: messages.loading || 'Processing...',
+      success: messages.success || 'Done successfully!',
+      error: messages.error || 'Something went wrong. Please try again.',
+    });
   }, []);
 
   const removeToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    gooeyToast.dismiss(id);
   }, []);
 
   return (
-    <ToastContext.Provider value={{ addToast, removeToast }}>
+    <ToastContext.Provider value={{ addToast, removeToast, toastPromise, gooeyToast }}>
+      <GooeyToaster
+        position="top-right"
+        theme="dark"
+        preset="snappy"
+        showTimestamp={true}
+      />
       {children}
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </ToastContext.Provider>
-  );
-}
-
-function ToastContainer({ toasts, removeToast }) {
-  return (
-    <div className="toast-container">
-      {toasts.map((toast) => (
-        <ToastItem
-          key={toast.id}
-          toast={toast}
-          onRemove={removeToast}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ToastItem({ toast, onRemove }) {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onRemove(toast.id);
-    }, toast.duration);
-    return () => clearTimeout(timer);
-  }, [toast, onRemove]);
-
-  const handleClose = () => {
-    onRemove(toast.id);
-  };
-
-  const icon = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️',
-  }[toast.type] || 'ℹ️';
-
-  return (
-    <div className={`toast toast-${toast.type}`}>
-      <span className="toast-icon">{icon}</span>
-      <span className="toast-message">{toast.message}</span>
-      <button className="toast-close" onClick={handleClose}>
-        ×
-      </button>
-    </div>
   );
 }

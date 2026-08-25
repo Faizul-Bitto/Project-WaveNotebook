@@ -24,7 +24,7 @@ function getBogoInfo ( item ) {
 function Checkout () {
   const { cart, clearAll, totalDiscount, totalAfterDiscount, discountBreakdown, freeShipping, simpleBogo, bogoFreeNote, getShippingChargeForDistrict, shippingCharges } = useCart();
   const { directItem } = useDirectBuy();
-  const { addToast } = useToast();
+  const { addToast, toastPromise } = useToast();
   const [ districts, setDistricts ] = useState( [] );
   const [ loading, setLoading ] = useState( false );
   const [ orderSuccess, setOrderSuccess ] = useState( null );
@@ -135,24 +135,35 @@ function Checkout () {
       return;
     }
 
+    setLoading( true );
+    const orderData = {
+      full_name: formData.full_name,
+      phone_number: formData.phone_number,
+      email: formData.email || null,
+      district: formData.district,
+      thana: formData.thana,
+      note: formData.note || null,
+      address: formData.address,
+      items,
+    };
     try {
-      setLoading( true );
-      const orderData = {
-        full_name: formData.full_name,
-        phone_number: formData.phone_number,
-        email: formData.email || null,
-        district: formData.district,
-        thana: formData.thana,
-        note: formData.note || null,
-        address: formData.address,
-        items,
-      };
-      const result = await createOrder( orderData );
-      setOrderSuccess( result.order );
-      await clearAll();
-      addToast( 'Order placed successfully!', 'success' );
-    } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to place order. Please try again.', 'error' );
+      // Morphing promise toast: "Placing your order..." -> success / error
+      let placed = null;
+      await toastPromise(
+        createOrder( orderData ).then( ( result ) => { placed = result; return result; } ),
+        {
+          loading: 'Placing your order...',
+          success: 'Order placed successfully!',
+          error: ( err ) => err?.response?.data?.detail || 'Failed to place order. Please try again.',
+        },
+        { showProgress: true }
+      );
+      if ( placed ) {
+        setOrderSuccess( placed.order );
+        await clearAll();
+      }
+    } catch {
+      // Error already shown by the promise toast
     } finally {
       setLoading( false );
     }
