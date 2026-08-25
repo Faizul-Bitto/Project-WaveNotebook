@@ -14,7 +14,7 @@ function AdminOrderCreate () {
   const [ products, setProducts ] = useState( [] );
   const [ loading, setLoading ] = useState( Boolean( id ) );
   const [ districts, setDistricts ] = useState( [] );
-  const [ customer, setCustomer ] = useState( { full_name: '', phone_number: '+880', district: '', thana: '', note: '', address: '' } );
+  const [ customer, setCustomer ] = useState( { full_name: '', phone_number: '+880', email: '', district: '', thana: '', note: '', address: '' } );
   const [ items, setItems ] = useState( [] );
   const [ selectedProductId, setSelectedProductId ] = useState( '' );
   const [ saving, setSaving ] = useState( false );
@@ -140,6 +140,7 @@ function AdminOrderCreate () {
         setCustomer( {
           full_name: order.full_name || '',
           phone_number: order.phone_number || '',
+          email: order.email || '',
           district: order.district || '',
           thana: order.thana || '',
           note: order.note || '',
@@ -263,6 +264,7 @@ function AdminOrderCreate () {
     return {
       full_name: customer.full_name,
       phone_number: customer.phone_number,
+      email: customer.email || null,
       district: customer.district,
       thana: customer.thana,
       note: customer.note || null,
@@ -296,6 +298,7 @@ function AdminOrderCreate () {
         : await adminCreateOrder( payload );
       navigate( `/admin/orders/${ result.order.id }` );
       addToast( 'Order saved successfully!', 'success' );
+      window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to save order.', 'error' );
     } finally {
@@ -373,6 +376,10 @@ function AdminOrderCreate () {
                 onChange={ ( _, value ) => setCustomer( { ...customer, phone_number: value } ) }
                 placeholder="0XXXXXXXXX"
               />
+            </div>
+            <div className="form-group">
+              <label>Email (optional)</label>
+              <input type="email" value={ customer.email } onChange={ ( e ) => setCustomer( { ...customer, email: e.target.value } ) } placeholder="you@example.com" />
             </div>
             <div className="form-group">
               <label>District *</label>

@@ -103,6 +103,7 @@ function AdminOrderDetail() {
     try {
       await adminDeleteOrder(id);
       addToast('Order deleted successfully!', 'success');
+      window.dispatchEvent(new CustomEvent('order-status-updated'));
       navigate('/admin/orders');
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to delete.', 'error');
@@ -191,7 +192,7 @@ function AdminOrderDetail() {
                     {entry.name || (entry.type === 'price_discount' ? 'Discount' : entry.type)}
                   </span>
                   <span className="discount-value">
-                    {isBogoFree ? 'FREE' : `-৳${parseFloat(entry.amount || 0).toLocaleString()}`}
+                    {isBogoFree ? ' FREE' : ` -৳${parseFloat(entry.amount || 0).toLocaleString()}`}
                   </span>
                 </div>
               );

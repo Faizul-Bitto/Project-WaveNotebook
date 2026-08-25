@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FaBan, FaEye, FaFileInvoice, FaPlus, FaSearch, FaTrash } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   adminCreateInvoiceTicket,
   adminDeleteOrder,
@@ -36,6 +36,7 @@ const STATUS_DROPDOWN_LABELS = {
 
 function AdminOrders () {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
   const [ orders, setOrders ] = useState( [] );
   const [ loading, setLoading ] = useState( true );
@@ -61,27 +62,16 @@ function AdminOrders () {
   };
 
   useEffect( () => {
-    let mounted = true;
-    const fetchData = async () => {
-      try {
-        setLoading( true );
-        const data = await adminGetOrders( {} );
-        if ( mounted ) setOrders( data.orders || [] );
-      } catch ( err ) {
-        if ( mounted ) addToast( err.response?.data?.detail || 'Failed to load orders.', 'error' );
-      } finally {
-        if ( mounted ) setLoading( false );
-      }
-    };
-    fetchData();
-    return () => {
-      mounted = false;
-    };
+    const params = new URLSearchParams( location.search );
+    const initialStatus = params.get( 'status' ) || '';
+    setStatusFilter( initialStatus );
+    loadOrders( initialStatus );
   }, [] );
 
   const handleStatusChange = ( e ) => {
     const value = e.target.value;
     setStatusFilter( value );
+    navigate( { pathname: '/admin/orders', search: value ? `?status=${ value }` : '' }, { replace: true } );
     loadOrders( value );
   };
 
@@ -90,6 +80,7 @@ function AdminOrders () {
       await adminUpdateOrderStatus( orderId, newStatus );
       await loadOrders( statusFilter );
       addToast( 'Order status updated!', 'success' );
+      window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to update order status.', 'error' );
     }
@@ -106,6 +97,7 @@ function AdminOrders () {
       await adminUpdateOrderStatus( id, 'cancelled' );
       await loadOrders( statusFilter );
       addToast( 'Order cancelled successfully!', 'success' );
+      window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to cancel order.', 'error' );
     }
@@ -122,6 +114,7 @@ function AdminOrders () {
       await adminDeleteOrder( id );
       await loadOrders( statusFilter );
       addToast( 'Order deleted successfully!', 'success' );
+      window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
       addToast( err.response?.data?.detail || 'Failed to delete order.', 'error' );
     }

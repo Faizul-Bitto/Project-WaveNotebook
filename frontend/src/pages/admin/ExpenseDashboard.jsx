@@ -95,6 +95,7 @@ function ExpenseDashboard() {
       addToast('Expense deleted successfully!', 'success');
       loadExpenses();
       loadSummary();
+      window.dispatchEvent(new CustomEvent('expense-updated'));
     } catch (err) {
       addToast(err.response?.data?.detail || 'Failed to delete expense.', 'error');
     }
@@ -105,6 +106,7 @@ function ExpenseDashboard() {
     setEditingExpense(null);
     loadExpenses();
     loadSummary();
+    window.dispatchEvent(new CustomEvent('expense-updated'));
   };
 
   const availableYears = [];

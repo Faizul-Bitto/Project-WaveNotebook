@@ -1,6 +1,7 @@
 import json
 from fastapi import APIRouter, HTTPException, Path, Query, Response
 from sqlalchemy import or_
+from sqlalchemy import func
 from starlette import status
 
 from app.core.logger import logger
@@ -143,6 +144,52 @@ async def get_all_orders(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve orders.",
+        )
+
+
+@router.get("/status-counts", status_code=status.HTTP_200_OK)
+async def get_order_status_counts(
+    db: db_dependency,
+    admin: admin_dependency,
+):
+    """
+    Get order counts grouped by all statuses plus total.
+    GET /admin/orders/status-counts
+
+    Used by the admin dashboard for real-time order status cards.
+    """
+    try:
+        total = db.query(func.count(Order.id)).scalar() or 0
+
+        status_counts = {}
+        for status_value in [
+            'pending', 'called', 'confirmed', 'processing',
+            'shipped', 'delivered', 'cancelled', 'returned',
+        ]:
+            status_counts[status_value] = (
+                db.query(func.count(Order.id)).filter(Order.status == status_value).scalar() or 0
+            )
+
+        logger.info(
+            f"📊 Order status counts | "
+            f"Total={total} | "
+            f"Admin={admin.phone_number}"
+        )
+
+        return {
+            "message": "Order status counts retrieved successfully.",
+            "total": total,
+            **status_counts,
+        }
+    except Exception as e:
+        logger.error(
+            f"❌ Error retrieving order status counts | "
+            f"Error={str(e)} | "
+            f"Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve order status counts.",
         )
 
 

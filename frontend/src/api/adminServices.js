@@ -190,6 +190,11 @@ export const adminSearchOrders = async (type, value) => {
   return data;
 };
 
+export const adminGetOrderStatusCounts = async () => {
+  const { data } = await api.get('/admin/orders/status-counts');
+  return data;
+};
+
 // ==========================================
 // Admin - Users
 // ==========================================
