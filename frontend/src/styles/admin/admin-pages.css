@@ -206,7 +206,7 @@
 
 .admin-table thead th {
   background: linear-gradient(to right, var(--gray-50), var(--gray-100));
-  padding: 14px 16px;
+  padding: 12px 16px;
   text-align: left;
   font-weight: 600;
   color: var(--gray-700);
@@ -220,7 +220,6 @@
 .admin-table tbody td {
   padding: 12px 16px;
   color: var(--gray-700);
-  vertical-align: middle;
   border-bottom: 1px solid var(--gray-100);
 }
 
@@ -230,6 +229,20 @@
 
 .admin-table tbody tr:hover td {
   background-color: var(--gray-50);
+}
+
+/* All header and body cells share the same height and are vertically centered,
+   so column titles always line up with the row content across every admin table */
+.admin-table th,
+.admin-table td {
+  vertical-align: middle;
+  height: 60px;
+}
+
+/* Centers the Actions column text */
+.admin-table th:last-child,
+.admin-table td:last-child {
+  text-align: center;
 }
 
 .table-empty {
@@ -541,7 +554,11 @@
 }
 
 .stat-blue .stat-icon {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-dark) 100%
+  );
 }
 
 .stat-green .stat-icon {
