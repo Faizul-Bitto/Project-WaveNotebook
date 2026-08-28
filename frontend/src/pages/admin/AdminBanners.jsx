@@ -7,6 +7,7 @@ import {
   adminDeleteBanner,
   adminReorderBanners,
 } from '../../api/adminServices';
+import { withVersion } from '../../utils/media';
 import { useToast } from '../../context/ToastContext';
 import { validateForm, clearFieldError, firstError } from '../../utils/validation';
 import Modal from '../../components/Modal';
@@ -292,7 +293,7 @@ function AdminBanners() {
           {editingBanner && (
             <div className="form-group">
               <img
-                src={editingBanner.image_url}
+                src={withVersion(editingBanner.image_url, editingBanner.updated_at)}
                 alt="Current banner"
                 className="banner-preview"
               />
@@ -355,7 +356,7 @@ function AdminBanners() {
                     </td>
                     <td>{index + 1}</td>
                     <td>
-                      <img src={banner.image_url} alt={banner.title} className="table-image" />
+                      <img src={withVersion(banner.image_url, banner.updated_at)} alt={banner.title} className="table-image" />
                     </td>
                     <td>{banner.title}</td>
                     <td>{banner.subtitle || '-'}</td>

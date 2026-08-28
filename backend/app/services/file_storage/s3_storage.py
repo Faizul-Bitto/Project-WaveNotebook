@@ -1,5 +1,7 @@
 import boto3
 import os
+import uuid
+from datetime import datetime
 from typing import Optional
 from app.core.config import settings
 from app.core.logger import logger
@@ -36,8 +38,14 @@ class S3Storage(FileStorageService):
         Upload file to S3.
         """
         try:
-            # Generate S3 key
-            s3_key = f"{folder}/product_{product_id}/{file_name}"
+            # Unique key per upload so the URL always changes — prevents
+            # browsers/CDNs from serving a cached (old) image after replace.
+            base_name, ext = os.path.splitext(file_name)
+            unique_name = (
+                f"{base_name}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+                f"_{uuid.uuid4().hex[:8]}{ext}"
+            )
+            s3_key = f"{folder}/product_{product_id}/{unique_name}"
 
             # Upload to S3
             self.client.put_object(

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaHeadset, FaMoneyBillWave, FaShieldAlt, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { getBanners, getCategories, getProducts } from '../api/services';
+import { withVersion } from '../utils/media';
 import ProductCard from '../components/ProductCard';
 import { useToast } from '../context/ToastContext';
 
@@ -34,6 +35,15 @@ function Home () {
     loadData();
   }, [] );
 
+  // Back/forward cache restore shows the old render — re-fetch fresh data.
+  useEffect( () => {
+    const onPageShow = ( event ) => {
+      if ( event.persisted ) loadData();
+    };
+    window.addEventListener( 'pageshow', onPageShow );
+    return () => window.removeEventListener( 'pageshow', onPageShow );
+  }, [] );
+
   useEffect( () => {
     if ( banners.length <= 1 ) return;
     const interval = setInterval( () => {
@@ -58,7 +68,7 @@ function Home () {
               { banners.map( ( banner, index ) => (
                 <div key={ banner.id } className={ `banner-slide ${ index === activeBanner ? 'active' : '' }` }>
                   <a href={ banner.link_url || '#' }>
-                    <img src={ banner.image_url } alt={ banner.title } />
+                    <img src={ withVersion( banner.image_url, banner.updated_at ) } alt={ banner.title } />
                   </a>
                 </div>
               ) ) }

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from starlette import status
 
 from app.core.logger import logger
@@ -12,7 +12,7 @@ router = APIRouter(
 
 
 @router.get("", status_code=status.HTTP_200_OK)
-async def get_banners(db: db_dependency):
+async def get_banners(db: db_dependency, response: Response):
     """
     Get all active banners for frontend.
     GET /banners
@@ -25,6 +25,10 @@ async def get_banners(db: db_dependency):
             .all()
         )
 
+        # Never let browsers cache this JSON — stale banner lists are what
+        # cause the "old banner flashes first on refresh" behaviour.
+        response.headers["Cache-Control"] = "no-store"
+
         return {
             "message": "Banners retrieved successfully.",
             "banners": [
@@ -35,6 +39,9 @@ async def get_banners(db: db_dependency):
                     "image_url": banner.image_url,
                     "link_url": banner.link_url,
                     "sort_order": banner.sort_order,
+                    # Used by the frontend as a cache-buster on the image URL
+                    # so a replaced banner image is fetched fresh, instantly.
+                    "updated_at": banner.updated_at.isoformat() if banner.updated_at else None,
                 }
                 for banner in banners
             ],

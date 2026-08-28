@@ -1,5 +1,7 @@
 import cloudinary.uploader
 import os
+import uuid
+from datetime import datetime
 from typing import Optional
 from app.core.config import settings
 from app.core.logger import logger
@@ -25,13 +27,21 @@ class CloudinaryStorage(FileStorageService):
         Upload file to Cloudinary.
         """
         try:
-            public_id = file_name.split(".")[0]
+            # Build a unique public_id so every upload gets a fresh URL.
+            # Re-using the original filename would overwrite the same asset and
+            # browsers/CDNs would keep serving the cached (old) image.
+            base_name = os.path.splitext(file_name)[0]
+            unique_id = (
+                f"{base_name}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+                f"_{uuid.uuid4().hex[:8]}"
+            )
 
             upload_result = cloudinary.uploader.upload(
                 file_content,
                 folder=f"{folder}/product_{product_id}",
-                public_id=public_id,
+                public_id=unique_id,
                 overwrite=True,
+                invalidate=True,
                 resource_type="auto",
             )
 

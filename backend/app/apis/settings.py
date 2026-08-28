@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from starlette import status
 
 from app.dependencies.database import db_dependency
@@ -11,11 +11,15 @@ router = APIRouter(
 
 
 @router.get("", status_code=status.HTTP_200_OK)
-async def get_site_settings(db: db_dependency):
+async def get_site_settings(db: db_dependency, response: Response):
     """
     Get public site settings (logo, site name, footer content, social links, policies).
     GET /settings
     """
+    # Prevent browsers from caching this JSON so logo/favicon changes are
+    # picked up on the very next load instead of after a second refresh.
+    response.headers["Cache-Control"] = "no-store"
+
     settings = db.query(SiteSettings).first()
 
     if not settings:
@@ -51,6 +55,8 @@ async def get_site_settings(db: db_dependency):
         "settings": {
             "logo_url": settings.logo_url,
             "favicon_url": settings.favicon_url,
+            # Cache-buster for logo/favicon images on the frontend
+            "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
             "site_name": settings.site_name or "WaveNotebook",
             "page_title": settings.page_title,
             "site_description": settings.site_description,

@@ -4,11 +4,12 @@ import { FaShoppingCart, FaSearch, FaPhoneAlt, FaEnvelope, FaUserShield, FaTimes
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
 import { searchProducts } from '../api/services';
+import { withVersion } from '../utils/media';
 
 function Header() {
   const { settings } = useSiteSettings();
   const { cartCount } = useCart();
-  const logoUrl = settings.logo_url;
+  const logoUrl = withVersion( settings.logo_url, settings.updated_at );
   const siteName = settings.site_name || 'WaveNotebook';
   const navigate = useNavigate();
   const location = useLocation();

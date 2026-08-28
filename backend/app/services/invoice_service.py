@@ -384,9 +384,30 @@ def build_invoice_pdf(order, items, settings) -> bytes:
     grand_total = float(order.total_price or 0)
     total_disc = order_discount
     snap = json.loads(order.discount_snapshot or "{}")
-    shown_subtotal = float(
+    subtotal_before = float(
         snap.get("subtotal_before_discount", grand_total + total_disc)
     )
+    # Match the cart/checkout "Order Summary": the value of 100%-free BOGO
+    # bonus units is NOT part of the payable subtotal. Those units are shown
+    # as "(+N)" on the item quantity and "FREE" in the breakdown instead
+    # (discount_service.compute_display_subtotal equivalent).
+    bogo_100_savings = 0.0
+    for b in snap.get("bogo_details", []) or []:
+        try:
+            if float(b.get("get_discount_percent") or 0) >= 100:
+                bogo_100_savings += (
+                    float(b.get("bonus_quantity") or 0)
+                    * float(b.get("unit_price") or 0)
+                )
+        except Exception:
+            continue
+    if not snap.get("bogo_details"):
+        # Older orders: fall back to the items' bonus quantities (bonus units
+        # on order items are always 100% free).
+        bogo_100_savings = sum(
+            float(it.bonus_quantity or 0) * float(it.unit_price or 0) for it in items
+        )
+    shown_subtotal = subtotal_before - bogo_100_savings
     free_shipping = snap.get("free_shipping", False)
 
     breakdown_entries = []

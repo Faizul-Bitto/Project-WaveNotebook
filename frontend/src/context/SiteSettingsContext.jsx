@@ -9,6 +9,7 @@ export function SiteSettingsProvider({ children }) {
   const [settings, setSettings] = useState({
     logo_url: null,
     favicon_url: null,
+    updated_at: null,
     site_name: 'WaveNotebook',
     page_title: null,
     site_description: null,
@@ -36,6 +37,7 @@ export function SiteSettingsProvider({ children }) {
       setSettings(data.settings || {
         logo_url: null,
         favicon_url: null,
+        updated_at: null,
         site_name: 'WaveNotebook',
         page_title: null,
         site_description: null,
@@ -62,6 +64,17 @@ export function SiteSettingsProvider({ children }) {
   };
 
   useEffect(() => { refresh(); }, []);
+
+  // When the browser restores this page from the back/forward cache (bfcache),
+  // it shows the OLD render instantly — which is exactly the "previous
+  // logo/banner flashes first" behaviour. Re-fetch settings so the UI updates.
+  useEffect(() => {
+    const onPageShow = (event) => {
+      if (event.persisted) refresh();
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
 
   return (
     <SiteSettingsContext.Provider value={{ settings, refresh }}>
