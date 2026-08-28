@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Path, Query, Response
 from sqlalchemy import or_
 from sqlalchemy import func, extract
@@ -86,9 +87,10 @@ async def get_all_orders(
     db: db_dependency,
     admin: admin_dependency,
     status_filter: str = Query(None, alias="status"),
-    period: str = Query("all", pattern="^(all|year|month)$"),
+    period: str = Query("all", pattern="^(all|year|month|day)$"),
     year: int = Query(None),
     month: int = Query(None),
+    date_filter: str = Query(None, alias="date"),
     skip: int = 0,
     limit: int = 100,
 ):
@@ -98,6 +100,7 @@ async def get_all_orders(
     GET /admin/orders?status=pending
     GET /admin/orders?period=year&year=2026
     GET /admin/orders?period=month&year=2026&month=8
+    GET /admin/orders?period=day&date=2026-08-28
     """
     try:
         query = db.query(Order)
@@ -111,6 +114,18 @@ async def get_all_orders(
             query = query.filter(
                 extract("year", Order.created_at) == year,
                 extract("month", Order.created_at) == month,
+            )
+        elif period == "day" and date_filter:
+            try:
+                day = datetime.strptime(date_filter, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid date format. Use YYYY-MM-DD.",
+                )
+            query = query.filter(
+                Order.created_at >= day,
+                Order.created_at < day + timedelta(days=1),
             )
 
         total = query.order_by(None).count()
@@ -148,6 +163,8 @@ async def get_all_orders(
             ],
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
             f"❌ Error retrieving orders | "

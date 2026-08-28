@@ -36,6 +36,7 @@ function ExpenseDashboard() {
   const [summaryPeriod, setSummaryPeriod] = useState('all');
   const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
   const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1);
+  const [summaryDate, setSummaryDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
 
   const loadDropdowns = async () => {
@@ -51,7 +52,7 @@ function ExpenseDashboard() {
     }
   };
 
-  const loadExpenses = async (status = paymentStatusFilter, pageNum = page) => {
+  const loadExpenses = async (status = paymentStatusFilter, pageNum = page, period = summaryPeriod, yr = summaryYear, mo = summaryMonth, dt = summaryDate) => {
     try {
       setLoading(true);
       const params = {
@@ -59,6 +60,12 @@ function ExpenseDashboard() {
         limit: PAGE_SIZE,
       };
       if (status) params.status = status;
+      if (period !== 'all') {
+        params.period = period;
+        if (period === 'year') params.year = yr;
+        if (period === 'month') { params.year = yr; params.month = mo; }
+        if (period === 'day') params.date = dt;
+      }
       const data = await adminGetExpenses(params);
       setExpenses(data.expenses || []);
       setTotal(data.total || 0);
@@ -77,6 +84,7 @@ function ExpenseDashboard() {
         params.year = summaryYear;
         params.month = summaryMonth;
       }
+      if (summaryPeriod === 'day') params.date = summaryDate;
       const data = await adminGetExpenseSummary(params);
       setSummary(data);
     } catch (err) {
@@ -107,7 +115,35 @@ function ExpenseDashboard() {
 
   useEffect(() => {
     loadSummary();
-  }, [summaryPeriod, summaryYear, summaryMonth]);
+  }, [summaryPeriod, summaryYear, summaryMonth, summaryDate]);
+
+  const handleSummaryPeriodChange = (e) => {
+    const value = e.target.value;
+    setSummaryPeriod(value);
+    setPage(0);
+    loadExpenses(paymentStatusFilter, 0, value, summaryYear, summaryMonth, summaryDate);
+  };
+
+  const handleSummaryYearChange = (e) => {
+    const value = parseInt(e.target.value);
+    setSummaryYear(value);
+    setPage(0);
+    loadExpenses(paymentStatusFilter, 0, summaryPeriod, value, summaryMonth, summaryDate);
+  };
+
+  const handleSummaryMonthChange = (e) => {
+    const value = parseInt(e.target.value);
+    setSummaryMonth(value);
+    setPage(0);
+    loadExpenses(paymentStatusFilter, 0, summaryPeriod, summaryYear, value, summaryDate);
+  };
+
+  const handleSummaryDateChange = (e) => {
+    const value = e.target.value;
+    setSummaryDate(value);
+    setPage(0);
+    loadExpenses(paymentStatusFilter, 0, summaryPeriod, summaryYear, summaryMonth, value);
+  };
 
   const handleEdit = (expense) => {
     setEditingExpense(expense);
@@ -184,28 +220,30 @@ function ExpenseDashboard() {
 
       {/* Summary Filters */}
       <div className="admin-filters">
+        <div className="admin-filters-group">
         <select value={paymentStatusFilter} onChange={handlePaymentStatusChange}>
           <option value="">All Payments</option>
           <option value="paid">Paid</option>
           <option value="due">Due</option>
         </select>
-        <select value={summaryPeriod} onChange={(e) => setSummaryPeriod(e.target.value)}>
+        <select value={summaryPeriod} onChange={handleSummaryPeriodChange}>
           <option value="all">All Time</option>
           <option value="year">Year</option>
           <option value="month">Month</option>
           <option value="week">Week</option>
+          <option value="day">Date</option>
         </select>
         {summaryPeriod === 'year' && (
-          <select value={summaryYear} onChange={(e) => setSummaryYear(parseInt(e.target.value))}>
+          <select value={summaryYear} onChange={handleSummaryYearChange}>
             {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         )}
         {summaryPeriod === 'month' && (
           <>
-            <select value={summaryYear} onChange={(e) => setSummaryYear(parseInt(e.target.value))}>
+            <select value={summaryYear} onChange={handleSummaryYearChange}>
               {availableYears.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
-            <select value={summaryMonth} onChange={(e) => setSummaryMonth(parseInt(e.target.value))}>
+            <select value={summaryMonth} onChange={handleSummaryMonthChange}>
               {months.map((m) => (
                 <option key={m} value={m}>
                   {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
@@ -214,6 +252,15 @@ function ExpenseDashboard() {
             </select>
           </>
         )}
+        {summaryPeriod === 'day' && (
+          <input
+            type="date"
+            value={summaryDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={handleSummaryDateChange}
+          />
+        )}
+        </div>
       </div>
 
       {/* Expenses Table */}

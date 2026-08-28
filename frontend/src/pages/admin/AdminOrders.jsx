@@ -62,13 +62,14 @@ function AdminOrders () {
   const [ periodFilter, setPeriodFilter ] = useState( 'all' );
   const [ filterYear, setFilterYear ] = useState( new Date().getFullYear() );
   const [ filterMonth, setFilterMonth ] = useState( new Date().getMonth() + 1 );
+  const [ filterDate, setFilterDate ] = useState( new Date().toISOString().slice( 0, 10 ) );
   const [ searchType, setSearchType ] = useState( 'all' );
   const [ searchValue, setSearchValue ] = useState( '' );
   const [ activeSearch, setActiveSearch ] = useState( { type: 'phone', value: '' } );
   const [ deleteModal, setDeleteModal ] = useState( { show: false, id: null, number: '' } );
   const [ cancelModal, setCancelModal ] = useState( { show: false, id: null, number: '' } );
 
-  const loadOrders = async ( status = statusFilter, pageNum = page, searchObj = activeSearch, period = periodFilter, yr = filterYear, mo = filterMonth ) => {
+  const loadOrders = async ( status = statusFilter, pageNum = page, searchObj = activeSearch, period = periodFilter, yr = filterYear, mo = filterMonth, dt = filterDate ) => {
     try {
       setLoading( true );
       if ( searchObj.value.trim() ) {
@@ -86,8 +87,9 @@ function AdminOrders () {
         if ( status ) params.status = status;
         if ( period !== 'all' ) {
           params.period = period;
-          params.year = yr;
-          if ( period === 'month' ) params.month = mo;
+          if ( period === 'year' ) params.year = yr;
+          if ( period === 'month' ) { params.year = yr; params.month = mo; }
+          if ( period === 'day' ) params.date = dt;
         }
         const data = await adminGetOrders( params );
         setOrders( data.orders || [] );
@@ -134,6 +136,13 @@ function AdminOrders () {
     setFilterMonth( value );
     setPage( 0 );
     loadOrders( statusFilter, 0, activeSearch, periodFilter, filterYear, value );
+  };
+
+  const handleFilterDateChange = ( e ) => {
+    const value = e.target.value;
+    setFilterDate( value );
+    setPage( 0 );
+    loadOrders( statusFilter, 0, activeSearch, periodFilter, filterYear, filterMonth, value );
   };
 
   const handlePageChange = ( newPage ) => {
@@ -252,6 +261,7 @@ function AdminOrders () {
           <option value="all">All Time</option>
           <option value="year">Year</option>
           <option value="month">Month</option>
+          <option value="day">Date</option>
         </select>
         { periodFilter === 'year' && (
           <select value={ filterYear } onChange={ handleFilterYearChange }>
@@ -271,6 +281,14 @@ function AdminOrders () {
               ) ) }
             </select>
           </>
+        ) }
+        { periodFilter === 'day' && (
+          <input
+            type="date"
+            value={ filterDate }
+            max={ new Date().toISOString().slice( 0, 10 ) }
+            onChange={ handleFilterDateChange }
+          />
         ) }
         </div>
 

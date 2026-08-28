@@ -440,9 +440,10 @@ async def delete_payment_method(db: db_dependency, admin: admin_dependency, meth
 async def get_expense_summary(
     db: db_dependency,
     admin: admin_dependency,
-    period: str = Query("all", pattern="^(all|year|month|week)$"),
+    period: str = Query("all", pattern="^(all|year|month|week|day)$"),
     year: int = Query(None),
     month: int = Query(None),
+    date_filter: str = Query(None, alias="date"),
 ):
     try:
         query = db.query(Expense)
@@ -456,6 +457,14 @@ async def get_expense_summary(
             today = datetime.now().date()
             week_start = today - timedelta(days=today.weekday())
             query = query.filter(Expense.date >= week_start)
+        elif period == "day" and date_filter:
+            parsed = _parse_date(date_filter)
+            if parsed is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid date format. Use YYYY-MM-DD.",
+                )
+            query = query.filter(Expense.date == parsed)
 
         # Total expense (all statuses)
         total_expense = query.with_entities(func.sum(Expense.amount)).scalar() or 0.0
@@ -476,6 +485,8 @@ async def get_expense_summary(
             "total_due": round(float(total_due), 2),
             "net_expense": round(float(total_paid), 2),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"❌ Error retrieving expense summary | Error={str(e)} | Admin={admin.phone_number}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve expense summary.")
@@ -544,6 +555,10 @@ async def get_all_expenses(
     admin: admin_dependency,
     status_filter: str = Query(None, alias="status"),
     type_filter: int = Query(None, alias="type_id"),
+    period: str = Query("all", pattern="^(all|year|month|day)$"),
+    year: int = Query(None),
+    month: int = Query(None),
+    date_filter: str = Query(None, alias="date"),
     skip: int = 0,
     limit: int = 100,
 ):
@@ -555,6 +570,22 @@ async def get_all_expenses(
         if type_filter:
             query = query.filter(Expense.expense_type_id == type_filter)
 
+        if period == "year" and year:
+            query = query.filter(extract("year", Expense.date) == year)
+        elif period == "month" and year and month:
+            query = query.filter(
+                extract("year", Expense.date) == year,
+                extract("month", Expense.date) == month,
+            )
+        elif period == "day" and date_filter:
+            parsed = _parse_date(date_filter)
+            if parsed is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid date format. Use YYYY-MM-DD.",
+                )
+            query = query.filter(Expense.date == parsed)
+
         total = query.order_by(None).count()
         expenses = query.order_by(Expense.date.desc()).offset(skip).limit(limit).all()
 
@@ -565,6 +596,8 @@ async def get_all_expenses(
             "limit": limit,
             "expenses": [_serialize_expense(db, e) for e in expenses],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"❌ Error retrieving expenses | Error={str(e)} | Admin={admin.phone_number}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve expenses.")
