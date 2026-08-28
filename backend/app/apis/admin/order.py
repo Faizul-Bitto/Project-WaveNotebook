@@ -1,7 +1,7 @@
 import json
 from fastapi import APIRouter, HTTPException, Path, Query, Response
 from sqlalchemy import or_
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from starlette import status
 
 from app.core.logger import logger
@@ -86,6 +86,9 @@ async def get_all_orders(
     db: db_dependency,
     admin: admin_dependency,
     status_filter: str = Query(None, alias="status"),
+    period: str = Query("all", pattern="^(all|year|month)$"),
+    year: int = Query(None),
+    month: int = Query(None),
     skip: int = 0,
     limit: int = 100,
 ):
@@ -93,12 +96,22 @@ async def get_all_orders(
     Get all orders (optional status filter).
     GET /admin/orders
     GET /admin/orders?status=pending
+    GET /admin/orders?period=year&year=2026
+    GET /admin/orders?period=month&year=2026&month=8
     """
     try:
         query = db.query(Order)
 
         if status_filter:
             query = query.filter(Order.status == status_filter)
+
+        if period == "year" and year:
+            query = query.filter(extract("year", Order.created_at) == year)
+        elif period == "month" and year and month:
+            query = query.filter(
+                extract("year", Order.created_at) == year,
+                extract("month", Order.created_at) == month,
+            )
 
         total = query.order_by(None).count()
         orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
@@ -190,6 +203,105 @@ async def get_order_status_counts(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve order status counts.",
+        )
+
+
+@router.get("/search", status_code=status.HTTP_200_OK)
+async def search_orders(
+    db: db_dependency,
+    admin: admin_dependency,
+    type: str = Query(..., description="Search type: phone, name, address, or order_number"),
+    value: str = Query(..., description="Search value"),
+    skip: int = 0,
+    limit: int = 20,
+):
+    """
+    Search orders by phone, name, address, or order number.
+    GET /admin/orders/search?type=all&value=anything  (searches all fields)
+    GET /admin/orders/search?type=phone&value=01700000000
+    GET /admin/orders/search?type=name&value=Rahim
+    GET /admin/orders/search&type=address&value=Mirpur
+    GET /admin/orders/search&type=order_number&value=ORD-20250809-7C0D2
+    """
+    try:
+        valid_types = ["all", "phone", "name", "address", "order_number"]
+
+        if type not in valid_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid search type. Must be one of: {', '.join(valid_types)}",
+            )
+
+        search_term = f"%{value}%"
+
+        if type == "all":
+            query = db.query(Order).filter(
+                or_(
+                    Order.order_number.contains(value),
+                    Order.phone_number.contains(value),
+                    Order.full_name.contains(value),
+                    Order.address.contains(value),
+                    Order.district.contains(value),
+                )
+            )
+        elif type == "phone":
+            query = db.query(Order).filter(Order.phone_number.contains(value))
+        elif type == "name":
+            query = db.query(Order).filter(Order.full_name.contains(value))
+        elif type == "address":
+            query = db.query(Order).filter(
+                or_(
+                    Order.address.contains(value),
+                    Order.district.contains(value),
+                )
+            )
+        elif type == "order_number":
+            query = db.query(Order).filter(Order.order_number.contains(value))
+
+        total = query.order_by(None).count()
+        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+
+        logger.info(
+            f"🔍 Orders Searched | Type={type} | Value={value} | Count={len(orders)} | Total={total} | Admin={admin.phone_number}"
+        )
+
+        return {
+            "message": "Orders retrieved successfully.",
+            "search_type": type,
+            "search_value": value,
+            "total": total,
+            "skip": skip,
+            "limit": limit,
+            "orders": [
+                {
+                    "id": order.id,
+                    "order_number": order.order_number,
+                    "user_id": order.user_id,
+                    "full_name": order.full_name,
+                    "phone_number": order.phone_number,
+                    "email": order.email,
+                    "district": order.district,
+                    "address": order.address,
+                    "status": order.status,
+                    "total_price": str(order.total_price),
+                    "total_discount": str(order.total_discount),
+                    "subtotal_before_discount": str(round(parse_snapshot(order.discount_snapshot).get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
+                    "created_at": order.created_at.isoformat(),
+                    "updated_at": order.updated_at.isoformat(),
+                }
+                for order in orders
+            ],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"❌ Error searching orders | Error={str(e)} | Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to search orders.",
         )
 
 
@@ -980,94 +1092,6 @@ async def create_order_for_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create order.",
-        )
-
-
-@router.get("/search", status_code=status.HTTP_200_OK)
-async def search_orders(
-    db: db_dependency,
-    admin: admin_dependency,
-    type: str = Query(..., description="Search type: phone, name, address, or order_number"),
-    value: str = Query(..., description="Search value"),
-    skip: int = 0,
-    limit: int = 20,
-):
-    """
-    Search orders by phone, name, address, or order number.
-    GET /admin/orders/search?type=phone&value=01700000000
-    GET /admin/orders/search?type=name&value=Rahim
-    GET /admin/orders/search&type=address&value=Mirpur
-    GET /admin/orders/search&type=order_number&value=ORD-20250809-7C0D2
-    """
-    try:
-        valid_types = ["phone", "name", "address", "order_number"]
-
-        if type not in valid_types:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid search type. Must be one of: {', '.join(valid_types)}",
-            )
-
-        search_term = f"%{value}%"
-
-        if type == "phone":
-            query = db.query(Order).filter(Order.phone_number.contains(value))
-        elif type == "name":
-            query = db.query(Order).filter(Order.full_name.contains(value))
-        elif type == "address":
-            query = db.query(Order).filter(
-                or_(
-                    Order.address.contains(value),
-                    Order.district.contains(value),
-                )
-            )
-        elif type == "order_number":
-            query = db.query(Order).filter(Order.order_number.contains(value))
-
-        total = query.order_by(None).count()
-        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
-
-        logger.info(
-            f"🔍 Orders Searched | Type={type} | Value={value} | Count={len(orders)} | Total={total} | Admin={admin.phone_number}"
-        )
-
-        return {
-            "message": "Orders retrieved successfully.",
-            "search_type": type,
-            "search_value": value,
-            "total": total,
-            "skip": skip,
-            "limit": limit,
-            "orders": [
-                {
-                    "id": order.id,
-                    "order_number": order.order_number,
-                    "user_id": order.user_id,
-                    "full_name": order.full_name,
-                    "phone_number": order.phone_number,
-                    "email": order.email,
-                    "district": order.district,
-                    "address": order.address,
-                    "status": order.status,
-                    "total_price": str(order.total_price),
-                    "total_discount": str(order.total_discount),
-                    "subtotal_before_discount": str(round(parse_snapshot(order.discount_snapshot).get("subtotal_before_discount", float(order.total_price) + float(order.total_discount)), 2)),
-                    "created_at": order.created_at.isoformat(),
-                    "updated_at": order.updated_at.isoformat(),
-                }
-                for order in orders
-            ],
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            f"❌ Error searching orders | Error={str(e)} | Admin={admin.phone_number}"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to search orders.",
         )
 
 

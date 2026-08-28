@@ -208,7 +208,7 @@ function ExpenseDashboard() {
             <select value={summaryMonth} onChange={(e) => setSummaryMonth(parseInt(e.target.value))}>
               {months.map((m) => (
                 <option key={m} value={m}>
-                  {m.toString().padStart(2, '0')} - {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                  {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
                 </option>
               ))}
             </select>

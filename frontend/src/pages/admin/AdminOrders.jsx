@@ -37,6 +37,18 @@ const STATUS_DROPDOWN_LABELS = {
   cancelled: 'Cancelled',
 };
 
+function getErrorMessage ( err, fallback ) {
+  const detail = err?.response?.data?.detail;
+  if ( !detail ) return fallback;
+  if ( typeof detail === 'string' ) return detail;
+  if ( Array.isArray( detail ) ) {
+    return detail
+      .map( ( d ) => `${ ( d.loc || [] ).slice( 1 ).join( '.' ) }: ${ d.msg }` )
+      .join( ', ' );
+  }
+  return JSON.stringify( detail );
+}
+
 function AdminOrders () {
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,13 +59,16 @@ function AdminOrders () {
   const [ loading, setLoading ] = useState( true );
   const [ invoiceLoadingId, setInvoiceLoadingId ] = useState( null );
   const [ statusFilter, setStatusFilter ] = useState( '' );
-  const [ searchType, setSearchType ] = useState( 'phone' );
+  const [ periodFilter, setPeriodFilter ] = useState( 'all' );
+  const [ filterYear, setFilterYear ] = useState( new Date().getFullYear() );
+  const [ filterMonth, setFilterMonth ] = useState( new Date().getMonth() + 1 );
+  const [ searchType, setSearchType ] = useState( 'all' );
   const [ searchValue, setSearchValue ] = useState( '' );
   const [ activeSearch, setActiveSearch ] = useState( { type: 'phone', value: '' } );
   const [ deleteModal, setDeleteModal ] = useState( { show: false, id: null, number: '' } );
   const [ cancelModal, setCancelModal ] = useState( { show: false, id: null, number: '' } );
 
-  const loadOrders = async ( status = statusFilter, pageNum = page, searchObj = activeSearch ) => {
+  const loadOrders = async ( status = statusFilter, pageNum = page, searchObj = activeSearch, period = periodFilter, yr = filterYear, mo = filterMonth ) => {
     try {
       setLoading( true );
       if ( searchObj.value.trim() ) {
@@ -69,12 +84,17 @@ function AdminOrders () {
           limit: PAGE_SIZE,
         };
         if ( status ) params.status = status;
+        if ( period !== 'all' ) {
+          params.period = period;
+          params.year = yr;
+          if ( period === 'month' ) params.month = mo;
+        }
         const data = await adminGetOrders( params );
         setOrders( data.orders || [] );
         setTotal( data.total || 0 );
       }
     } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to load orders.', 'error' );
+      addToast( getErrorMessage( err, 'Failed to load orders.' ), 'error' );
     } finally {
       setLoading( false );
     }
@@ -84,7 +104,7 @@ function AdminOrders () {
     const params = new URLSearchParams( location.search );
     const initialStatus = params.get( 'status' ) || '';
     setStatusFilter( initialStatus );
-    loadOrders( initialStatus, 0, { type: 'phone', value: '' } );
+    loadOrders( initialStatus, 0, { type: 'all', value: '' } );
   }, [] );
 
   const handleStatusChange = ( e ) => {
@@ -93,6 +113,27 @@ function AdminOrders () {
     setPage( 0 );
     navigate( { pathname: '/admin/orders', search: value ? `?status=${ value }` : '' }, { replace: true } );
     loadOrders( value, 0, activeSearch );
+  };
+
+  const handlePeriodChange = ( e ) => {
+    const value = e.target.value;
+    setPeriodFilter( value );
+    setPage( 0 );
+    loadOrders( statusFilter, 0, activeSearch, value, filterYear, filterMonth );
+  };
+
+  const handleFilterYearChange = ( e ) => {
+    const value = parseInt( e.target.value );
+    setFilterYear( value );
+    setPage( 0 );
+    loadOrders( statusFilter, 0, activeSearch, periodFilter, value, filterMonth );
+  };
+
+  const handleFilterMonthChange = ( e ) => {
+    const value = parseInt( e.target.value );
+    setFilterMonth( value );
+    setPage( 0 );
+    loadOrders( statusFilter, 0, activeSearch, periodFilter, filterYear, value );
   };
 
   const handlePageChange = ( newPage ) => {
@@ -107,7 +148,7 @@ function AdminOrders () {
       addToast( 'Order status updated!', 'success' );
       window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to update order status.', 'error' );
+      addToast( getErrorMessage( err, 'Failed to update order status.' ), 'error' );
     }
   };
 
@@ -124,7 +165,7 @@ function AdminOrders () {
       addToast( 'Order cancelled successfully!', 'success' );
       window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to cancel order.', 'error' );
+      addToast( getErrorMessage( err, 'Failed to cancel order.' ), 'error' );
     }
   };
 
@@ -142,7 +183,7 @@ function AdminOrders () {
       addToast( 'Order deleted successfully!', 'success' );
       window.dispatchEvent( new CustomEvent( 'order-status-updated' ) );
     } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to delete order.', 'error' );
+      addToast( getErrorMessage( err, 'Failed to delete order.' ), 'error' );
     }
   };
 
@@ -159,7 +200,7 @@ function AdminOrders () {
       link.remove();
       addToast( 'Invoice generated! Download starting...', 'success' );
     } catch ( err ) {
-      addToast( err.response?.data?.detail || 'Failed to generate invoice.', 'error' );
+      addToast( getErrorMessage( err, 'Failed to generate invoice.' ), 'error' );
     } finally {
       setInvoiceLoadingId( null );
     }
@@ -181,6 +222,11 @@ function AdminOrders () {
     loadOrders( statusFilter, 0, searchObj );
   };
 
+  const availableYears = [];
+  const currentYear = new Date().getFullYear();
+  for ( let y = currentYear - 5; y <= currentYear; y++ ) availableYears.push( y );
+  const months = Array.from( { length: 12 }, ( _, i ) => i + 1 );
+
   return (
     <div className="admin-page">
       <div className="admin-page-header">
@@ -201,8 +247,34 @@ function AdminOrders () {
           ) ) }
         </select>
 
+        <select value={ periodFilter } onChange={ handlePeriodChange }>
+          <option value="all">All Time</option>
+          <option value="year">Year</option>
+          <option value="month">Month</option>
+        </select>
+        { periodFilter === 'year' && (
+          <select value={ filterYear } onChange={ handleFilterYearChange }>
+            { availableYears.map( ( y ) => <option key={ y } value={ y }>{ y }</option> ) }
+          </select>
+        ) }
+        { periodFilter === 'month' && (
+          <>
+            <select value={ filterYear } onChange={ handleFilterYearChange }>
+              { availableYears.map( ( y ) => <option key={ y } value={ y }>{ y }</option> ) }
+            </select>
+            <select value={ filterMonth } onChange={ handleFilterMonthChange }>
+              { months.map( ( m ) => (
+                <option key={ m } value={ m }>
+                  { new Date( 2000, m - 1, 1 ).toLocaleString( 'default', { month: 'long' } ) }
+                </option>
+              ) ) }
+            </select>
+          </>
+        ) }
+
         <form className="admin-search" onSubmit={ handleSearch }>
           <select value={ searchType } onChange={ ( e ) => setSearchType( e.target.value ) }>
+            <option value="all">All</option>
             <option value="phone">Phone</option>
             <option value="name">Name</option>
             <option value="address">Address</option>
