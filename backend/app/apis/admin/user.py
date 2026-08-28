@@ -142,7 +142,8 @@ async def export_users(
         if exclude_role:
             query = query.filter(User.role != exclude_role)
 
-        users = query.order_by(User.created_at.desc()).all()
+        # Show users in natural database order (ascending by id / oldest first)
+        users = query.order_by(User.id.asc()).all()
 
         headers = [
             "User ID",

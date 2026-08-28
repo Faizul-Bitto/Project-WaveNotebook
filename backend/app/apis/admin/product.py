@@ -409,7 +409,8 @@ async def export_products(
                 )
             )
 
-        products = query.order_by(Product.created_at.desc()).all()
+        # Show products in natural database order (ascending by id / oldest first)
+        products = query.order_by(Product.id.asc()).all()
 
         headers = [
             "Product ID",
@@ -417,9 +418,11 @@ async def export_products(
             "Name",
             "Category",
             "Description",
+            "Specifications",
             "Is Active",
             "Is Featured",
-            "Image URL",
+            "In Stock",
+            "Image URLs",
             "Created At",
             "Variant SKU",
             "Variant Attributes",
@@ -434,9 +437,9 @@ async def export_products(
             if prod.category_id:
                 cat = db.query(Category).filter(Category.id == prod.category_id).first()
                 category_name = cat.name if cat else ""
-            image = (
-                db.query(File).filter(File.product_id == prod.id).first()
-            )
+            image_files = db.query(File).filter(File.product_id == prod.id).all()
+            image_urls = "; ".join(f.file_url for f in image_files if f.file_url)
+            in_stock = compute_product_in_stock(db, prod.id)
 
             variants = (
                 db.query(ProductVariant)
@@ -453,12 +456,15 @@ async def export_products(
                         prod.name,
                         category_name,
                         prod.description,
+                        prod.specifications,
                         prod.is_active,
                         prod.is_featured,
-                        image.file_url if image else "",
+                        in_stock,
+                        image_urls,
                         prod.created_at.strftime("%Y-%m-%d %H:%M")
                         if prod.created_at
                         else "",
+                        "",
                         "",
                         "",
                         "",
@@ -489,9 +495,11 @@ async def export_products(
                         prod.name,
                         category_name,
                         prod.description,
+                        prod.specifications,
                         prod.is_active,
                         prod.is_featured,
-                        image.file_url if image else "",
+                        in_stock,
+                        image_urls,
                         prod.created_at.strftime("%Y-%m-%d %H:%M")
                         if prod.created_at
                         else "",
