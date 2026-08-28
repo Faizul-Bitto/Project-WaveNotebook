@@ -50,7 +50,7 @@
 .order-detail-page .detail-value.total-price {
   font-size: 20px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--price-color);
 }
 .order-detail-page .address-full {
   margin-top: 16px;
