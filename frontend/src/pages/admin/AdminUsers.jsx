@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { FaTrash, FaSearch } from 'react-icons/fa';
+import { FaTrash, FaSearch, FaFileExcel, FaFileCsv } from 'react-icons/fa';
 import {
   adminGetUsers,
   adminDeleteUser,
+  adminExportUsers,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
@@ -62,6 +63,18 @@ function AdminUsers() {
     loadUsers(activeSearch, newPage);
   };
 
+  const handleExport = async (suffix) => {
+    try {
+      const filename = await adminExportUsers(
+        activeSearch ? { search: activeSearch } : {},
+        suffix
+      );
+      addToast(`${filename} downloaded!`, 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to export users.', 'error');
+    }
+  };
+
   const handleDelete = async (user) => {
     setDeleteModal({ show: true, id: user.id, phone: user.phone_number });
   };
@@ -99,6 +112,14 @@ function AdminUsers() {
             </button>
           )}
         </form>
+        <div className="header-actions">
+          <button className="btn btn-secondary" onClick={() => handleExport('xlsx')} title="Export users to Excel">
+            <FaFileExcel /> Excel
+          </button>
+          <button className="btn btn-secondary" onClick={() => handleExport('csv')} title="Export users to CSV">
+            <FaFileCsv /> CSV
+          </button>
+        </div>
       </div>
 
       {loading ? (

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FaBan, FaEye, FaFileInvoice, FaPlus, FaSearch, FaTrash } from 'react-icons/fa';
+import { FaBan, FaEye, FaFileExcel, FaFileCsv, FaFileInvoice, FaPlus, FaSearch, FaTrash } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   adminCreateInvoiceTicket,
   adminDeleteOrder,
+  adminExportOrders,
   adminGetOrders,
   adminSearchOrders,
   adminUpdateOrderStatus,
@@ -196,6 +197,31 @@ function AdminOrders () {
     }
   };
 
+  const buildExportParams = () => {
+    const params = {};
+    if ( statusFilter ) params.status = statusFilter;
+    if ( periodFilter !== 'all' ) {
+      params.period = periodFilter;
+      if ( periodFilter === 'year' ) params.year = filterYear;
+      if ( periodFilter === 'month' ) { params.year = filterYear; params.month = filterMonth; }
+      if ( periodFilter === 'day' ) params.date = filterDate;
+    }
+    if ( activeSearch.value.trim() ) {
+      params.search_type = activeSearch.type || 'all';
+      params.search_value = activeSearch.value.trim();
+    }
+    return params;
+  };
+
+  const handleExport = async ( suffix ) => {
+    try {
+      const filename = await adminExportOrders( buildExportParams(), suffix );
+      addToast( `${ filename } downloaded!`, 'success' );
+    } catch ( err ) {
+      addToast( getErrorMessage( err, 'Failed to export orders.' ), 'error' );
+    }
+  };
+
   const handleDownloadInvoice = async ( orderId ) => {
     setInvoiceLoadingId( orderId );
     try {
@@ -241,6 +267,12 @@ function AdminOrders () {
       <div className="admin-page-header">
         <h2>Orders</h2>
         <div className="header-actions">
+          <button className="btn btn-secondary" onClick={ () => handleExport( 'xlsx' ) } title="Export orders to Excel">
+            <FaFileExcel /> Excel
+          </button>
+          <button className="btn btn-secondary" onClick={ () => handleExport( 'csv' ) } title="Export orders to CSV">
+            <FaFileCsv /> CSV
+          </button>
           <button className="btn btn-primary" onClick={ () => navigate( '/admin/orders/new' ) }>
             <FaPlus /> Create Order
           </button>

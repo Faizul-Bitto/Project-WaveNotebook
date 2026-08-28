@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash, FaCubes, FaSearch } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCubes, FaSearch, FaFileExcel, FaFileCsv } from 'react-icons/fa';
 import {
   adminGetProducts,
   adminDeleteProduct,
   adminToggleProductFeatured,
   adminGetCategories,
+  adminExportProducts,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
@@ -89,6 +90,20 @@ function AdminProducts() {
     navigate(`/admin/products/${id}/edit`);
   };
 
+  const handleExport = async (suffix) => {
+    try {
+      const params = {};
+      if (search) params.search = search;
+      if (categoryFilter) params.category_id = categoryFilter;
+      if (activeFilter) params.is_active = activeFilter === 'active';
+      if (featuredFilter) params.is_featured = featuredFilter === 'featured';
+      const filename = await adminExportProducts(params, suffix);
+      addToast(`${filename} downloaded!`, 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to export products.', 'error');
+    }
+  };
+
   const handleViewVariants = (id) => {
     navigate(`/admin/products/${id}/variants`);
   };
@@ -151,9 +166,17 @@ function AdminProducts() {
     <div className="admin-page">
       <div className="admin-page-header">
         <h2>Products</h2>
-        <button className="btn btn-primary" onClick={handleCreate}>
-          <FaPlus /> Add Product
-        </button>
+        <div className="header-actions">
+          <button className="btn btn-secondary" onClick={() => handleExport('xlsx')} title="Export products to Excel">
+            <FaFileExcel /> Excel
+          </button>
+          <button className="btn btn-secondary" onClick={() => handleExport('csv')} title="Export products to CSV">
+            <FaFileCsv /> CSV
+          </button>
+          <button className="btn btn-primary" onClick={handleCreate}>
+            <FaPlus /> Add Product
+          </button>
+        </div>
       </div>
 
       {/* Search & Filters */}

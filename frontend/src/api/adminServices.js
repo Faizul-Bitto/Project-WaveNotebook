@@ -195,6 +195,39 @@ export const adminGetOrderStatusCounts = async () => {
   return data;
 };
 
+// ------------------------------------------
+// Admin - Exports (Excel / CSV downloads)
+// ------------------------------------------
+// Downloads a file blob from an export endpoint and triggers the browser
+// download. Respects the same filters the pages pass as query params.
+async function downloadExport (url, params, fallbackName) {
+  const { data, headers } = await api.get(url, { params, responseType: 'blob' });
+  const cd = headers['content-disposition'] || '';
+  const match = cd.match(/filename="?([^";]+)"?/);
+  const filename = match ? match[1] : fallbackName;
+  const blobUrl = window.URL.createObjectURL(data);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(blobUrl);
+  return filename;
+}
+
+export const adminExportOrders = async (params = {}, suffix = 'xlsx') =>
+  downloadExport('/admin/orders/export', { format: suffix, ...params }, `orders.${suffix}`);
+
+export const adminExportUsers = async (params = {}, suffix = 'xlsx') =>
+  downloadExport('/admin/users/export', { format: suffix, ...params }, `users.${suffix}`);
+
+export const adminExportProducts = async (params = {}, suffix = 'xlsx') =>
+  downloadExport('/admin/products/export', { format: suffix, ...params }, `products.${suffix}`);
+
+export const adminExportExpenses = async (params = {}, suffix = 'xlsx') =>
+  downloadExport('/admin/expenses/export', { format: suffix, ...params }, `expenses.${suffix}`);
+
 // ==========================================
 // Admin - Users
 // ==========================================

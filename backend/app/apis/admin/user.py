@@ -7,6 +7,7 @@ from app.dependencies.admin import admin_dependency
 from app.dependencies.database import db_dependency
 from app.models.user import User
 from app.models.order import Order
+from app.services.export_service import build_csv, build_xlsx, export_response
 
 router = APIRouter(
     prefix="/admin/users",
@@ -98,6 +99,105 @@ async def get_all_users(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve users.",
+        )
+
+
+@router.get("/export", status_code=status.HTTP_200_OK)
+async def export_users(
+    db: db_dependency,
+    admin: admin_dependency,
+    search: str = None,
+    exclude_role: str = None,
+    format: str = Query("xlsx", pattern="^(csv|xlsx)$"),
+):
+    """
+    Export users (with order count & total spent) to CSV or Excel.
+    GET /admin/users/export?format=csv
+    """
+    try:
+        query = db.query(User)
+
+        if search:
+            phone_match = query.filter(User.phone_number.contains(search))
+            order_match_ids = (
+                db.query(Order.user_id)
+                .filter(
+                    or_(
+                        Order.full_name.contains(search),
+                        Order.address.contains(search),
+                        Order.district.contains(search),
+                    )
+                )
+                .distinct()
+                .all()
+            )
+            order_user_ids = [row[0] for row in order_match_ids]
+            query = db.query(User).filter(
+                or_(
+                    User.phone_number.contains(search),
+                    User.id.in_(order_user_ids) if order_user_ids else False,
+                )
+            )
+
+        if exclude_role:
+            query = query.filter(User.role != exclude_role)
+
+        users = query.order_by(User.created_at.desc()).all()
+
+        headers = [
+            "User ID",
+            "Phone Number",
+            "Email",
+            "Role",
+            "Created At",
+            "Updated At",
+            "Total Orders",
+            "Total Spent (৳)",
+        ]
+
+        rows = []
+        for user in users:
+            orders = db.query(Order).filter(Order.user_id == user.id).all()
+            order_count = len(orders)
+            total_spent = sum(float(o.total_price or 0) for o in orders)
+            rows.append(
+                [
+                    user.id,
+                    user.phone_number,
+                    user.email,
+                    user.role,
+                    user.created_at.strftime("%Y-%m-%d %H:%M")
+                    if user.created_at
+                    else "",
+                    user.updated_at.strftime("%Y-%m-%d %H:%M")
+                    if user.updated_at
+                    else "",
+                    order_count,
+                    round(total_spent, 2),
+                ]
+            )
+
+        fmt = format.lower()
+        if fmt == "csv":
+            content = build_csv(headers, rows)
+            filename = "users.csv"
+        else:
+            content = build_xlsx(headers, rows, sheet_name="Users")
+            filename = "users.xlsx"
+
+        logger.info(
+            f"📤 Users Exported | Format={fmt.upper()} | "
+            f"Count={len(rows)} | Admin={admin.phone_number}"
+        )
+        return export_response(content, filename, fmt)
+
+    except Exception as e:
+        logger.error(
+            f"❌ Error exporting users | Error={str(e)} | Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export users.",
         )
 
 

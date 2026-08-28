@@ -7,6 +7,7 @@ from fastapi import (
     APIRouter,
     HTTPException,
     Path,
+    Query,
     Form,
     Body,
     UploadFile,
@@ -26,6 +27,7 @@ from app.models.product_attribute_option import ProductAttributeOption
 from app.models.file import File
 from app.models.product_variant import ProductVariant
 from app.utils.file_upload import upload_file_to_storage
+from app.services.export_service import build_csv, build_xlsx, export_response
 from app.utils.variant_generator import (
     generate_variant_combinations,
     build_sku,
@@ -372,6 +374,156 @@ async def get_all_products(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve products.",
+        )
+
+
+@router.get("/export", status_code=status.HTTP_200_OK)
+async def export_products(
+    db: db_dependency,
+    admin: admin_dependency,
+    category_id: int = None,
+    is_active: bool = None,
+    is_featured: bool = None,
+    search: str = None,
+    format: str = Query("xlsx", pattern="^(csv|xlsx)$"),
+):
+    """
+    Export products (with all variants) to CSV or Excel.
+    GET /admin/products/export?format=csv
+    """
+    try:
+        query = db.query(Product)
+
+        if category_id:
+            query = query.filter(Product.category_id == category_id)
+        if is_active is not None:
+            query = query.filter(Product.is_active == is_active)
+        if is_featured is not None:
+            query = query.filter(Product.is_featured == is_featured)
+        if search:
+            search_term = f"%{search.lower()}%"
+            query = query.filter(
+                or_(
+                    func.lower(Product.name).like(search_term),
+                    func.lower(Product.product_code).like(search_term),
+                )
+            )
+
+        products = query.order_by(Product.created_at.desc()).all()
+
+        headers = [
+            "Product ID",
+            "Product Code",
+            "Name",
+            "Category",
+            "Description",
+            "Is Active",
+            "Is Featured",
+            "Image URL",
+            "Created At",
+            "Variant SKU",
+            "Variant Attributes",
+            "Variant Price (৳)",
+            "Stock Quantity",
+            "Variant Active",
+        ]
+
+        rows = []
+        for prod in products:
+            category_name = ""
+            if prod.category_id:
+                cat = db.query(Category).filter(Category.id == prod.category_id).first()
+                category_name = cat.name if cat else ""
+            image = (
+                db.query(File).filter(File.product_id == prod.id).first()
+            )
+
+            variants = (
+                db.query(ProductVariant)
+                .filter(ProductVariant.product_id == prod.id)
+                .order_by(ProductVariant.id.asc())
+                .all()
+            )
+
+            if not variants:
+                rows.append(
+                    [
+                        prod.id,
+                        prod.product_code,
+                        prod.name,
+                        category_name,
+                        prod.description,
+                        prod.is_active,
+                        prod.is_featured,
+                        image.file_url if image else "",
+                        prod.created_at.strftime("%Y-%m-%d %H:%M")
+                        if prod.created_at
+                        else "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                    ]
+                )
+                continue
+
+            for variant in variants:
+                attrs_display = ""
+                if variant.selected_attributes:
+                    try:
+                        attrs = json.loads(variant.selected_attributes)
+                        if isinstance(attrs, dict):
+                            attrs_display = ", ".join(
+                                f"{k}: {v}" for k, v in attrs.items()
+                            )
+                        else:
+                            attrs_display = str(attrs)
+                    except (json.JSONDecodeError, TypeError):
+                        attrs_display = str(variant.selected_attributes)
+
+                rows.append(
+                    [
+                        prod.id,
+                        prod.product_code,
+                        prod.name,
+                        category_name,
+                        prod.description,
+                        prod.is_active,
+                        prod.is_featured,
+                        image.file_url if image else "",
+                        prod.created_at.strftime("%Y-%m-%d %H:%M")
+                        if prod.created_at
+                        else "",
+                        variant.sku,
+                        attrs_display,
+                        round(float(variant.price or 0), 2),
+                        int(variant.stock_quantity or 0),
+                        variant.is_active,
+                    ]
+                )
+
+        fmt = format.lower()
+        if fmt == "csv":
+            content = build_csv(headers, rows)
+            filename = "products.csv"
+        else:
+            content = build_xlsx(headers, rows, sheet_name="Products")
+            filename = "products.xlsx"
+
+        logger.info(
+            f"📤 Products Exported | Format={fmt.upper()} | "
+            f"Count={len(rows)} | Admin={admin.phone_number}"
+        )
+        return export_response(content, filename, fmt)
+
+    except Exception as e:
+        logger.error(
+            f"❌ Error exporting products | Error={str(e)} | Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export products.",
         )
 
 

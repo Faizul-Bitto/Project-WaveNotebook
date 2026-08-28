@@ -21,6 +21,7 @@ from app.schemas.expense import (
     PaymentMethodCreate,
     PaymentMethodUpdate,
 )
+from app.services.export_service import build_csv, build_xlsx, export_response
 
 router = APIRouter(
     prefix="/admin/expenses",
@@ -601,6 +602,110 @@ async def get_all_expenses(
     except Exception as e:
         logger.error(f"❌ Error retrieving expenses | Error={str(e)} | Admin={admin.phone_number}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve expenses.")
+
+
+@router.get("/{expense_id}", status_code=status.HTTP_200_OK)
+@router.get("/export", status_code=status.HTTP_200_OK)
+async def export_expenses(
+    db: db_dependency,
+    admin: admin_dependency,
+    status_filter: str = Query(None, alias="status"),
+    type_filter: int = Query(None, alias="type_id"),
+    period: str = Query("all", pattern="^(all|year|month|day)$"),
+    year: int = Query(None),
+    month: int = Query(None),
+    date_filter: str = Query(None, alias="date"),
+    format: str = Query("xlsx", pattern="^(csv|xlsx)$"),
+):
+    """
+    Export expenses to CSV or Excel.
+    Respects the same filters as the list endpoint.
+    GET /admin/expenses/export?format=csv
+    GET /admin/expenses/export?format=xlsx&period=month&year=2026&month=8
+    """
+    try:
+        query = db.query(Expense)
+
+        if status_filter:
+            query = query.filter(Expense.payment_status == status_filter)
+        if type_filter:
+            query = query.filter(Expense.expense_type_id == type_filter)
+
+        if period == "year" and year:
+            query = query.filter(extract("year", Expense.date) == year)
+        elif period == "month" and year and month:
+            query = query.filter(
+                extract("year", Expense.date) == year,
+                extract("month", Expense.date) == month,
+            )
+        elif period == "day" and date_filter:
+            parsed = _parse_date(date_filter)
+            if parsed is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid date format. Use YYYY-MM-DD.",
+                )
+            query = query.filter(Expense.date == parsed)
+
+        expenses = query.order_by(Expense.date.desc()).all()
+
+        headers = [
+            "Expense ID",
+            "Date",
+            "Items",
+            "Description",
+            "Expense Type",
+            "Payment By",
+            "Payment Method",
+            "Amount (৳)",
+            "Payment Status",
+            "Created At",
+        ]
+
+        rows = []
+        for expense in expenses:
+            ser = _serialize_expense(db, expense)
+            rows.append(
+                [
+                    expense.id,
+                    expense.date.strftime("%Y-%m-%d") if expense.date else "",
+                    expense.items,
+                    expense.description,
+                    ser.get("expense_type_name") or "",
+                    ser.get("payment_by_name") or "",
+                    ser.get("payment_method_name") or "",
+                    round(float(expense.amount or 0), 2),
+                    expense.payment_status,
+                    expense.created_at.strftime("%Y-%m-%d %H:%M")
+                    if expense.created_at
+                    else "",
+                ]
+            )
+
+        fmt = format.lower()
+        if fmt == "csv":
+            content = build_csv(headers, rows)
+            filename = "expenses.csv"
+        else:
+            content = build_xlsx(headers, rows, sheet_name="Expenses")
+            filename = "expenses.xlsx"
+
+        logger.info(
+            f"📤 Expenses Exported | Format={fmt.upper()} | "
+            f"Count={len(rows)} | Admin={admin.phone_number}"
+        )
+        return export_response(content, filename, fmt)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"❌ Error exporting expenses | Error={str(e)} | Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export expenses.",
+        )
 
 
 @router.get("/{expense_id}", status_code=status.HTTP_200_OK)

@@ -40,6 +40,7 @@ from app.services.discount_service import (
     get_bogo_bonus_quantity,
     compute_simple_bogo,
 )
+from app.services.export_service import build_csv, build_xlsx, export_response
 
 router = APIRouter(
     prefix="/admin/orders",
@@ -319,6 +320,188 @@ async def search_orders(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to search orders.",
+        )
+
+
+@router.get("/export", status_code=status.HTTP_200_OK)
+async def export_orders(
+    db: db_dependency,
+    admin: admin_dependency,
+    status_filter: str = Query(None, alias="status"),
+    period: str = Query("all", pattern="^(all|year|month|day)$"),
+    year: int = Query(None),
+    month: int = Query(None),
+    date_filter: str = Query(None, alias="date"),
+    search_type: str = Query(None, alias="search_type"),
+    search_value: str = Query(None, alias="search_value"),
+    format: str = Query("xlsx", pattern="^(csv|xlsx)$"),
+):
+    """
+    Export orders (with all item details) to CSV or Excel.
+    Respects the same filters as the list endpoint + active search.
+    GET /admin/orders/export?format=csv
+    GET /admin/orders/export?format=xlsx&period=month&year=2026&month=8
+    """
+    try:
+        query = db.query(Order)
+
+        if status_filter:
+            query = query.filter(Order.status == status_filter)
+
+        if period == "year" and year:
+            query = query.filter(extract("year", Order.created_at) == year)
+        elif period == "month" and year and month:
+            query = query.filter(
+                extract("year", Order.created_at) == year,
+                extract("month", Order.created_at) == month,
+            )
+        elif period == "day" and date_filter:
+            try:
+                day = datetime.strptime(date_filter, "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid date format. Use YYYY-MM-DD.",
+                )
+            query = query.filter(
+                Order.created_at >= day,
+                Order.created_at < day + timedelta(days=1),
+            )
+
+        if search_type and search_value:
+            val = search_value
+            if search_type == "all":
+                query = query.filter(
+                    or_(
+                        Order.order_number.contains(val),
+                        Order.phone_number.contains(val),
+                        Order.full_name.contains(val),
+                        Order.address.contains(val),
+                        Order.district.contains(val),
+                    )
+                )
+            elif search_type == "phone":
+                query = query.filter(Order.phone_number.contains(val))
+            elif search_type == "name":
+                query = query.filter(Order.full_name.contains(val))
+            elif search_type == "address":
+                query = query.filter(
+                    or_(Order.address.contains(val), Order.district.contains(val))
+                )
+            elif search_type == "order_number":
+                query = query.filter(Order.order_number.contains(val))
+
+        orders = query.order_by(Order.created_at.desc()).all()
+
+        headers = [
+            "Order ID",
+            "Order Number",
+            "Date",
+            "Status",
+            "Customer Name",
+            "Phone",
+            "Email",
+            "District",
+            "Thana",
+            "Address",
+            "Note",
+            "Subtotal Before Discount",
+            "Discount",
+            "Total Price",
+            "Free Shipping",
+            "Items",
+            "Discount Breakdown",
+        ]
+
+        rows = []
+        for order in orders:
+            snap = parse_snapshot(order.discount_snapshot)
+            subtotal = float(
+                snap.get(
+                    "subtotal_before_discount",
+                    float(order.total_price) + float(order.total_discount),
+                )
+            )
+            items = (
+                db.query(OrderItem)
+                .filter(OrderItem.order_id == order.id)
+                .order_by(OrderItem.id.asc())
+                .all()
+            )
+            item_strs = []
+            for it in items:
+                ps = parse_snapshot(it.product_snapshot)
+                vs = parse_snapshot(it.variant_snapshot)
+                name = ps.get("name") or f"Product #{it.product_id}"
+                attrs = vs.get("selected_attributes_display")
+                qty = int(it.quantity or 0)
+                bonus = int(it.bonus_quantity or 0)
+                qty_str = str(qty) + (f" (+{bonus})" if bonus else "")
+                parts = [name]
+                if attrs:
+                    parts.append(attrs)
+                parts.append(f"Qty: {qty_str}")
+                parts.append(f"Unit: {float(it.unit_price or 0):,.2f}")
+                parts.append(f"Line Total: {float(it.price_at_purchase or 0):,.2f}")
+                item_strs.append(" | ".join(parts))
+
+            breakdown_strs = []
+            for entry in snap.get("discount_breakdown", []):
+                amount = float(entry.get("amount") or 0)
+                if entry.get("type") == "bogo":
+                    breakdown_strs.append(f"BOGO: {entry.get('name')} (FREE)")
+                elif amount > 0:
+                    breakdown_strs.append(f"{entry.get('name')} (-{amount:,.2f})")
+            if snap.get("bogo_free_note"):
+                breakdown_strs.append(snap["bogo_free_note"])
+
+            rows.append(
+                [
+                    order.id,
+                    order.order_number,
+                    order.created_at.strftime("%Y-%m-%d %H:%M")
+                    if order.created_at
+                    else "",
+                    order.status,
+                    order.full_name,
+                    order.phone_number,
+                    order.email,
+                    order.district,
+                    order.thana,
+                    order.address,
+                    order.note,
+                    round(subtotal, 2),
+                    round(float(order.total_discount or 0), 2),
+                    round(float(order.total_price or 0), 2),
+                    snap.get("free_shipping", False),
+                    "\n".join(item_strs),
+                    "\n".join(breakdown_strs),
+                ]
+            )
+
+        fmt = format.lower()
+        if fmt == "csv":
+            content = build_csv(headers, rows)
+            filename = "orders.csv"
+        else:
+            content = build_xlsx(headers, rows, sheet_name="Orders")
+            filename = "orders.xlsx"
+
+        logger.info(
+            f"📤 Orders Exported | Format={fmt.upper()} | "
+            f"Count={len(rows)} | Admin={admin.phone_number}"
+        )
+        return export_response(content, filename, fmt)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"❌ Error exporting orders | Error={str(e)} | Admin={admin.phone_number}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export orders.",
         )
 
 

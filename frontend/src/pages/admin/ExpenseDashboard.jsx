@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaMoneyCheck } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaMoneyBillWave, FaMoneyCheck, FaFileExcel, FaFileCsv } from 'react-icons/fa';
 import {
   adminGetExpenses,
   adminDeleteExpense,
   adminGetExpenseSummary,
   adminGetExpenseDropdowns,
+  adminExportExpenses,
 } from '../../api/adminServices';
 import { useToast } from '../../context/ToastContext';
 import Modal from '../../components/Modal';
@@ -145,6 +146,23 @@ function ExpenseDashboard() {
     loadExpenses(paymentStatusFilter, 0, summaryPeriod, summaryYear, summaryMonth, value);
   };
 
+  const handleExport = async (suffix) => {
+    try {
+      const params = {};
+      if (paymentStatusFilter) params.status = paymentStatusFilter;
+      if (summaryPeriod !== 'all') {
+        params.period = summaryPeriod;
+        if (summaryPeriod === 'year') params.year = summaryYear;
+        if (summaryPeriod === 'month') { params.year = summaryYear; params.month = summaryMonth; }
+        if (summaryPeriod === 'day') params.date = summaryDate;
+      }
+      const filename = await adminExportExpenses(params, suffix);
+      addToast(`${filename} downloaded!`, 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'Failed to export expenses.', 'error');
+    }
+  };
+
   const handleEdit = (expense) => {
     setEditingExpense(expense);
     setShowForm(true);
@@ -186,9 +204,17 @@ function ExpenseDashboard() {
     <div className="admin-page">
       <div className="admin-page-header">
         <h2>Expenses</h2>
-        <button className="btn btn-primary" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
-          <FaPlus /> Add Expense
-        </button>
+        <div className="header-actions">
+          <button className="btn btn-secondary" onClick={() => handleExport('xlsx')} title="Export expenses to Excel">
+            <FaFileExcel /> Excel
+          </button>
+          <button className="btn btn-secondary" onClick={() => handleExport('csv')} title="Export expenses to CSV">
+            <FaFileCsv /> CSV
+          </button>
+          <button className="btn btn-primary" onClick={() => { setEditingExpense(null); setShowForm(true); }}>
+            <FaPlus /> Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
