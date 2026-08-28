@@ -130,7 +130,8 @@ async def get_all_orders(
             )
 
         total = query.order_by(None).count()
-        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+        # Show orders in natural database order (ascending by id / oldest first)
+        orders = query.order_by(Order.id.asc()).offset(skip).limit(limit).all()
 
         logger.info(
             f"📦 Orders Retrieved | "
@@ -277,7 +278,8 @@ async def search_orders(
             query = db.query(Order).filter(Order.order_number.contains(value))
 
         total = query.order_by(None).count()
-        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+        # Show orders in natural database order (ascending by id / oldest first)
+        orders = query.order_by(Order.id.asc()).offset(skip).limit(limit).all()
 
         logger.info(
             f"🔍 Orders Searched | Type={type} | Value={value} | Count={len(orders)} | Total={total} | Admin={admin.phone_number}"
@@ -391,7 +393,8 @@ async def export_orders(
             elif search_type == "order_number":
                 query = query.filter(Order.order_number.contains(val))
 
-        orders = query.order_by(Order.created_at.desc()).all()
+        # Show orders in natural database order (ascending by id / oldest first)
+        orders = query.order_by(Order.id.asc()).all()
 
         headers = [
             "Order ID",

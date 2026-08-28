@@ -604,7 +604,6 @@ async def get_all_expenses(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve expenses.")
 
 
-@router.get("/{expense_id}", status_code=status.HTTP_200_OK)
 @router.get("/export", status_code=status.HTTP_200_OK)
 async def export_expenses(
     db: db_dependency,
