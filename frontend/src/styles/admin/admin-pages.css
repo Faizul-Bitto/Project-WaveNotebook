@@ -46,8 +46,16 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  justify-content: space-between;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+.admin-filters-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
 }
 
 .admin-filters select,

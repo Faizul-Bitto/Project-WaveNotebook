@@ -240,6 +240,7 @@ function AdminOrders () {
 
       {/* Filters */ }
       <div className="admin-filters">
+        <div className="admin-filters-group">
         <select value={ statusFilter } onChange={ handleStatusChange }>
           <option value="">All Statuses</option>
           { Object.entries( STATUS_LABELS ).map( ( [ value, label ] ) => (
@@ -271,6 +272,7 @@ function AdminOrders () {
             </select>
           </>
         ) }
+        </div>
 
         <form className="admin-search" onSubmit={ handleSearch }>
           <select value={ searchType } onChange={ ( e ) => setSearchType( e.target.value ) }>
