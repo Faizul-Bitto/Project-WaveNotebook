@@ -21,8 +21,9 @@
 
 .loader-bars-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 22px;
 }
 
 /* Sound wave: five rounded columns rippling up and down — the middle bar
@@ -63,10 +64,48 @@
   }
 }
 
+/* Elegant caption under the bars: wide-tracked uppercase word with three
+   dots that blink in sequence using the price color as an accent. */
+.page-loader-text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gray-600);
+  font-family: var(--font-text);
+  user-select: none;
+}
+
+.loader-dot {
+  display: inline-block;
+  color: var(--price-color);
+  animation: loader-dot 1.2s ease-in-out infinite;
+}
+
+/* Staggered so the dots blink left → right, matching the bar ripple */
+.loader-dot:nth-child(1) { animation-delay: 0s; }
+.loader-dot:nth-child(2) { animation-delay: 0.15s; }
+.loader-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes loader-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   .loader-bar {
     animation: none;
     transform: scaleY(0.6);
+  }
+  .loader-dot {
+    animation: none;
+    opacity: 0.7;
   }
 }

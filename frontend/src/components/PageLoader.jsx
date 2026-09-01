@@ -42,6 +42,12 @@ export default function PageLoader() {
               <span className="loader-bar" />
               <span className="loader-bar" />
             </div>
+            <span className="page-loader-text">
+              Loading
+              <span className="loader-dot">.</span>
+              <span className="loader-dot">.</span>
+              <span className="loader-dot">.</span>
+            </span>
           </motion.div>
         </motion.div>
       ) }
