@@ -75,7 +75,7 @@ const policyConfig = {
 
 function PolicyPage() {
   const location = useLocation();
-  const { settings } = useSiteSettings();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const slug = location.pathname.replace(/^\//, '');
   const config = policyConfig[slug];
 
@@ -85,6 +85,27 @@ function PolicyPage() {
         <h2>Page Not Found</h2>
         <p>The page you are looking for does not exist.</p>
         <Link to="/" className="btn btn-primary">Go Home</Link>
+      </div>
+    );
+  }
+
+  // While settings load, show a skeleton — never the default policy text.
+  // The defaultContent fallback below is only used once loading has settled
+  // and the API truly has no custom content for this policy.
+  if (settingsLoading) {
+    return (
+      <div className="policy-page">
+        <div className="container">
+          <div className="policy-content" aria-hidden="true">
+            <span className="skeleton skeleton-policy-heading" />
+            <span className="skeleton skeleton-policy-line" />
+            <span className="skeleton skeleton-policy-line" />
+            <span className="skeleton skeleton-policy-line" style={{ width: '85%' }} />
+            <span className="skeleton skeleton-policy-heading" />
+            <span className="skeleton skeleton-policy-line" style={{ width: '92%' }} />
+            <span className="skeleton skeleton-policy-line" style={{ width: '78%' }} />
+          </div>
+        </div>
       </div>
     );
   }

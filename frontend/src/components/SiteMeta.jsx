@@ -13,20 +13,24 @@ function setFavicon(url) {
 }
 
 function SiteMeta() {
-  const { settings } = useSiteSettings();
+  const { settings, loading } = useSiteSettings();
 
+  // Skip while loading: writing the default seed values first would make the
+  // title/favicon flip from default → actual (flash of default content).
   useEffect(() => {
+    if (loading) return;
     const title = settings.page_title || settings.site_name;
     if (title) {
       document.title = title;
     }
-  }, [settings.page_title, settings.site_name]);
+  }, [loading, settings.page_title, settings.site_name]);
 
   useEffect(() => {
+    if (loading) return;
     if (settings.favicon_url) {
       setFavicon(withVersion(settings.favicon_url, settings.updated_at));
     }
-  }, [settings.favicon_url, settings.updated_at]);
+  }, [loading, settings.favicon_url, settings.updated_at]);
 
   return null;
 }

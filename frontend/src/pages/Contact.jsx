@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import PhoneInput from '../components/PhoneInput';
 
 function Contact() {
-  const { settings } = useSiteSettings();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const { addToast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
@@ -120,6 +120,7 @@ function Contact() {
       sending={sending}
       errors={errors}
       infoCards={infoCards}
+      infoLoading={settingsLoading}
       handleSubmit={handleSubmit}
       handleChange={handleChange}
       handlePhoneChange={handlePhoneChange}
@@ -139,6 +140,7 @@ function ContactView({
   sending,
   errors,
   infoCards,
+  infoLoading,
   handleSubmit,
   handleChange,
   handlePhoneChange,
@@ -261,22 +263,31 @@ function ContactView({
       {/* Contact Info Cards */}
       <div className="container contact-info-section">
         <div className="contact-info-grid">
-          {infoCards.map(
-            (card, index) =>
-              card.value && (
-                <div key={index} className="contact-info-card">
-                  <div className="contact-info-icon">{card.icon}</div>
-                  <h3 className="contact-info-title">{card.title}</h3>
-                  {card.href ? (
-                    <a href={card.href} className="contact-info-value">
-                      {card.value}
-                    </a>
-                  ) : (
-                    <p className="contact-info-value">{card.value}</p>
-                  )}
+          {infoLoading
+            ? /* Skeleton cards while settings load — never empty/fake cards */
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="contact-info-card" aria-hidden="true">
+                  <div className="skeleton skeleton-contact-icon" />
+                  <div className="skeleton skeleton-contact-line" />
+                  <div className="skeleton skeleton-contact-line" style={{ width: '50%' }} />
                 </div>
-              )
-          )}
+              ))
+            : infoCards.map(
+                (card, index) =>
+                  card.value && (
+                    <div key={index} className="contact-info-card">
+                      <div className="contact-info-icon">{card.icon}</div>
+                      <h3 className="contact-info-title">{card.title}</h3>
+                      {card.href ? (
+                        <a href={card.href} className="contact-info-value">
+                          {card.value}
+                        </a>
+                      ) : (
+                        <p className="contact-info-value">{card.value}</p>
+                      )}
+                    </div>
+                  )
+              )}
         </div>
       </div>
     </div>

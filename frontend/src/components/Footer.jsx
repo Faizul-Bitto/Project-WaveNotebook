@@ -3,7 +3,7 @@ import { FaFacebook, FaInstagram, FaYoutube, FaTwitter, FaPaperPlane } from 'rea
 import { useSiteSettings } from '../context/SiteSettingsContext';
 
 function Footer() {
-  const { settings } = useSiteSettings();
+  const { settings, loading: settingsLoading } = useSiteSettings();
 
   const socialLinks = [
     { key: 'facebook_url', icon: <FaFacebook />, name: 'Facebook' },
@@ -19,12 +19,26 @@ function Footer() {
       <div className="container">
         {/* Centered Brand Header */}
         <div className="footer-brand">
-          <h3 className="footer-brand-name">
-            {(settings.site_name || 'Wave Notebook').split(' ')[0]}{' '}
-            <span>{(settings.site_name || 'Wave Notebook').split(' ').slice(1).join(' ')}</span>
-          </h3>
-          {settings.site_description && (
-            <p className="footer-desc">{settings.site_description}</p>
+          {/* Skeleton while settings load — never show the default site name */}
+          {settingsLoading ? (
+            <>
+              <h3 className="footer-brand-name" aria-hidden="true">
+                <span className="skeleton skeleton-on-dark skeleton-footer-name" />
+              </h3>
+              <p className="footer-desc" aria-hidden="true">
+                <span className="skeleton skeleton-on-dark skeleton-footer-desc" />
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="footer-brand-name">
+                {(settings.site_name || 'Wave Notebook').split(' ')[0]}{' '}
+                <span>{(settings.site_name || 'Wave Notebook').split(' ').slice(1).join(' ')}</span>
+              </h3>
+              {settings.site_description && (
+                <p className="footer-desc">{settings.site_description}</p>
+              )}
+            </>
           )}
         </div>
 
@@ -78,7 +92,11 @@ function Footer() {
 
       <div className="footer-bottom">
         <div className="container footer-bottom-inner">
-          <p>&copy; {new Date().getFullYear()} {settings.site_name || 'Wave Notebook'}. All rights reserved.</p>
+          {settingsLoading ? (
+            <span className="skeleton skeleton-on-dark skeleton-footer-copy" aria-hidden="true" />
+          ) : (
+            <p>&copy; {new Date().getFullYear()} {settings.site_name || 'Wave Notebook'}. All rights reserved.</p>
+          )}
 
           {visibleSocial.length > 0 && (
             <div className="footer-social">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaHeadset, FaMoneyBillWave, FaShieldAlt, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { getBanners, getCategories, getProducts } from '../api/services';
@@ -14,26 +14,28 @@ function Home () {
   const [ activeBanner, setActiveBanner ] = useState( 0 );
   const { addToast } = useToast();
 
+  // Hoisted so the bfcache restore handler below can call the same fetch.
+  const loadData = useCallback( async () => {
+    try {
+      const [ bannerData, categoryData, productData ] = await Promise.all( [
+        getBanners(),
+        getCategories(),
+        getProducts( { is_featured: true, limit: 8 } ),
+      ] );
+      setBanners( bannerData.banners || [] );
+      setCategories( categoryData.categories || [] );
+      setProducts( productData.products || [] );
+    } catch ( error ) {
+      console.error( 'Failed to load home data:', error );
+      addToast( 'Failed to load homepage data.', 'error' );
+    } finally {
+      setLoading( false );
+    }
+  }, [ addToast ] );
+
   useEffect( () => {
-    const loadData = async () => {
-      try {
-        const [ bannerData, categoryData, productData ] = await Promise.all( [
-          getBanners(),
-          getCategories(),
-          getProducts( { is_featured: true, limit: 8 } ),
-        ] );
-        setBanners( bannerData.banners || [] );
-        setCategories( categoryData.categories || [] );
-        setProducts( productData.products || [] );
-      } catch ( error ) {
-        console.error( 'Failed to load home data:', error );
-        addToast( 'Failed to load homepage data.', 'error' );
-      } finally {
-        setLoading( false );
-      }
-    };
     loadData();
-  }, [] );
+  }, [ loadData ] );
 
   // Back/forward cache restore shows the old render — re-fetch fresh data.
   useEffect( () => {
@@ -42,7 +44,7 @@ function Home () {
     };
     window.addEventListener( 'pageshow', onPageShow );
     return () => window.removeEventListener( 'pageshow', onPageShow );
-  }, [] );
+  }, [ loadData ] );
 
   useEffect( () => {
     if ( banners.length <= 1 ) return;
@@ -64,7 +66,17 @@ function Home () {
       {/* Banner + features fill the first screen (100vh - header) */}
       <div className="home-hero-screen">
         <section className="hero-banner">
-          { banners.length > 0 ? (
+          { loading ? (
+            /* Skeleton while banners load — the real placeholder below is
+               only shown AFTER loading, when no banners actually exist. */
+            <div className="container">
+              <div className="hero-placeholder">
+                <span className="skeleton skeleton-hero-title" aria-hidden="true" />
+                <span className="skeleton skeleton-hero-text" aria-hidden="true" />
+                <span className="skeleton skeleton-hero-btn" aria-hidden="true" />
+              </div>
+            </div>
+          ) : banners.length > 0 ? (
             <div className="banner-slider">
               { banners.map( ( banner, index ) => (
                 <div key={ banner.id } className={ `banner-slide ${ index === activeBanner ? 'active' : '' }` }>
@@ -113,7 +125,15 @@ function Home () {
             <h2>Shop by Category</h2>
             <Link to="/products" className="view-all">View All</Link>
           </div>
-          { categories.length > 0 && (
+          { loading ? (
+            <div className="container">
+              <div className="skeleton-cat-row" aria-hidden="true">
+                { Array.from( { length: 8 } ).map( ( _, i ) => (
+                  <span key={ i } className="skeleton skeleton-cat-item" />
+                ) ) }
+              </div>
+            </div>
+          ) : categories.length > 0 && (
             <CategoryMarquee categories={ categories } />
           ) }
         </div>

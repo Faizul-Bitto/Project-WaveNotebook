@@ -7,7 +7,7 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import { withVersion } from '../utils/media';
 
 function Header () {
-  const { settings } = useSiteSettings();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const { cartCount } = useCart();
   const logoUrl = withVersion( settings.logo_url, settings.updated_at );
   const siteName = settings.site_name || 'WaveNotebook';
@@ -101,22 +101,34 @@ function Header () {
       <div className="top-bar">
         <div className="container top-bar-inner">
           <div className="top-bar-center">
-            <FaPhoneAlt className="top-bar-icon" />
-            <a
-              href={ `tel:${ ( settings.hotline_number || '01700-000000' ).replace( /[^+\d]/g, '' ) }` }
-              className="top-bar-link"
-            >
-              Hotline: { settings.hotline_number || '01700-000000' }
-            </a>
-            <span className="top-bar-divider">|</span>
-            <FaEnvelope className="top-bar-icon" />
-            <a
-              href={ `mailto:${ settings.contact_email || 'info@wavenotebook.com' }` }
-              className="top-bar-link"
-            >
-              Email: { settings.contact_email || 'info@wavenotebook.com' }
-            </a>
-            <span className="top-bar-divider">|</span>
+            {/* Skeleton while settings load — never show fake hotline/email */}
+            { settingsLoading ? (
+              <>
+                <span className="skeleton skeleton-on-dark skeleton-topbar-item" aria-hidden="true" />
+                <span className="top-bar-divider">|</span>
+                <span className="skeleton skeleton-on-dark skeleton-topbar-item" aria-hidden="true" />
+                <span className="top-bar-divider">|</span>
+              </>
+            ) : (
+              <>
+                <FaPhoneAlt className="top-bar-icon" />
+                <a
+                  href={ `tel:${ ( settings.hotline_number || '01700-000000' ).replace( /[^+\d]/g, '' ) }` }
+                  className="top-bar-link"
+                >
+                  Hotline: { settings.hotline_number || '01700-000000' }
+                </a>
+                <span className="top-bar-divider">|</span>
+                <FaEnvelope className="top-bar-icon" />
+                <a
+                  href={ `mailto:${ settings.contact_email || 'info@wavenotebook.com' }` }
+                  className="top-bar-link"
+                >
+                  Email: { settings.contact_email || 'info@wavenotebook.com' }
+                </a>
+                <span className="top-bar-divider">|</span>
+              </>
+            ) }
             <Link to="/admin/login" className="top-bar-link">
               <FaUserShield className="top-bar-icon" /> Admin
             </Link>
@@ -128,12 +140,21 @@ function Header () {
       <div className="main-header">
         <div className="main-header-inner">
           <Link to="/" className="logo">
-            { logoUrl ? (
-              <img src={ logoUrl } alt={ siteName } className="logo-img" />
+            { settingsLoading ? (
+              <>
+                <span className="skeleton skeleton-logo-icon" aria-hidden="true" />
+                <span className="skeleton skeleton-logo-text" aria-hidden="true" />
+              </>
             ) : (
-              <span className="logo-icon">📓</span>
+              <>
+                { logoUrl ? (
+                  <img src={ logoUrl } alt={ siteName } className="logo-img" />
+                ) : (
+                  <span className="logo-icon">📓</span>
+                ) }
+                <span className="logo-text">{ siteName }</span>
+              </>
             ) }
-            <span className="logo-text">{ siteName }</span>
           </Link>
 
           {/* Center navigation */ }

@@ -1,0 +1,159 @@
+/* ==========================================
+   Skeleton placeholders for async content
+   Rendered ONLY while API/database data is loading, so real data never
+   "replaces" a visible default (prevents Flash of Default Content).
+   ========================================== */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--gray-200);
+  border-radius: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Variant for dark surfaces (header top bar, footer) */
+.skeleton-on-dark {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+/* ---------- Header ---------- */
+.skeleton-topbar-item {
+  width: 150px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.skeleton-logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.skeleton-logo-text {
+  width: 96px;
+  height: 18px;
+  border-radius: 999px;
+}
+
+/* ---------- Footer ---------- */
+.skeleton-footer-name {
+  width: 160px;
+  height: 24px;
+}
+
+.skeleton-footer-desc {
+  width: 260px;
+  height: 14px;
+}
+
+.skeleton-footer-copy {
+  width: 220px;
+  height: 14px;
+}
+
+/* ---------- Home hero / banner ---------- */
+.skeleton-hero-title {
+  width: min(360px, 80%);
+  height: 40px;
+}
+
+.skeleton-hero-text {
+  width: min(480px, 90%);
+  height: 18px;
+}
+
+.skeleton-hero-btn {
+  width: 140px;
+  height: 44px;
+  border-radius: 999px;
+}
+
+.hero-placeholder .skeleton-hero-title,
+.hero-placeholder .skeleton-hero-text,
+.hero-placeholder .skeleton-hero-btn {
+  display: block;
+}
+
+.hero-placeholder .skeleton-hero-text {
+  margin: 16px auto;
+}
+
+.hero-placeholder .skeleton-hero-btn {
+  margin: 0 auto;
+}
+
+/* ---------- Home categories ---------- */
+.skeleton-cat-item {
+  width: 148px;
+  height: 120px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.skeleton-cat-row {
+  display: flex;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* ---------- Policy page ---------- */
+.skeleton-policy-line {
+  width: 100%;
+  height: 14px;
+  display: block;
+}
+
+.skeleton-policy-line + .skeleton-policy-line {
+  margin-top: 12px;
+}
+
+.skeleton-policy-heading {
+  width: 40%;
+  height: 22px;
+  display: block;
+  margin-top: 28px;
+}
+
+/* ---------- Contact info cards ---------- */
+.skeleton-contact-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto 16px;
+}
+
+.skeleton-contact-line {
+  width: 70%;
+  height: 14px;
+  display: block;
+  margin: 0 auto;
+}
+
+.skeleton-contact-line + .skeleton-contact-line {
+  margin-top: 10px;
+}
