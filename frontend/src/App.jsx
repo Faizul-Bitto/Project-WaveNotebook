@@ -78,11 +78,11 @@ function ContactLayout({ children }) {
 
 function ScrollToTop() {
   const { pathname } = useLocation();
+  // Scroll immediately — a delayed scroll makes navigation feel sluggish.
+  // With AnimatePresence mode="wait" the outgoing page is fading out while
+  // we jump, so an instant scroll is invisible and much snappier.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      window.scrollTo(0, 0);
-    }, 200);
-    return () => clearTimeout(timer);
+    window.scrollTo(0, 0);
   }, [pathname]);
   return null;
 }

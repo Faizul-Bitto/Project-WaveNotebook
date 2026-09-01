@@ -1,69 +1,61 @@
 /* ==========================================
-   Page Transition & Center Loading Overlay
-   Elegant, subtle route change animations
+   Centered Page Loader — Sound Wave Bars
+   Vertical bars pulsing like an audio waveform, in the site's price color,
+   floating over a soft translucent blur. No card, no inner box, no text.
+   Non-blocking (pointer-events: none) and translucent, so the incoming page
+   stays visible beneath.
    ========================================== */
 
-/* ==========================================
-   Center Page Loader — Wave Bar Animation
-   ========================================== */
 .page-loader-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.88);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
   pointer-events: none;
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(7px) saturate(140%);
+  -webkit-backdrop-filter: blur(7px) saturate(140%);
 }
 
-.page-loader-content {
+.loader-bars-wrap {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 22px;
+  justify-content: center;
 }
 
-.page-loader-wave {
+/* Sound wave: five rounded columns rippling up and down — the middle bar
+   peaks while the outer bars lag, forming a symmetric wave pulse. */
+.loader-bars {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 36px;
+  align-items: center;
+  gap: 7px;
+  height: 52px;
 }
 
-.wave-bar {
-  width: 8px;
-  height: 18px;
+.loader-bar {
+  width: 7px;
+  height: 100%;
+  border-radius: 999px;
   background: var(--price-color);
-  border-radius: 3px;
-  animation: waveBounce 0.9s ease-in-out infinite both;
+  box-shadow: 0 0 16px rgba(225, 29, 72, 0.35);
+  transform-origin: center;
+  animation: loader-bar 1s ease-in-out infinite;
 }
 
-.wave-bar:nth-child(1) {
-  animation-delay: -0.36s;
-}
+/* Mirrored negative delays so the pulse ripples outward from the center */
+.loader-bar:nth-child(1) { animation-delay: -0.3s; }
+.loader-bar:nth-child(2) { animation-delay: -0.15s; }
+.loader-bar:nth-child(3) { animation-delay: 0s; }
+.loader-bar:nth-child(4) { animation-delay: -0.15s; }
+.loader-bar:nth-child(5) { animation-delay: -0.3s; }
 
-.wave-bar:nth-child(2) {
-  animation-delay: -0.27s;
-}
-
-.wave-bar:nth-child(3) {
-  animation-delay: -0.18s;
-}
-
-.wave-bar:nth-child(4) {
-  animation-delay: -0.09s;
-}
-
-.wave-bar:nth-child(5) {
-  animation-delay: 0s;
-}
-
-@keyframes waveBounce {
+@keyframes loader-bar {
   0%,
   100% {
-    transform: scaleY(0.45);
-    opacity: 0.35;
+    transform: scaleY(0.3);
+    opacity: 0.55;
   }
   50% {
     transform: scaleY(1);
@@ -71,20 +63,10 @@
   }
 }
 
-.page-loader-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--gray-600);
-  letter-spacing: 0.5px;
-  font-family: var(--font-text);
-}
-
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .page-loader-overlay {
-    background: rgba(255, 255, 255, 0.88);
-  }
-  .wave-bar {
+  .loader-bar {
     animation: none;
+    transform: scaleY(0.6);
   }
 }
