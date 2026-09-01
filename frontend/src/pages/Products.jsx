@@ -39,6 +39,15 @@ function Products() {
     return result;
   };
 
+  const flatCategories = flattenCategories(categories);
+
+  // A category is ALWAYS in effect — the first one is auto-selected when no
+  // category is chosen. Deriving it here (instead of waiting for the URL
+  // update) guarantees the product fetch can never race with the auto-select
+  // and briefly show ALL products while "Notebook" is visibly selected.
+  const effectiveCategoryId = categoryId
+    || (!searchQuery && flatCategories.length > 0 ? String(flatCategories[0].id) : '');
+
   const fetchProducts = useCallback(async (offset = 0, append = false) => {
     try {
       if (!append) setLoading(true);
@@ -48,7 +57,7 @@ function Products() {
         skip: offset,
         limit: ITEMS_PER_PAGE,
       };
-      if (categoryId) params.category_id = categoryId;
+      if (effectiveCategoryId) params.category_id = effectiveCategoryId;
       if (searchQuery) params.search = searchQuery;
       if (priceMin) params.price_min = parseFloat(priceMin);
       if (priceMax) params.price_max = parseFloat(priceMax);
@@ -66,7 +75,7 @@ function Products() {
       if (!append) setLoading(false);
       else setLoadingMore(false);
     }
-  }, [categoryId, searchQuery, priceMin, priceMax, sortBy, addToast]);
+  }, [effectiveCategoryId, searchQuery, priceMin, priceMax, sortBy, addToast]);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -83,8 +92,6 @@ function Products() {
     loadCategories();
   }, []);
 
-  const flatCategories = flattenCategories(categories);
-
   // Keep all filter states in sync with URL params so the UI always
   // reflects what is actually applied. Without this, navigating away
   // and returning could show stale/mismatched filters (e.g. filtered
@@ -95,30 +102,31 @@ function Products() {
     setPriceMin(searchParams.get('price_min') || '');
     setPriceMax(searchParams.get('price_max') || '');
     setSortBy(searchParams.get('sort') || 'default');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   useEffect(() => {
     if (categoriesLoaded && !categoryId && !searchQuery && flatCategories.length > 0) {
       const firstCatId = String(flatCategories[0].id);
-      const autoSelect = () => {
-        setSelectedCategory(firstCatId);
-        const params = new URLSearchParams();
-        params.set('category', firstCatId);
-        setSearchParams(params);
-      };
-      autoSelect();
+      setSelectedCategory(firstCatId);
+      const params = new URLSearchParams();
+      params.set('category', firstCatId);
+      setSearchParams(params, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriesLoaded, categoryId, flatCategories]);
+  }, [categoriesLoaded, categoryId, searchQuery]);
 
   useEffect(() => {
+    // Wait for categories before the first fetch so the auto-selected
+    // category is known — otherwise the category-less fetch could resolve
+    // after the category fetch and show all products while "Notebook"
+    // is visibly selected.
+    if (!categoriesLoaded && !searchQuery) return;
     const loadProducts = async () => {
       await fetchProducts(0, false);
     };
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, searchQuery, priceMin, priceMax, sortBy]);
+  }, [categoriesLoaded, effectiveCategoryId, searchQuery, priceMin, priceMax, sortBy]);
 
   const handleLoadMore = useCallback(() => {
     const offset = products.length;
