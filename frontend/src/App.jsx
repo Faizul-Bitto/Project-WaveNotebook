@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react';
 import { CartProvider } from './context/CartContext';
 import { DirectBuyProvider } from './context/DirectBuyContext';
@@ -9,6 +10,8 @@ import Footer from './components/Footer';
 import ChatIcons from './components/ChatIcons';
 import BackToTop from './components/BackToTop';
 import SiteMeta from './components/SiteMeta';
+import PageLoader from './components/PageLoader';
+import PageTransition from './components/PageTransition';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -42,7 +45,6 @@ import Offers from './pages/Offers';
 import Contact from './pages/Contact';
 import AdminMessages from './pages/admin/AdminMessages';
 
-// Protected route component
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('admin_token');
   if (!token) {
@@ -63,7 +65,6 @@ function StoreLayout({ children }) {
   );
 }
 
-/* Contact page uses its own layout - no footer */
 function ContactLayout({ children }) {
   return (
     <>
@@ -78,10 +79,172 @@ function ContactLayout({ children }) {
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 200);
+    return () => clearTimeout(timer);
   }, [pathname]);
   return null;
 }
+
+function AppContent() {
+  const location = useLocation();
+
+  return (
+    <>
+      <PageLoader />
+      <ScrollToTop />
+      <SiteMeta />
+      <AnimatePresence mode="wait" initial={false}>
+        <Routes location={location} key={location.pathname}>
+          {/* Store routes */}
+              <Route
+                path="/"
+                element={
+                  <StoreLayout>
+                    <PageTransition><Home /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/products"
+                element={
+                  <StoreLayout>
+                    <PageTransition><Products /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/product/:slug"
+                element={
+                  <StoreLayout>
+                    <PageTransition><ProductDetail /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <StoreLayout>
+                    <PageTransition><Cart /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/checkout"
+                element={
+                  <StoreLayout>
+                    <PageTransition><Checkout /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/track-order"
+                element={
+                  <StoreLayout>
+                    <PageTransition><TrackOrder /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/offers"
+                element={
+                  <StoreLayout>
+                    <PageTransition><Offers /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/contact"
+                element={
+                  <ContactLayout>
+                    <PageTransition><Contact /></PageTransition>
+                  </ContactLayout>
+                }
+              />
+              <Route
+                path="/privacy-policy"
+                element={
+                  <StoreLayout>
+                    <PageTransition><PolicyPage /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/terms-conditions"
+                element={
+                  <StoreLayout>
+                    <PageTransition><PolicyPage /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+              <Route
+                path="/refund-policy"
+                element={
+                  <StoreLayout>
+                    <PageTransition><PolicyPage /></PageTransition>
+                  </StoreLayout>
+                }
+              />
+
+              {/* Admin routes */}
+              <Route path="/admin/login" element={<PageTransition><AdminLogin /></PageTransition>} />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<PageTransition><AdminDashboard /></PageTransition>} />
+                <Route path="products" element={<PageTransition><AdminProducts /></PageTransition>} />
+                <Route path="products/new" element={<PageTransition><AdminProductForm /></PageTransition>} />
+                <Route path="products/:id/edit" element={<PageTransition><AdminProductForm /></PageTransition>} />
+                <Route path="products/:id/variants" element={<PageTransition><AdminProductVariants /></PageTransition>} />
+                <Route path="orders" element={<PageTransition><AdminOrders /></PageTransition>} />
+                <Route path="orders/new" element={<PageTransition><AdminOrderCreate /></PageTransition>} />
+                <Route path="orders/:id" element={<PageTransition><AdminOrderDetail /></PageTransition>} />
+                <Route path="orders/:id/edit" element={<PageTransition><AdminOrderCreate /></PageTransition>} />
+                <Route path="messages" element={<PageTransition><AdminMessages /></PageTransition>} />
+                <Route path="categories" element={<PageTransition><AdminCategories /></PageTransition>} />
+                <Route path="users" element={<PageTransition><AdminUsers /></PageTransition>} />
+                <Route path="banners" element={<PageTransition><AdminBanners /></PageTransition>} />
+                <Route path="settings" element={<PageTransition><AdminSettings /></PageTransition>} />
+                <Route path="attributes" element={<PageTransition><AdminAttributes /></PageTransition>} />
+                <Route path="attribute-options" element={<PageTransition><AdminAttributeOptions /></PageTransition>} />
+                <Route path="expenses" element={<PageTransition><AdminExpenses /></PageTransition>} />
+                <Route path="expenses/types" element={<PageTransition><AdminExpenseTypes /></PageTransition>} />
+                <Route path="expenses/payment-by" element={<PageTransition><AdminPaymentBy /></PageTransition>} />
+                <Route path="expenses/payment-methods" element={<PageTransition><AdminPaymentMethods /></PageTransition>} />
+                <Route path="discounts" element={<PageTransition><AdminDiscounts /></PageTransition>} />
+                <Route path="discounts/new" element={<PageTransition><AdminDiscountForm /></PageTransition>} />
+                <Route path="discounts/:id" element={<PageTransition><AdminDiscountForm /></PageTransition>} />
+                <Route path="discounts/:id/edit" element={<PageTransition><AdminDiscountForm /></PageTransition>} />
+                <Route path="shipping-charges" element={<PageTransition><AdminShippingCharges /></PageTransition>} />
+              </Route>
+
+              {/* 404 */}
+              <Route
+                path="*"
+                element={
+                  <StoreLayout>
+                    <PageTransition>
+                      <div className="container empty-state">
+                        <h2>Page Not Found</h2>
+                        <p>The page you are looking for does not exist.</p>
+                        <a href="/" className="btn btn-primary">Go Home</a>
+                      </div>
+                    </PageTransition>
+                  </StoreLayout>
+                }
+              />
+            </Routes>
+          </AnimatePresence>
+        </>
+      );
+  }
 
 function App() {
   return (
@@ -90,152 +253,8 @@ function App() {
       <DirectBuyProvider>
       <CartProvider>
         <ToastProvider>
-          <ScrollToTop />
-          <SiteMeta />
-        <Routes>
-          {/* Store routes */}
-          <Route
-            path="/"
-            element={
-              <StoreLayout>
-                <Home />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/products"
-            element={
-              <StoreLayout>
-                <Products />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/product/:slug"
-            element={
-              <StoreLayout>
-                <ProductDetail />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/cart"
-            element={
-              <StoreLayout>
-                <Cart />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/checkout"
-            element={
-              <StoreLayout>
-                <Checkout />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/track-order"
-            element={
-              <StoreLayout>
-                <TrackOrder />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/offers"
-            element={
-              <StoreLayout>
-                <Offers />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/contact"
-            element={
-              <ContactLayout>
-                <Contact />
-              </ContactLayout>
-            }
-          />
-          <Route
-            path="/privacy-policy"
-            element={
-              <StoreLayout>
-                <PolicyPage />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/terms-conditions"
-            element={
-              <StoreLayout>
-                <PolicyPage />
-              </StoreLayout>
-            }
-          />
-          <Route
-            path="/refund-policy"
-            element={
-              <StoreLayout>
-                <PolicyPage />
-              </StoreLayout>
-            }
-          />
-
-          {/* Admin routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="products/new" element={<AdminProductForm />} />
-            <Route path="products/:id/edit" element={<AdminProductForm />} />
-            <Route path="products/:id/variants" element={<AdminProductVariants />} />
-            <Route path="orders" element={<AdminOrders />} />
-            <Route path="orders/new" element={<AdminOrderCreate />} />
-            <Route path="orders/:id" element={<AdminOrderDetail />} />
-            <Route path="orders/:id/edit" element={<AdminOrderCreate />} />
-            <Route path="messages" element={<AdminMessages />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="banners" element={<AdminBanners />} />
-            <Route path="attributes" element={<AdminAttributes />} />
-            <Route path="attribute-options" element={<AdminAttributeOptions />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="expenses" element={<AdminExpenses />} />
-            <Route path="expenses/types" element={<AdminExpenseTypes />} />
-            <Route path="expenses/payment-by" element={<AdminPaymentBy />} />
-             <Route path="expenses/payment-methods" element={<AdminPaymentMethods />} />
-<Route path="discounts" element={<AdminDiscounts />} />
-            <Route path="discounts/new" element={<AdminDiscountForm />} />
-            <Route path="discounts/:id" element={<AdminDiscountForm />} />
-            <Route path="discounts/:id/edit" element={<AdminDiscountForm />} />
-            <Route path="shipping-charges" element={<AdminShippingCharges />} />
-            </Route>
-
-          {/* 404 */}
-          <Route
-            path="*"
-            element={
-              <StoreLayout>
-                <div className="container empty-state">
-                  <h2>Page Not Found</h2>
-                  <p>The page you are looking for does not exist.</p>
-                  <a href="/" className="btn btn-primary">Go Home</a>
-                </div>
-              </StoreLayout>
-            }
-          />
-        </Routes>
-      </ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </CartProvider>
       </DirectBuyProvider>
       </SiteSettingsProvider>

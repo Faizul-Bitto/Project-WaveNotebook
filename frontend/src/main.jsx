@@ -20,6 +20,7 @@ import './styles/admin/admin-attributes.css'
 import './styles/admin/admin-orders.css'
 import './styles/admin/admin-messages.css'
 import './styles/animations.css'
+import './styles/transitions.css'
 import './App.css'
 import App from './App.jsx'
 

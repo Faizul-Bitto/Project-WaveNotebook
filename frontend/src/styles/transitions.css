@@ -1,0 +1,90 @@
+/* ==========================================
+   Page Transition & Center Loading Overlay
+   Elegant, subtle route change animations
+   ========================================== */
+
+/* ==========================================
+   Center Page Loader — Wave Bar Animation
+   ========================================== */
+.page-loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.page-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.page-loader-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 36px;
+}
+
+.wave-bar {
+  width: 8px;
+  height: 18px;
+  background: var(--price-color);
+  border-radius: 3px;
+  animation: waveBounce 0.9s ease-in-out infinite both;
+}
+
+.wave-bar:nth-child(1) {
+  animation-delay: -0.36s;
+}
+
+.wave-bar:nth-child(2) {
+  animation-delay: -0.27s;
+}
+
+.wave-bar:nth-child(3) {
+  animation-delay: -0.18s;
+}
+
+.wave-bar:nth-child(4) {
+  animation-delay: -0.09s;
+}
+
+.wave-bar:nth-child(5) {
+  animation-delay: 0s;
+}
+
+@keyframes waveBounce {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.page-loader-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  letter-spacing: 0.5px;
+  font-family: var(--font-text);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .page-loader-overlay {
+    background: rgba(255, 255, 255, 0.88);
+  }
+  .wave-bar {
+    animation: none;
+  }
+}
