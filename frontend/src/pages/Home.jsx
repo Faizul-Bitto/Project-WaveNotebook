@@ -61,8 +61,9 @@ function Home () {
 
   return (
     <div className="home-page">
-      <section className="hero-banner">
-        <div className="container">
+      {/* Banner + features fill the first screen (100vh - header) */}
+      <div className="home-hero-screen">
+        <section className="hero-banner">
           { banners.length > 0 ? (
             <div className="banner-slider">
               { banners.map( ( banner, index ) => (
@@ -81,28 +82,30 @@ function Home () {
               ) }
             </div>
           ) : (
-            <div className="hero-placeholder">
-              <h1>Wave Notebook</h1>
-              <p>Your trusted online shop for quality notebooks & stationery</p>
-              <Link to="/products" className="btn btn-primary">Shop Now</Link>
-            </div>
-          ) }
-        </div>
-      </section>
-
-      <section className="features-section">
-        <div className="container features-grid">
-          { features.map( ( feature, index ) => (
-            <div className="feature-item" key={ index }>
-              <div className="feature-icon">{ feature.icon }</div>
-              <div>
-                <h4>{ feature.title }</h4>
-                <p>{ feature.desc }</p>
+            <div className="container">
+              <div className="hero-placeholder">
+                <h1>Wave Notebook</h1>
+                <p>Your trusted online shop for quality notebooks & stationery</p>
+                <Link to="/products" className="btn btn-primary">Shop Now</Link>
               </div>
             </div>
-          ) ) }
-        </div>
-      </section>
+          ) }
+        </section>
+
+        <section className="features-section">
+          <div className="container features-grid">
+            { features.map( ( feature, index ) => (
+              <div className="feature-item" key={ index }>
+                <div className="feature-icon">{ feature.icon }</div>
+                <div>
+                  <h4>{ feature.title }</h4>
+                  <p>{ feature.desc }</p>
+                </div>
+              </div>
+            ) ) }
+          </div>
+        </section>
+      </div>
 
       <section className="categories-section">
         <div className="container">

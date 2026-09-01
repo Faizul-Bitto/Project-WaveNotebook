@@ -118,7 +118,9 @@ body {
   background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* clip instead of hidden: hidden would create a scroll container and break position: sticky (navbar) */
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
   width: 100%;
   position: relative;
@@ -128,7 +130,9 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  /* clip instead of hidden: hidden would create a scroll container and break position: sticky (navbar) */
   overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100%;
   width: 100%;
   position: relative;

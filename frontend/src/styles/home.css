@@ -3,14 +3,38 @@
    Hero Banner, Features, Categories, Products Grid/Card
    ========================================== */
 
+/* Banner + features fill the first visible screen (100vh minus header) */
+.home-hero-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--header-height, 140px));
+}
+
 .hero-banner {
   margin-bottom: 0;
+  flex: 1;
+  min-height: 0; /* allow shrinking — image height must not stretch the layout */
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-banner > .container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.features-section {
+  flex-shrink: 0;
 }
 
 .banner-slider {
   position: relative;
   overflow: hidden;
   border-radius: 0;
+  flex: 1;
+  min-height: 0; /* never taller than the space flex gives it */
 }
 
 .banner-slide {
@@ -18,13 +42,18 @@
   position: relative;
 }
 
+/* Active slide fills the slider absolutely, so its natural image
+   height can never push the section beyond the first screen */
 .banner-slide.active {
   display: block;
+  position: absolute;
+  inset: 0;
 }
 
 .banner-slide img {
+  display: block;
   width: 100%;
-  height: 500px;
+  height: 100%;
   object-fit: cover;
 }
 
@@ -637,10 +666,6 @@
 }
 
 @media (max-width: 768px) {
-  .banner-slide img {
-    height: 320px;
-  }
-
   .banner-overlay {
     padding: 20px;
   }
