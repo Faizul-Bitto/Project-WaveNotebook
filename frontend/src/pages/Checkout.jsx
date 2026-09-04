@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FaCheckCircle, FaCopy, FaTruck } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { calculateCart, createOrder, getDistricts } from '../api/services';
-import PhoneInput from '../components/PhoneInput';
+import PhoneInput, { getPhoneInputIssue } from '../components/PhoneInput';
 import { useCart } from '../context/CartContext';
 import { useDirectBuy } from '../context/DirectBuyContext';
 import { useToast } from '../context/ToastContext';
@@ -29,6 +29,15 @@ function Checkout () {
   const [ districts, setDistricts ] = useState( [] );
   const [ loading, setLoading ] = useState( false );
   const [ orderSuccess, setOrderSuccess ] = useState( null );
+
+  // The success screen renders in place (same route), so ScrollToTop's
+  // pathname effect never fires — jump to the top manually so the summary
+  // starts at the top like a fresh page.
+  useEffect( () => {
+    if ( orderSuccess ) {
+      window.scrollTo( 0, 0 );
+    }
+  }, [ orderSuccess ] );
   const [ formData, setFormData ] = useState( {
     full_name: '',
     phone_number: '',
@@ -104,12 +113,24 @@ function Checkout () {
     // Inline field validation with highlights + messages
     const errs = validateForm( formData, {
       full_name: { label: 'full name', required: true },
-      phone_number: { label: 'phone number', required: true, pattern: PATTERNS.phoneDigits, message: 'Please enter a valid phone number (11 digits).' },
+      phone_number: { label: 'phone number', required: true, pattern: PATTERNS.intlPhone, message: 'Please enter a valid phone number (including country code).' },
       district: { label: 'district', required: true, requiredMessage: 'Please select your district.' },
       thana: { label: 'thana', required: true },
       address: { label: 'address', required: true },
       email: { label: 'email', pattern: PATTERNS.email, message: 'Please enter a valid email address.' },
     } );
+
+    // The user repeated the selected country code (leading 0 or typed 880...).
+    // The live inline error already shows under the phone box while typing —
+    // just block the submit with a toast and highlight any other bad fields.
+    const phoneIssue = getPhoneInputIssue( formData.phone_number );
+    if ( phoneIssue ) {
+      delete errs.phone_number;
+      setErrors( errs );
+      addToast( phoneIssue, 'error' );
+      return;
+    }
+
     if ( Object.keys( errs ).length > 0 ) {
       setErrors( errs );
       addToast( firstError( errs ), 'error' );
@@ -145,10 +166,13 @@ function Checkout () {
       items,
     };
     try {
-      // Morphing promise toast: "Placing your order..." -> success / error
-      let placed = null;
-      await toastPromise(
-        createOrder( orderData ).then( ( result ) => { placed = result; return result; } ),
+      // Morphing promise toast: "Placing your order..." -> success / error.
+      // NOTE: goey-toast's promise() returns a toast id (not a Promise), so
+      // awaiting it resolves instantly — the real API promise must be awaited
+      // separately or the success handling below would never run.
+      const apiPromise = createOrder( orderData );
+      toastPromise(
+        apiPromise,
         {
           loading: 'Placing your order...',
           success: 'Order placed successfully!',
@@ -156,6 +180,7 @@ function Checkout () {
         },
         { showProgress: true }
       );
+      const placed = await apiPromise;
       if ( placed ) {
         setOrderSuccess( placed.order );
         await clearAll();

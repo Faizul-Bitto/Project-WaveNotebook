@@ -215,9 +215,12 @@ function AdminProductForm() {
     });
 
     try {
-      // Morphing promise toast: "Uploading images..." -> success / error
-      await toastPromise(
-        isEditing ? adminUpdateProduct(id, formDataToSend) : adminCreateProduct(formDataToSend),
+      // Morphing promise toast: "Uploading images..." -> success / error.
+      // goey-toast's promise() returns a toast id, not a Promise — await the
+      // real API promise so navigation only happens after the save settles.
+      const apiPromise = isEditing ? adminUpdateProduct(id, formDataToSend) : adminCreateProduct(formDataToSend);
+      toastPromise(
+        apiPromise,
         {
           loading: isEditing ? 'Updating product...' : 'Uploading product & images...',
           success: isEditing ? 'Product updated successfully!' : 'Product created successfully!',
@@ -225,6 +228,7 @@ function AdminProductForm() {
         },
         { showProgress: true }
       );
+      await apiPromise;
 
       setTimeout(() => navigate('/admin/products'), 1500);
     } catch {
@@ -252,13 +256,14 @@ function AdminProductForm() {
 
     let productId = id;
     try {
-      // Morphing promise toast: "Uploading images..." -> success / error
-      let created = null;
-      await toastPromise(
-        (isEditing
-          ? adminUpdateProduct(id, formDataToSend)
-          : adminCreateProduct(formDataToSend).then((result) => { created = result; return result; })
-        ),
+      // Morphing promise toast: "Uploading images..." -> success / error.
+      // goey-toast's promise() returns a toast id, not a Promise — await the
+      // real API promise or `created` would still be null below.
+      const apiPromise = isEditing
+        ? adminUpdateProduct(id, formDataToSend)
+        : adminCreateProduct(formDataToSend);
+      toastPromise(
+        apiPromise,
         {
           loading: isEditing ? 'Updating product...' : 'Uploading product & images...',
           success: isEditing ? 'Product updated successfully!' : 'Product created successfully!',
@@ -266,6 +271,7 @@ function AdminProductForm() {
         },
         { showProgress: true }
       );
+      const created = await apiPromise;
       if (!isEditing && created) {
         productId = created.product.id;
       }

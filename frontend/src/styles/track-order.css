@@ -225,6 +225,29 @@
   color: var(--gray-800);
   border-radius: 0 var(--radius) var(--radius) 0;
 }
+/* Country-code duplication error (leading 0 / repeated code).
+   The box turns red while the issue persists, and the live message
+   renders below the box in the standard field-error voice. */
+.phone-input-wrap.has-issue {
+  border-color: var(--danger);
+}
+.phone-input-wrap.has-issue .phone-code-dropdown-wrap {
+  border-right-color: var(--danger);
+}
+.phone-input-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 2px 0;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.phone-input-error::before {
+  content: '⚠';
+  font-size: 11px;
+}
 .track-phone-wrap {
   flex: 1;
 }

@@ -24,6 +24,9 @@ export const PATTERNS = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   bdPhone: /^01[3-9]\d{8}$/,
   phoneDigits: /^\d{10,14}$/,
+  // Value stored by PhoneInput includes the selected country code, e.g.
+  // "+8801700000000" — accept an optional leading + followed by 10-14 digits.
+  intlPhone: /^\+?\d{10,14}$/,
   number: /^\d+(\.\d+)?$/,
 };
 

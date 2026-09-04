@@ -26,17 +26,20 @@ function Cart() {
 
     setBogoUpdating(true);
     try {
-      // Morphing promise toast: "Applying..." -> success / error blob
-      await toastPromise(
-        (async () => {
-          const result = await updateItem(match.id, newQty);
-          if (!result.success) {
-            const err = new Error(result.error || 'Failed to apply BOGO offer.');
-            err.isExpected = true;
-            throw err;
-          }
-          return result;
-        })(),
+      // Morphing promise toast: "Applying..." -> success / error blob.
+      // goey-toast's promise() returns a toast id, not a Promise — await the
+      // real promise so the spinner lasts until the update actually settles.
+      const applyPromise = (async () => {
+        const result = await updateItem(match.id, newQty);
+        if (!result.success) {
+          const err = new Error(result.error || 'Failed to apply BOGO offer.');
+          err.isExpected = true;
+          throw err;
+        }
+        return result;
+      })();
+      toastPromise(
+        applyPromise,
         {
           loading: 'Applying BOGO offer...',
           success: `BOGO applied — ${offer.extra_units} more added at ${offer.get_discount_percent}% off!`,
@@ -44,6 +47,7 @@ function Cart() {
         },
         { showProgress: true }
       );
+      await applyPromise;
     } catch {
       // Error already shown by the promise toast
     } finally {

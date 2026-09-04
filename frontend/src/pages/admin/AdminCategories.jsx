@@ -90,11 +90,14 @@ function AdminCategories() {
 
     const uploading = Boolean(imageFile);
     try {
-      // Morphing promise toast: "Uploading category image..." -> success / error
-      await toastPromise(
-        editingCategory
-          ? adminUpdateCategory(editingCategory.id, formDataObj)
-          : adminCreateCategory(formDataObj),
+      // Morphing promise toast: "Uploading category image..." -> success / error.
+      // goey-toast's promise() returns a toast id, not a Promise — await the
+      // real API promise so loadCategories() runs after the save lands.
+      const apiPromise = editingCategory
+        ? adminUpdateCategory(editingCategory.id, formDataObj)
+        : adminCreateCategory(formDataObj);
+      toastPromise(
+        apiPromise,
         {
           loading: uploading ? 'Uploading category image...' : (editingCategory ? 'Updating category...' : 'Creating category...'),
           success: editingCategory ? 'Category updated successfully!' : 'Category created successfully!',
@@ -102,6 +105,7 @@ function AdminCategories() {
         },
         { showProgress: true }
       );
+      await apiPromise;
 
       setShowForm(false);
       setEditingCategory(null);

@@ -134,8 +134,11 @@ function AdminSettings () {
     // Morphing promise toast: mentions uploads when files are attached
     const hasUploads = Boolean( logoFile || faviconFile );
     try {
-      await toastPromise(
-        adminUpdateSettings( fd ),
+      // goey-toast's promise() returns a toast id, not a Promise — await the
+      // real API promise so refresh()/loadSettings() run after the save lands.
+      const apiPromise = adminUpdateSettings( fd );
+      toastPromise(
+        apiPromise,
         {
           loading: hasUploads ? 'Uploading image & saving settings...' : 'Saving settings...',
           success: hasUploads ? 'Image uploaded & settings saved successfully!' : 'Settings saved successfully!',
@@ -143,6 +146,7 @@ function AdminSettings () {
         },
         { showProgress: true }
       );
+      await apiPromise;
       await refresh();
       await loadSettings();
     } catch {

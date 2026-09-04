@@ -197,6 +197,31 @@ const COUNTRIES = [
   { name: 'Zimbabwe', code: '+263', flag: '🇿🇼' },
 ];
 
+// Returns an error message when the local part of `value` (the full
+// "+<code><number>" string managed by PhoneInput) duplicates the country
+// code, or null when the input is fine. PhoneInput uses it for the live
+// red border (has-issue), pages use it for submit-time validation + toasts.
+export function getPhoneInputIssue(value) {
+  const text = (value || '').trim();
+  const matched = COUNTRIES.find((c) => text.startsWith(c.code));
+  if (!matched) return null;
+  const local = text.slice(matched.code.length);
+  if (!local) return null;
+  const codeDigits = matched.code.replace('+', '');
+
+  // User typed 01700000000 although +880 is already selected
+  if (local.startsWith('0')) {
+    return 'Country code is already selected — please provide the rest of your number without the leading 0.';
+  }
+  // User typed 880170000000 although +880 is already selected. Only flagged
+  // for 3+ digit codes so short codes like +1 or +7 never false-positive on
+  // locally written numbers that legitimately start with the same digit.
+  if (codeDigits.length >= 3 && local.startsWith(codeDigits)) {
+    return 'Country code is already selected — please provide the rest of your number without repeating the country code.';
+  }
+  return null;
+}
+
 function PhoneInput({ value, onChange, placeholder, name, className }) {
   const [countryCode, setCountryCode] = useState('+880');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -236,6 +261,9 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
 
   const handleNumberChange = (e) => {
     const raw = e.target.value;
+    // No auto-cleaning: show exactly what the user typed. Invalid patterns
+    // (leading 0, repeated country code) are surfaced as errors instead —
+    // see getPhoneInputIssue below.
     const inputValue = raw.replace(/\D/g, '').slice(0, 15);
     onChange(name, `${countryCode}${inputValue}`);
   };
@@ -247,6 +275,7 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
   const localNumber = value.startsWith(matchedCode)
     ? value.slice(matchedCode.length)
     : value || '';
+  const phoneIssue = getPhoneInputIssue(value);
 
   const filteredCountries = search.trim()
     ? COUNTRIES.filter(
@@ -257,7 +286,8 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
     : COUNTRIES;
 
   return (
-    <div className="phone-input-wrap" ref={wrapRef}>
+    <div className="phone-input-outer" ref={wrapRef}>
+      <div className={ `phone-input-wrap ${ phoneIssue ? 'has-issue' : '' }` }>
       <div className="phone-code-dropdown-wrap">
         <button
           type="button"
@@ -315,6 +345,14 @@ function PhoneInput({ value, onChange, placeholder, name, className }) {
         value={localNumber}
         onChange={handleNumberChange}
       />
+      </div>
+      {/* Live error: shows while the user types, disappears as soon as the
+          number is fixed. Styled after the app's standard .field-error. */}
+      {phoneIssue && (
+        <p className="phone-input-error" role="alert">
+          {phoneIssue}
+        </p>
+      )}
     </div>
   );
 }

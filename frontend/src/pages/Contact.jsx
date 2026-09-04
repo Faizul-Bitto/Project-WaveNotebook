@@ -9,7 +9,7 @@ import {
 import { sendMessage } from '../api/services';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useToast } from '../context/ToastContext';
-import PhoneInput from '../components/PhoneInput';
+import PhoneInput, { getPhoneInputIssue } from '../components/PhoneInput';
 
 function Contact() {
   const { settings, loading: settingsLoading } = useSiteSettings();
@@ -65,6 +65,13 @@ function Contact() {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
+      return;
+    }
+    // Country-code duplication (leading 0 / repeated code) — the live inline
+    // error already shows under the phone box; block submit with a toast.
+    const phoneIssue = getPhoneInputIssue(formData.phone_number);
+    if (phoneIssue) {
+      addToast(phoneIssue, 'error');
       return;
     }
 
