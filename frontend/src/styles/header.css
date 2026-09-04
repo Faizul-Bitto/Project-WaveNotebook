@@ -206,8 +206,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 20px;
-  font-weight: 700;
+  /* Stylish handwritten voice for the wordmark — light, never bold */
+  font-family: "Dancing Script", "Segoe Script", cursive;
+  font-size: 26px;
+  font-weight: 500;
   color: var(--gray-900);
 }
 
