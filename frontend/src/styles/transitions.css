@@ -1,9 +1,8 @@
 /* ==========================================
    Centered Page Loader — Sound Wave Bars
    Vertical bars pulsing like an audio waveform, in the site's price color,
-   floating over a soft translucent blur. No card, no inner box, no text.
-   Non-blocking (pointer-events: none) and translucent, so the incoming page
-   stays visible beneath.
+   over a solid opaque white screen. No card, no inner box, no text.
+   Fully opaque, so the incoming page is hidden until the loader clears.
    ========================================== */
 
 .page-loader-overlay {
@@ -13,10 +12,7 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  pointer-events: none;
-  background: rgba(255, 255, 255, 0.38);
-  backdrop-filter: blur(7px) saturate(140%);
-  -webkit-backdrop-filter: blur(7px) saturate(140%);
+  background: #ffffff;
 }
 
 .loader-bars-wrap {

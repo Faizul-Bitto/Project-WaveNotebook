@@ -3,8 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Centered route-change loader: a sound-wave of vertical bars pulsing in the
-// site's price color, floating over a soft translucent blur. No card, no box,
-// no text. Clicks pass through and it clears quickly.
+// site's price color, over a solid opaque white screen. No card, no box,
+// no text. Blocks clicks while shown and it clears quickly.
 export default function PageLoader() {
   const location = useLocation();
   const [visible, setVisible] = useState(false);
