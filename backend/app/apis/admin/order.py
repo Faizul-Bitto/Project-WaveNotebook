@@ -130,8 +130,8 @@ async def get_all_orders(
             )
 
         total = query.order_by(None).count()
-        # Show orders in natural database order (ascending by id / oldest first)
-        orders = query.order_by(Order.id.asc()).offset(skip).limit(limit).all()
+        # Newest first — latest orders at the top of the admin list
+        orders = query.order_by(Order.id.desc()).offset(skip).limit(limit).all()
 
         logger.info(
             f"📦 Orders Retrieved | "
@@ -278,8 +278,8 @@ async def search_orders(
             query = db.query(Order).filter(Order.order_number.contains(value))
 
         total = query.order_by(None).count()
-        # Show orders in natural database order (ascending by id / oldest first)
-        orders = query.order_by(Order.id.asc()).offset(skip).limit(limit).all()
+        # Newest first — latest orders at the top of search results too
+        orders = query.order_by(Order.id.desc()).offset(skip).limit(limit).all()
 
         logger.info(
             f"🔍 Orders Searched | Type={type} | Value={value} | Count={len(orders)} | Total={total} | Admin={admin.phone_number}"
